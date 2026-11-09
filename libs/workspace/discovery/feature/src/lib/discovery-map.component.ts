@@ -1,9 +1,12 @@
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { discoveryMapFrame } from './discovery-map-framing';
 import {
     ChangeDetectionStrategy,
     Component,
     computed,
     input,
+    inject,
     output,
     signal,
 } from '@angular/core';
@@ -35,6 +38,7 @@ export const MAP_REGIONS = [
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DiscoveryMapComponent {
+    private readonly http = inject(HttpClient);
     readonly locationIds = input<string[] | null>(null);
     readonly selected = input<string[]>([]);
     readonly region = input('World');
@@ -91,11 +95,9 @@ export class DiscoveryMapComponent {
         void Promise.all(
             ['world', 'states'].map(async (kind) => {
                 try {
-                    const response = await fetch(
-                        `assets/discovery/${kind}.json`
+                    const shapes = await firstValueFrom(
+                        this.http.get<Shape[]>(`assets/discovery/${kind}.json`)
                     );
-                    if (!response.ok) throw new Error('Map unavailable');
-                    const shapes = (await response.json()) as Shape[];
                     if (kind === 'world')
                         this.world.set(discoveryWorldShapes(shapes));
                     else this.states.set(shapes);

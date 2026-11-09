@@ -306,3 +306,6 @@ The standalone desktop header reuses the shared zoom-aware traffic-light clearan
 directive and provides a drag region with no-drag controls. Provider XMLTV channel
 IDs stay in runtime metadata and are passed to the shared EPG resolver, outside
 the portable classification records.
+
+Map assets use the application HTTP client, including its XHR transport for
+packaged Electron file URLs. Electron coverage verifies both world and state paths.

@@ -38,6 +38,21 @@ test('Electron imports a packaged baseline through file assets without replacing
             contentTypes: ['live'],
         });
         await app.mainWindow.getByTestId('rail-discovery-prototype').click();
+        await expect(
+            app.mainWindow.locator('#discovery-region-PE')
+        ).toBeAttached();
+        await app.mainWindow
+            .getByLabel('Explore a region')
+            .selectOption('United States');
+        await expect(
+            app.mainWindow.locator('#discovery-region-US-FL')
+        ).toBeAttached();
+        await expect(
+            app.mainWindow.getByText('Map unavailable.', { exact: false })
+        ).toHaveCount(0);
+        await app.mainWindow
+            .getByLabel('Explore a region')
+            .selectOption('World');
         const header = app.mainWindow.locator('.topbar');
         await expect(header).toHaveCSS('-webkit-app-region', 'drag');
         await expect(header.locator('.brand')).toHaveCSS(
