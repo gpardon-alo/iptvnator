@@ -1182,6 +1182,12 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
 
     private clearCacheForPlaylist(playlistId: string): void {
         this.catalogCache?.clearSession(playlistId);
+        // Queue behind reads already awaiting the import, before any later reads.
+        // The read owns import errors; session cleanup remains synchronous.
+        void this.catalogCacheLoad?.then(
+            (cache) => cache.clearSession(playlistId),
+            () => undefined
+        );
         const keysToDelete: string[] = [];
 
         this.categoryCache.forEach((_, key) => {

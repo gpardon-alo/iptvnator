@@ -73,6 +73,26 @@ describe('PwaXtreamDataSource', () => {
         localStorage.clear();
     });
 
+    it.each([false, true])(
+        'invalidates pending catalog access when switching source (cache already loaded: %s)',
+        async (loaded) => {
+            apiService.getCategories.mockResolvedValue([]);
+            if (loaded)
+                await dataSource.getCategories('source', credentials, 'live');
+            apiService.getCategories.mockClear();
+            const pending = dataSource.getCategories(
+                'source',
+                credentials,
+                'live'
+            );
+            dataSource.clearSessionCache('source');
+            await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+            expect(apiService.getCategories).not.toHaveBeenCalled();
+            await dataSource.getCategories('source', credentials, 'live');
+            expect(apiService.getCategories).toHaveBeenCalledTimes(1);
+        }
+    );
+
     it('publishes the fresh catalog after cancellation during persistence instead of reusing the old session rows', async () => {
         const clock = jest.spyOn(Date, 'now').mockReturnValue(1000);
         const cache = TestBed.inject(PwaCatalogCache);
