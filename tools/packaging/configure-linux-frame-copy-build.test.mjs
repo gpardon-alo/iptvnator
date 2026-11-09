@@ -88,6 +88,7 @@ test('manual Debian builds reuse packaging gates and cannot publish a release', 
     assert.deepEqual(deb.needs, [
         'linux-embedded-mpv-runtime',
         'nightly-version',
+        'classification-baseline',
     ]);
     assert.deepEqual(deb.steps, jobs['build-linux'].steps);
     const matrix = deb.strategy.matrix.include[0];
@@ -522,7 +523,10 @@ test('keeps non-Linux builds independent from the Linux runtime prerequisite', (
     assert.ok(linuxJob);
     // The nightly-version job is a cheap, platform-neutral prerequisite; the
     // Linux runtime build must stay out of the non-Linux dependency list.
-    assert.deepEqual(crossPlatformJob.needs, 'nightly-version');
+    assert.deepEqual(crossPlatformJob.needs, [
+        'nightly-version',
+        'classification-baseline',
+    ]);
     assert.deepEqual(
         crossPlatformJob.strategy.matrix.include.map(({ os, arch }) => ({
             os,
@@ -538,6 +542,7 @@ test('keeps non-Linux builds independent from the Linux runtime prerequisite', (
     assert.deepEqual(linuxJob.needs, [
         'linux-embedded-mpv-runtime',
         'nightly-version',
+        'classification-baseline',
     ]);
     assert.deepEqual(
         linuxJob.strategy.matrix.include.map(

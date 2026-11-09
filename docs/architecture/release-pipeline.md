@@ -292,7 +292,9 @@ use the upstream 27-asset verification or publish a website announcement.
 To include reviewed classifications without committing provider data, attach the
 validated `discovery-classification-baseline.json` to a private draft release in
 the fork, then dispatch with its tag in `baseline_tag`. The build downloads that
-single asset using its read-only repository token. The `beforePack` hook checks
+single asset in an isolated job with draft-release read access. That job checks
+out no code and runs no dependency installs; build jobs keep read-only repository
+permissions and receive the file as a one-day workflow artifact. The `beforePack` hook checks
 the schema, source identities and credential-free fields before staging the asset
 into the packaged renderer. Local builds use `IPTVNATOR_DISCOVERY_BASELINE_FILE`.
 Do not publish the staging draft or attach credentials; the resulting installer

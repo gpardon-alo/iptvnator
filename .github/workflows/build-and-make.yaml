@@ -65,6 +65,42 @@ permissions:
     contents: read
 
 jobs:
+    classification-baseline:
+        name: Prepare optional classification baseline
+        if: github.repository == '4gray/iptvnator' || github.event_name == 'workflow_dispatch'
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        # Draft releases require push access. Keep this credential isolated
+        # from checkout, dependency installation and application build code.
+        permissions:
+            contents: write
+        steps:
+            - name: Resolve baseline input
+              shell: bash
+              run: echo 'Preparing optional baseline input.'
+
+            - name: Download draft baseline asset
+              if: github.event_name == 'workflow_dispatch' && inputs.baseline_tag != ''
+              shell: bash
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  BASELINE_TAG: ${{ inputs.baseline_tag }}
+              run: |
+                  set -euo pipefail
+                  [[ "${BASELINE_TAG}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ ]]
+                  mkdir -p "${RUNNER_TEMP}/discovery-baseline"
+                  gh release download "${BASELINE_TAG}" --repo "${GITHUB_REPOSITORY}" \
+                      --pattern discovery-classification-baseline.json --dir "${RUNNER_TEMP}/discovery-baseline"
+
+            - name: Transfer baseline input
+              if: github.event_name == 'workflow_dispatch' && inputs.baseline_tag != ''
+              uses: actions/upload-artifact@v7
+              with:
+                  name: classification-baseline-input
+                  path: ${{ runner.temp }}/discovery-baseline/discovery-classification-baseline.json
+                  if-no-files-found: error
+                  retention-days: 1
+
     # One version for the whole run. Computed here rather than in each build
     # job because the rule depends on whether the base tag exists on origin:
     # a tag pushed while the matrix runs would otherwise give one run two
@@ -399,7 +435,7 @@ jobs:
     build-cross-platform:
         name: Build on ${{ matrix.os }} ${{ matrix.arch }}
         if: ${{ (github.repository == '4gray/iptvnator' || github.event_name == 'workflow_dispatch') && !(github.event_name == 'workflow_dispatch' && inputs.package_set == 'deb') }}
-        needs: nightly-version
+        needs: [nightly-version, classification-baseline]
         runs-on: ${{ matrix.runner }}
         timeout-minutes: 120
         concurrency:
@@ -497,16 +533,18 @@ jobs:
 
             - name: Download private classification baseline
               if: github.event_name == 'workflow_dispatch' && inputs.baseline_tag != ''
+              uses: actions/download-artifact@v8
+              with:
+                  name: classification-baseline-input
+                  path: ${{ runner.temp }}/discovery-baseline
+
+            - name: Select classification baseline for packaging
+              if: github.event_name == 'workflow_dispatch' && inputs.baseline_tag != ''
               shell: bash
-              env:
-                  GH_TOKEN: ${{ github.token }}
-                  BASELINE_TAG: ${{ inputs.baseline_tag }}
               run: |
                   set -euo pipefail
                   baseline_dir="${RUNNER_TEMP}/discovery-baseline"
-                  mkdir -p "${baseline_dir}"
-                  gh release download "${BASELINE_TAG}" --repo "${GITHUB_REPOSITORY}" \
-                      --pattern discovery-classification-baseline.json --dir "${baseline_dir}"
+                  test -s "${baseline_dir}/discovery-classification-baseline.json"
                   echo "IPTVNATOR_DISCOVERY_BASELINE_FILE=${baseline_dir}/discovery-classification-baseline.json" >> "${GITHUB_ENV}"
 
             - name: Download pinned Linux Embedded MPV runtime
@@ -1429,6 +1467,7 @@ jobs:
         needs:
             - linux-embedded-mpv-runtime
             - nightly-version
+            - classification-baseline
         runs-on: ${{ matrix.runner }}
         timeout-minutes: 120
         concurrency:
@@ -1471,6 +1510,7 @@ jobs:
         needs:
             - linux-embedded-mpv-runtime
             - nightly-version
+            - classification-baseline
         runs-on: ubuntu-22.04
         timeout-minutes: 120
         concurrency:
