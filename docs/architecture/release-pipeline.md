@@ -282,6 +282,10 @@ its exact runtime-manifest target contract, but omits their distribution probes.
 The pinned Linux runtime prerequisite and its cache/source checks still run.
 The default `all` option preserves the full build and release behavior.
 
+Fork CI keeps coverage checks and downloadable report artifacts enabled. Codecov
+uploads are opt-in through the `CODECOV_UPLOAD_ENABLED=true` repository variable
+and a configured `CODECOV_TOKEN` secret; upstream upload behavior is unchanged.
+
 Fork pushes leave the expensive Electron packaging matrix idle; use manual
 dispatch for fork builds. Upstream Docker Hub and Snap Store publication jobs
 are restricted to the upstream repository. The fork's Debian-only release is

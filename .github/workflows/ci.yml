@@ -260,9 +260,10 @@ jobs:
             # Keep its Linux/macOS-only package out of the workspace install.
             - name: Upload renderer bundle analysis to Codecov
               if: >-
-                  github.event_name != 'pull_request' ||
+                  (github.repository == '4gray/iptvnator' || vars.CODECOV_UPLOAD_ENABLED == 'true') &&
+                  (github.event_name != 'pull_request' ||
                   (github.event.pull_request.head.repo.full_name == github.repository &&
-                  github.event.pull_request.user.login != 'dependabot[bot]')
+                  github.event.pull_request.user.login != 'dependabot[bot]'))
               continue-on-error: true
               timeout-minutes: 3
               run: >-
@@ -628,7 +629,8 @@ jobs:
                   retention-days: 14
 
             - name: Upload unit test results to Codecov
-              if: ${{ !cancelled() && hashFiles('coverage/**/junit.xml') != '' }}
+              # Forks retain reports as Actions artifacts; third-party uploads are opt-in.
+              if: ${{ !cancelled() && (github.repository == '4gray/iptvnator' || vars.CODECOV_UPLOAD_ENABLED == 'true') && hashFiles('coverage/**/junit.xml') != '' }}
               uses: codecov/codecov-action@v7
               with:
                   report_type: test_results
@@ -639,7 +641,7 @@ jobs:
                   token: ${{ secrets.CODECOV_TOKEN }}
 
             - name: Upload unit coverage to Codecov
-              if: ${{ !cancelled() && steps.unit-coverage.outcome == 'success' }}
+              if: ${{ !cancelled() && (github.repository == '4gray/iptvnator' || vars.CODECOV_UPLOAD_ENABLED == 'true') && steps.unit-coverage.outcome == 'success' }}
               uses: codecov/codecov-action@v7
               with:
                   files: ./coverage/merged/lcov.info,./coverage/merged/cobertura-coverage.xml
