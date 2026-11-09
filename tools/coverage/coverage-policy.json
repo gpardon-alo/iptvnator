@@ -293,6 +293,13 @@
                 "e2eTags": ["@dashboard", "@persistence"]
             },
             {
+                "name": "workspace-discovery-feature",
+                "root": "libs/workspace/discovery/feature",
+                "sourceRoot": "libs/workspace/discovery/feature/src",
+                "validationCommand": "pnpm nx test workspace-discovery-feature",
+                "e2eTags": ["@discovery", "@persistence"]
+            },
+            {
                 "name": "workspace-shell-feature",
                 "root": "libs/workspace/shell/feature",
                 "sourceRoot": "libs/workspace/shell/feature/src",

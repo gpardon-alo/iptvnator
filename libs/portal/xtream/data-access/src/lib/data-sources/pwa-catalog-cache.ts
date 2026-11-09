@@ -1,3 +1,8 @@
+import type { XtreamApiService } from '../services/xtream-api.service';
+import type {
+    XtreamContentItem,
+    XtreamOperationOptions,
+} from './xtream-data-source.interface';
 import { Injectable } from '@angular/core';
 import { loadStalkerProtocolHash } from '@iptvnator/shared/interfaces';
 import { sourceProfileName } from '@iptvnator/services/source-sync/connection';
@@ -18,6 +23,43 @@ export class PwaCatalogCache {
     private readonly entries = new Map<string, Entry>();
     private readonly generations = new Map<string, number>();
     private readonly pending = new Map<string, Promise<unknown[]>>();
+
+    loadContent(
+        playlistId: string,
+        credentials: XtreamCredentials,
+        type: 'live' | 'movie' | 'series',
+        api: XtreamApiService,
+        options?: XtreamOperationOptions,
+        currentRows?: (
+            rows: XtreamContentItem[]
+        ) => XtreamContentItem[] | undefined
+    ): Promise<XtreamContentItem[]> {
+        return this.load(
+            playlistId,
+            `${type}-content`,
+            credentials,
+            async () => {
+                options?.onPhaseChange?.(
+                    type === 'live'
+                        ? 'loading-live'
+                        : type === 'movie'
+                          ? 'loading-movies'
+                          : 'loading-series'
+                );
+                options?.signal?.throwIfAborted();
+                const streams = await api.getStreams(
+                    credentials,
+                    type,
+                    ...(options?.signal ? [{ signal: options.signal }] : [])
+                );
+                const { normalizePwaCatalogContent } =
+                    await import('./pwa-content-metadata');
+                return normalizePwaCatalogContent(streams, type);
+            },
+            options?.signal,
+            currentRows
+        );
+    }
 
     async load<T>(
         playlistId: string,

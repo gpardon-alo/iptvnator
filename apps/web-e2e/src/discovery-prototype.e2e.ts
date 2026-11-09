@@ -172,11 +172,11 @@ test('Discovery classifies a cached source, reviews unknowns and retains mapping
     await expect(page.locator('app-grid-list').first()).toBeVisible();
     await page.goto('/discovery');
     const source = page.getByLabel('Discovery source');
-    const id = await source
+    const option = source
         .locator('option')
-        .filter({ hasText: 'Synthetic classification source' })
-        .getAttribute('value');
-    expect(id).toBeTruthy();
+        .filter({ hasText: 'Synthetic classification source' });
+    await expect(option).toHaveAttribute('value', /.+/);
+    const id = await option.getAttribute('value');
     await source.selectOption(id!);
     await expect(page.locator('.result-count')).toHaveText('4 channels');
     await expect(page.locator('.catalog-toolbar')).not.toContainText(
@@ -821,11 +821,9 @@ test('Discovery map framing fills the canvas without clipping across screen size
             expect(geometry.bottom, region).toBeGreaterThanOrEqual(-1);
             expect(geometry.usedHeight, region).toBeGreaterThan(0.8);
             if (viewport.width === 1920)
-                await page
-                    .locator('.map-canvas')
-                    .screenshot({
-                        path: `../../dist/discovery-map-${region.toLowerCase().replace(/ /g, '-')}.png`,
-                    });
+                await page.locator('.map-canvas').screenshot({
+                    path: `../../dist/discovery-map-${region.toLowerCase().replace(/ /g, '-')}.png`,
+                });
         }
     }
 });

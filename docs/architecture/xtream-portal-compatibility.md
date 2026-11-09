@@ -53,6 +53,9 @@ Ownership follows the workspace boundaries:
 - reusable presentation: `libs/portal/shared/ui`
 - pure provider-neutral contracts/helpers: `libs/portal/shared/util`
 
+PWA catalog caching and content-read orchestration load on first provider use,
+keeping their implementation off the renderer startup import graph.
+
 Catalog writes belong to the runtime loaders behind `getCategories` and
 `getContent`; `IXtreamDataSource` does not expose separate bulk-save methods.
 Electron loaders keep writing through the worker-backed `DatabaseService`;

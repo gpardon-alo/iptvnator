@@ -192,6 +192,8 @@ Sources: [Natural Earth terms](https://www.naturalearthdata.com/about/terms-of-u
 
 ## Validation
 
+The Discovery project participates in Tier A unit source coverage.
+
 `pnpm nx test workspace-discovery-feature` checks source loading, retained manual
 edits, storage failures, stale responses and multi-dimensional filtering.
 `portal-shared-util`'s `discovery-classification` specs check conservative rules

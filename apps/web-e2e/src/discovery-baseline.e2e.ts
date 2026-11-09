@@ -1,3 +1,4 @@
+import type { ClassifiedStream } from '@iptvnator/portal/shared/util';
 import { expect, test } from './fixtures';
 import { configureMockProviderBackend } from './provider-target-route';
 import {
@@ -138,9 +139,9 @@ test('Baseline imports atomically into historical v1 storage and preserves later
     const snapshot = () =>
         page.evaluate(async (sourceId) => {
             return new Promise<{
-                rows: (typeof desktop)[];
+                rows: ClassifiedStream[];
                 receipt: { version: number };
-                backup: (typeof desktop)[];
+                backup: ClassifiedStream[];
                 backup3: unknown;
             }>((resolve, reject) => {
                 const open = indexedDB.open(

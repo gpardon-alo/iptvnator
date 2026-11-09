@@ -48,7 +48,7 @@ import {
     findCollectionItems,
     normalizeCollectionIdentity,
 } from './pwa-collection-identity';
-import { PwaCatalogCache } from './pwa-catalog-cache';
+import type { PwaCatalogCache } from './pwa-catalog-cache';
 import { PwaCollectionStorage } from './pwa-collection-storage';
 import { PwaCollectionCatalog } from './pwa-collection-catalog';
 import type { XtreamCachedContentItem } from './pwa-cached-content';
@@ -73,7 +73,8 @@ type StoredXtreamPlaylistData = Omit<XtreamPlaylistData, 'password'> & {
 @Injectable({ providedIn: 'root' })
 export class PwaXtreamDataSource implements IXtreamDataSource {
     private readonly apiService = inject(XtreamApiService);
-    private readonly catalogCache = inject(PwaCatalogCache);
+    private catalogCache?: PwaCatalogCache;
+    private catalogCacheLoad?: Promise<PwaCatalogCache>;
     private readonly injector = inject(Injector);
     private readonly parentalLock = inject(ParentalLockService);
     private readonly logger = createLogger('PwaXtreamDataSource');
@@ -176,7 +177,7 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
 
         // Clear cache
         this.clearCacheForPlaylist(playlistId);
-        await this.catalogCache.clear(playlistId);
+        await (await this.getCatalogCache()).clear(playlistId);
     }
 
     private getPlaylistsFromStorage(): XtreamPlaylistData[] {
@@ -337,7 +338,9 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
         options?.signal?.throwIfAborted();
         const cacheKey = `${playlistId}-${type}-categories`;
 
-        const categories = await this.catalogCache.load(
+        const categories = await (
+            await this.getCatalogCache()
+        ).load(
             playlistId,
             `${type}-categories`,
             credentials,
@@ -439,11 +442,10 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
                 password: playlist.password,
                 userAgent: playlist.userAgent?.trim() || undefined,
             };
-            categories = await this.catalogCache.load(
-                playlistId,
-                `${categoryType}-categories`,
-                credentials,
-                () => this.apiService.getCategories(credentials, categoryType)
+            categories = await (
+                await this.getCatalogCache()
+            ).load(playlistId, `${categoryType}-categories`, credentials, () =>
+                this.apiService.getCategories(credentials, categoryType)
             );
             this.categoryCache.set(cacheKey, categories);
         }
@@ -506,31 +508,14 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
         const cacheKey = `${playlistId}-${type}-content`;
 
         let validatedRows: unknown[] | undefined;
-        const content = await this.catalogCache.load(
+        const content = await (
+            await this.getCatalogCache()
+        ).loadContent(
             playlistId,
-            `${type}-content`,
             credentials,
-            async () => {
-                options?.onPhaseChange?.(
-                    type === 'live'
-                        ? 'loading-live'
-                        : type === 'movie'
-                          ? 'loading-movies'
-                          : 'loading-series'
-                );
-                options?.signal?.throwIfAborted();
-                return this.normalizeContentItems(
-                    await this.apiService.getStreams(
-                        credentials,
-                        type,
-                        ...(options?.signal
-                            ? ([{ signal: options.signal }] as const)
-                            : [])
-                    ),
-                    type
-                );
-            },
-            options?.signal,
+            type,
+            this.apiService,
+            options,
             (rows) => {
                 validatedRows = rows;
                 return this.contentCacheEntries.get(cacheKey) === rows
@@ -562,19 +547,6 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
         void playlistId;
         void type;
         return [];
-    }
-
-    private async normalizeContentItems(
-        streams:
-            | XtreamLiveStream[]
-            | XtreamVodStream[]
-            | XtreamSerieItem[]
-            | XtreamContentItem[],
-        type: 'live' | 'movie' | 'series'
-    ): Promise<XtreamContentItem[]> {
-        const { normalizePwaCatalogContent } =
-            await import('./pwa-content-metadata');
-        return normalizePwaCatalogContent(streams, type);
     }
 
     // =========================================================================
@@ -1198,11 +1170,18 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
 
     async refreshCatalog(playlistId: string): Promise<void> {
         this.clearCacheForPlaylist(playlistId);
-        await this.catalogCache.clear(playlistId);
+        await (await this.getCatalogCache()).clear(playlistId);
+    }
+
+    private getCatalogCache(): Promise<PwaCatalogCache> {
+        return (this.catalogCacheLoad ??= import('./pwa-catalog-cache').then(
+            ({ PwaCatalogCache }) =>
+                (this.catalogCache = this.injector.get(PwaCatalogCache))
+        ));
     }
 
     private clearCacheForPlaylist(playlistId: string): void {
-        this.catalogCache.clearSession(playlistId);
+        this.catalogCache?.clearSession(playlistId);
         const keysToDelete: string[] = [];
 
         this.categoryCache.forEach((_, key) => {

@@ -70,6 +70,20 @@ test('Electron imports a packaged baseline through file assets without replacing
                             window.innerWidth
                     );
             await expect.poll(brandWindowLeft).toBeGreaterThanOrEqual(84);
+            const bounds = await app.electronApp.evaluate(
+                ({ BrowserWindow }) => {
+                    const window = BrowserWindow.getAllWindows()[0];
+                    const previous = window.getBounds();
+                    window.setSize(900, previous.height);
+                    return previous;
+                }
+            );
+            await expect.poll(brandWindowLeft).toBeGreaterThanOrEqual(83);
+            await app.electronApp.evaluate(
+                ({ BrowserWindow }, previous) =>
+                    BrowserWindow.getAllWindows()[0].setBounds(previous),
+                bounds
+            );
             for (let step = 0; step < 8; step++) {
                 await app.mainWindow.evaluate(() =>
                     window.electron.adjustZoomLevel('out')
