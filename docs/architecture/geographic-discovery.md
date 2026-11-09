@@ -226,6 +226,8 @@ close the Discovery player before reloading through the filtered data source.
 LAN HTTP origins use a fallback session identifier when `randomUUID` is unavailable.
 
 Alternate changes and closing the player invalidate pending source resolutions.
+Unhandled Escape closes the preview even when focus is inside the player;
+fullscreen and player popovers retain Escape ownership.
 Closing destroys the shared inline player. External players follow their existing
 application lifecycle. Recent history uses `PlaybackHistoryGate` and is recorded
 only after confirmed playback. Demo channels remain non-playable. Resolution

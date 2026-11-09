@@ -448,7 +448,8 @@ test('Discovery classifies a cached source, reviews unknowns and retains mapping
     expect(positions[1].left).toBeGreaterThan(positions[0].left);
     expect(positions[1].right).toBeLessThan(positions[2].left);
     await page.screenshot({ path: '../../dist/discovery-live-playback.png' });
-    await page.getByRole('button', { name: 'Back to discovery' }).click();
+    await video.focus();
+    await page.keyboard.press('Escape');
     await expect(page.locator('.preview video')).toHaveCount(0);
     await page
         .getByRole('button', { name: 'Classifications', exact: true })

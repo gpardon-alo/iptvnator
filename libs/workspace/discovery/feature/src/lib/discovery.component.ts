@@ -269,14 +269,20 @@ export class DiscoveryComponent {
 
     /** Spatial focus works across sidebars, map, cards and source controls. */
     navigate(event: KeyboardEvent): void {
-        // Shared controls own playback shortcuts, including fullscreen Escape.
+        if (event.defaultPrevented) return;
+        // Leave player shortcuts, fullscreen and open popovers with their owner.
+        const player = (event.target as HTMLElement).closest(
+            'app-discovery-player, app-discovery-guide'
+        );
         if (
-            (event.target as HTMLElement).closest(
-                'app-discovery-player, app-discovery-guide'
-            )
+            player &&
+            (event.key !== 'Escape' ||
+                document.fullscreenElement ||
+                player.querySelector(
+                    '.player-controls__panel, .art-fullscreen-web'
+                ))
         )
             return;
-        if (event.defaultPrevented) return;
         if (
             event.key === '/' &&
             (event.target as HTMLElement).tagName !== 'INPUT'
