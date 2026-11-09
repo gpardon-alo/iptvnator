@@ -1,3 +1,4 @@
+import { refreshXtreamCatalog } from './xtream-catalog-cache.fixture';
 import { readFile } from 'node:fs/promises';
 import { expect, test } from './fixtures';
 import {
@@ -392,6 +393,7 @@ test('@xtream @collections detail identity protects a sparse PWA favorite from a
         )
         .toBe(949);
     replaced = true;
+    await refreshXtreamCatalog(page, 'Detail Identity Portal');
     await page.goto(`/workspace/xtreams/${rawId}/vod`);
     await page
         .locator(`[data-category-id="${movie.category_id}"]`)

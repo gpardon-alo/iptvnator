@@ -1,4 +1,3 @@
-import type { ClassifiedStream } from '@iptvnator/portal/shared/util';
 import { expect, test } from './fixtures';
 import { configureMockProviderBackend } from './provider-target-route';
 import {
@@ -136,12 +135,13 @@ test('Baseline imports atomically into historical v1 storage and preserves later
             .filter({ hasText: 'Imported baseline' })
     ).toBeVisible();
 
+    type MappingRow = typeof desktop;
     const snapshot = () =>
         page.evaluate(async (sourceId) => {
             return new Promise<{
-                rows: ClassifiedStream[];
+                rows: MappingRow[];
                 receipt: { version: number };
-                backup: ClassifiedStream[];
+                backup: MappingRow[];
                 backup3: unknown;
             }>((resolve, reject) => {
                 const open = indexedDB.open(

@@ -1,3 +1,4 @@
+import { refreshXtreamCatalog } from './xtream-catalog-cache.fixture';
 import { expect, test } from './fixtures';
 import { configureMockProviderBackend } from './provider-target-route';
 import {
@@ -82,12 +83,7 @@ test('@web @xtream @persistence catalog survives reload, expires after 24 hours 
     await expect.poll(() => calls.length).toBe(initial + 6);
     await expect(page.locator('app-grid-list').first()).toBeVisible();
 
-    await page.locator('[data-test-id="playlist-switcher-trigger"]').click();
-    const source = page
-        .locator('app-playlist-switcher-panel [role="option"]')
-        .filter({ hasText: 'Synthetic cached source' });
-    await source.locator('.source-row__more').click();
-    await page.getByRole('menuitem', { name: /Refresh/i }).click();
+    await refreshXtreamCatalog(page, 'Synthetic cached source');
     await expect.poll(() => calls.length).toBe(initial + 12);
     await expect(page.locator('app-grid-list').first()).toBeVisible();
 });

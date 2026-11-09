@@ -1,3 +1,4 @@
+import { refreshXtreamCatalog } from './xtream-catalog-cache.fixture';
 import { readFile } from 'node:fs/promises';
 import { expect, test } from './fixtures';
 import { configureLiveFormat } from './xtream-live-format.fixture';
@@ -174,6 +175,7 @@ test('@xtream @collections absent saved items recover on sparse return without l
         await route.fulfill({ response, json: body });
     });
     await page.goto(`${playlistPath}/vod`);
+    await refreshXtreamCatalog(page, 'Absent Favorites Portal');
     // Leaving before hydration finishes can cancel the response under test.
     await expect(
         page.getByText('Sparse returning movie', { exact: true })
