@@ -170,7 +170,6 @@ test('Discovery classifies a cached source, reviews unknowns and retains mapping
     });
     await addXtreamPortal(page, { name: 'Synthetic classification source' });
     await expect(page.locator('app-grid-list').first()).toBeVisible();
-    const initialRequests = liveRequests;
     await page.goto('/discovery');
     const source = page.getByLabel('Discovery source');
     const id = await source
@@ -183,8 +182,9 @@ test('Discovery classifies a cached source, reviews unknowns and retains mapping
     await expect(page.locator('.catalog-toolbar')).not.toContainText(
         'need review'
     );
-    // The initial portal opens VOD; Discovery performs the first live read.
-    await expect.poll(() => liveRequests).toBe(initialRequests + 1);
+    // Portal startup may already populate live data; Discovery reuses that cache.
+    // Across startup and Discovery there must be exactly one live catalog fetch.
+    await expect.poll(() => liveRequests).toBe(1);
     const cachedRequests = liveRequests;
     expect(
         await page

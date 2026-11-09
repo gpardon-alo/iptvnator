@@ -1,4 +1,11 @@
-import { computed, effect, inject, Injectable, signal } from '@angular/core';
+import {
+    computed,
+    effect,
+    inject,
+    Injectable,
+    signal,
+    untracked,
+} from '@angular/core';
 import { Store } from '@ngrx/store';
 import { selectAllPlaylistsMeta } from '@iptvnator/m3u-state';
 import {
@@ -17,6 +24,7 @@ import {
     XTREAM_DATA_SOURCE,
     type XtreamContentItem,
 } from '@iptvnator/portal/xtream/data-access';
+import { ParentalLockService } from '@iptvnator/services';
 import { sourceProfileName } from '@iptvnator/services/source-sync/connection';
 import {
     COUNTRIES,
@@ -28,6 +36,7 @@ import { groupDiscoveryChannels } from './discovery-channel-groups';
 @Injectable()
 export class DiscoverySourceSession {
     private readonly data = inject(XTREAM_DATA_SOURCE);
+    private readonly parentalLock = inject(ParentalLockService);
     private readonly storage = inject(DiscoveryMappingStorage);
     private readonly baseline = inject(DiscoveryBaselineImport);
     private readonly playlists = inject(Store).selectSignal(
@@ -72,10 +81,22 @@ export class DiscoverySourceSession {
     private activeSource = '';
 
     constructor() {
+        let lockVersion = this.parentalLock.version();
         effect(() => {
+            const version = this.parentalLock.version();
             const id = this.sourceId();
             const source = this.sources().find((s) => s._id === id);
-            if (id && source && this.activeSource !== id) void this.load(id);
+            untracked(() => {
+                if (version !== lockVersion) {
+                    lockVersion = version;
+                    this.generation++;
+                    this.activeSource = '';
+                    this.rows.set([]);
+                    this.loading.set(false);
+                }
+                if (id && source && this.activeSource !== id)
+                    void this.load(id);
+            });
         });
     }
     private readSelection(): string {
@@ -110,8 +131,13 @@ export class DiscoverySourceSession {
         try {
             const playlist = await this.data.getPlaylist(id);
             if (!playlist) throw new Error('Source unavailable');
-            const [categories, items, saved] = await Promise.all([
-                this.data.getCategories(id, playlist, 'live'),
+            const categories = await this.data.getCategories(
+                id,
+                playlist,
+                'live'
+            );
+            if (generation !== this.generation) return;
+            const [items, saved] = await Promise.all([
                 this.data.getContent(id, playlist, 'live'),
                 this.baseline.apply(id).then(() => this.storage.read(id)),
             ]);
@@ -131,7 +157,7 @@ export class DiscoverySourceSession {
                 categories.map((c) =>
                     'category_id' in c
                         ? [String(c.category_id), c.category_name]
-                        : [String(c.xtream_id), c.name]
+                        : [String(c.id), c.name]
                 )
             );
             const providers = items

@@ -1,3 +1,5 @@
+import { signal } from '@angular/core';
+import { ParentalLockService } from '@iptvnator/services';
 import { TestBed } from '@angular/core/testing';
 import { PlaybackHistoryGate } from '@iptvnator/playback/data-access';
 import { UnifiedRecentDataService } from '@iptvnator/portal/shared/data-access';
@@ -8,6 +10,7 @@ import {
 import {
     XTREAM_DATA_SOURCE,
     XtreamUrlService,
+    XtreamApiService,
 } from '@iptvnator/portal/xtream/data-access';
 import { SettingsStore } from '@iptvnator/services';
 import { DiscoveryPlaybackSession } from './discovery-playback-session';
@@ -28,6 +31,7 @@ describe('Discovery playback session', () => {
         },
         []
     );
+    const lockVersion = signal(0);
     let session: DiscoveryPlaybackSession;
     let data: { getPlaylist: jest.Mock };
     let player: {
@@ -39,9 +43,12 @@ describe('Discovery playback session', () => {
         constructLiveUrl: jest.Mock;
         constructAutoLiveTsUrl: jest.Mock;
     };
+    const getAccountInfo = jest.fn();
     let history: { defer: jest.Mock };
     let recent: { recordLivePlayback: jest.Mock };
     beforeEach(() => {
+        lockVersion.set(0);
+        getAccountInfo.mockReset().mockResolvedValue({ user_info: {} });
         data = { getPlaylist: jest.fn().mockResolvedValue(source) };
         player = {
             isEmbeddedPlayer: jest.fn().mockReturnValue(true),
@@ -60,9 +67,14 @@ describe('Discovery playback session', () => {
         recent = { recordLivePlayback: jest.fn().mockResolvedValue(undefined) };
         TestBed.configureTestingModule({
             providers: [
+                {
+                    provide: ParentalLockService,
+                    useValue: { version: lockVersion },
+                },
                 DiscoveryPlaybackSession,
                 { provide: XTREAM_DATA_SOURCE, useValue: data },
                 { provide: XtreamUrlService, useValue: urls },
+                { provide: XtreamApiService, useValue: { getAccountInfo } },
                 {
                     provide: SettingsStore,
                     useValue: {
@@ -126,6 +138,49 @@ describe('Discovery playback session', () => {
         await closing;
         expect(session.playback()).toBeNull();
         expect(session.loading()).toBe(false);
+    });
+    it('constructs a session when LAN HTTP does not provide randomUUID', () => {
+        const original = Object.getOwnPropertyDescriptor(
+            globalThis.crypto,
+            'randomUUID'
+        );
+        Object.defineProperty(globalThis.crypto, 'randomUUID', {
+            configurable: true,
+            value: undefined,
+        });
+        try {
+            expect(() =>
+                TestBed.runInInjectionContext(
+                    () => new DiscoveryPlaybackSession()
+                )
+            ).not.toThrow();
+        } finally {
+            if (original)
+                Object.defineProperty(
+                    globalThis.crypto,
+                    'randomUUID',
+                    original
+                );
+            else Reflect.deleteProperty(globalThis.crypto, 'randomUUID');
+        }
+    });
+    it('resolves TS-only account capabilities before building the live URL', async () => {
+        getAccountInfo.mockResolvedValue({
+            user_info: { allowed_output_formats: ['ts'] },
+        });
+        await session.play(row, '');
+        expect(urls.constructLiveUrl).toHaveBeenCalledWith(
+            { ...source, allowedOutputFormats: ['ts'] },
+            42
+        );
+    });
+    it('closes playback and rejects pending resolution when parental lock changes', async () => {
+        TestBed.flushEffects();
+        await session.play(row, '');
+        expect(session.playback()).not.toBeNull();
+        lockVersion.update((v) => v + 1);
+        TestBed.flushEffects();
+        expect(session.playback()).toBeNull();
     });
     it('honors external-player settings and confirms history by URL', async () => {
         player.isEmbeddedPlayer.mockReturnValue(false);

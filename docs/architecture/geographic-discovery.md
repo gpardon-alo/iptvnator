@@ -213,10 +213,17 @@ Discovery mounts the shared `WebPlayerViewComponent` for inline playback and
 uses `PORTAL_PLAYER` for configured external players and diagnostic fallbacks.
 The source settings are ready before the route opens. `DiscoveryPlaybackSession`
 loads the current source through `XTREAM_DATA_SOURCE` and uses `XtreamUrlService`
-for live URLs and the provider-supported Auto TS fallback, preserving source
+for live URLs and the provider-supported Auto TS fallback, resolving account
+output formats before playback when they are absent from the saved source. It preserves source
 User-Agent, Referer and Origin. The selected mapping's original source ID and
 provider stream ID determine playback; editable root names only determine grouping.
 URLs and credentials are never written into classification mappings.
+
+Catalog loading persists categories before importing streams, joining desktop content
+by the local SQLite category ID and API content by the provider category ID.
+Parental-lock changes clear visible catalog rows, invalidate pending loads and
+close the Discovery player before reloading through the filtered data source.
+LAN HTTP origins use a fallback session identifier when `randomUUID` is unavailable.
 
 Alternate changes and closing the player invalidate pending source resolutions.
 Closing destroys the shared inline player. External players follow their existing

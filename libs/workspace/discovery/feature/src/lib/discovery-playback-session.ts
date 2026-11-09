@@ -1,4 +1,4 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { PlaybackHistoryGate } from '@iptvnator/playback/data-access';
 import { UnifiedRecentDataService } from '@iptvnator/portal/shared/data-access';
 import {
@@ -9,8 +9,9 @@ import {
 import {
     XTREAM_DATA_SOURCE,
     XtreamUrlService,
+    XtreamApiService,
 } from '@iptvnator/portal/xtream/data-access';
-import { SettingsStore } from '@iptvnator/services';
+import { ParentalLockService, SettingsStore } from '@iptvnator/services';
 import { ResolvedPortalPlayback } from '@iptvnator/shared/interfaces';
 import { PlaybackFallbackRequest } from '@iptvnator/ui/playback';
 
@@ -18,6 +19,8 @@ import { PlaybackFallbackRequest } from '@iptvnator/ui/playback';
 export class DiscoveryPlaybackSession {
     private readonly data = inject(XTREAM_DATA_SOURCE);
     private readonly urls = inject(XtreamUrlService);
+    private readonly api = inject(XtreamApiService);
+    private readonly parentalLock = inject(ParentalLockService);
     private readonly settings = inject(SettingsStore);
     private readonly player = inject(PORTAL_PLAYER);
     private readonly history = inject(PlaybackHistoryGate);
@@ -28,7 +31,20 @@ export class DiscoveryPlaybackSession {
     readonly inline = signal(true);
     readonly sessionKey = signal('');
     private generation = 0;
-    private readonly instanceId = crypto.randomUUID();
+    private readonly instanceId =
+        globalThis.crypto?.randomUUID?.() ??
+        `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    constructor() {
+        let lockVersion = this.parentalLock.version();
+        effect(() => {
+            const version = this.parentalLock.version();
+            if (version !== lockVersion) {
+                lockVersion = version;
+                untracked(() => this.close());
+            }
+        });
+    }
 
     close(): void {
         this.generation++;
@@ -45,7 +61,7 @@ export class DiscoveryPlaybackSession {
         try {
             await this.settings.loadSettings();
             if (generation !== this.generation) return;
-            const source = await this.data.getPlaylist(row.provider.source_id);
+            let source = await this.data.getPlaylist(row.provider.source_id);
             if (generation !== this.generation) return;
             if (
                 !source ||
@@ -53,6 +69,19 @@ export class DiscoveryPlaybackSession {
                 row.provider.stream_id <= 0
             )
                 throw new Error('Unavailable stream');
+            if (!source.allowedOutputFormats?.length) {
+                try {
+                    const info = await this.api.getAccountInfo(source);
+                    source = {
+                        ...source,
+                        allowedOutputFormats:
+                            info?.user_info?.allowed_output_formats,
+                    };
+                } catch {
+                    // Retain the normal URL default when the account probe is unavailable.
+                }
+                if (generation !== this.generation) return;
+            }
             const streamUrl = this.urls.constructLiveUrl(
                 source,
                 row.provider.stream_id

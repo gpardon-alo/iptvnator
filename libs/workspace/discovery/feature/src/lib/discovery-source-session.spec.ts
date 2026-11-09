@@ -1,3 +1,5 @@
+import { signal } from '@angular/core';
+import { ParentalLockService } from '@iptvnator/services';
 import { TestBed } from '@angular/core/testing';
 import { provideMockStore } from '@ngrx/store/testing';
 import { selectAllPlaylistsMeta } from '@iptvnator/m3u-state';
@@ -21,8 +23,10 @@ describe('Discovery source classification session', () => {
         getCategories: jest.Mock;
         getContent: jest.Mock;
     };
+    const lockVersion = signal(0);
     let session: DiscoverySourceSession;
     beforeEach(() => {
+        lockVersion.set(0);
         localStorage.clear();
         storage = {
             read: jest.fn().mockResolvedValue([]),
@@ -45,6 +49,10 @@ describe('Discovery source classification session', () => {
         };
         TestBed.configureTestingModule({
             providers: [
+                {
+                    provide: ParentalLockService,
+                    useValue: { version: lockVersion },
+                },
                 DiscoverySourceSession,
                 provideMockStore({
                     selectors: [
@@ -77,6 +85,38 @@ describe('Discovery source classification session', () => {
         storage.read.mockResolvedValue(session.rows());
         await session.load();
         expect(session.pending()).toBe(0);
+    });
+    it('joins desktop content to the local category ID instead of its provider ID', async () => {
+        data.getCategories.mockResolvedValue([
+            { id: 91, xtream_id: 1, name: 'Peru Spanish' },
+        ]);
+        data.getContent.mockResolvedValue([
+            { xtream_id: 10, category_id: 91, title: 'Synthetic' },
+        ]);
+        await session.load();
+        expect(session.rows()[0].provider.category_name).toBe('Peru Spanish');
+    });
+    it('waits for category persistence before starting content import', async () => {
+        let resolve!: (value: unknown[]) => void;
+        data.getCategories.mockReturnValue(
+            new Promise((r) => {
+                resolve = r;
+            })
+        );
+        const pending = session.load();
+        await Promise.resolve();
+        expect(data.getContent).not.toHaveBeenCalled();
+        resolve([]);
+        await pending;
+        expect(data.getContent).toHaveBeenCalledTimes(1);
+    });
+    it('invalidates visible rows and late catalog loads on parental-lock changes', async () => {
+        TestBed.flushEffects();
+        await session.load();
+        expect(session.rows()).toHaveLength(1);
+        lockVersion.update((v) => v + 1);
+        TestBed.flushEffects();
+        expect(session.rows()).toEqual([]);
     });
     it('preserves manual edits when reclassifying unknowns', async () => {
         await session.load();
@@ -203,7 +243,7 @@ describe('Discovery source classification session', () => {
             {
                 id: 99,
                 xtream_id: 8101,
-                category_id: 801,
+                category_id: 77,
                 title: 'Solis Noticias',
             },
         ]);
