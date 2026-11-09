@@ -1914,6 +1914,7 @@
             "HERO_PLAY": "Lancer le diaporama"
         },
         "SHELL": {
+            "DISCOVERY_PROTOTYPE": "Prototype de découverte",
             "RAIL_DASHBOARD": "Tableau de bord",
             "RAIL_SOURCES": "Sources",
             "RAIL_GLOBAL_FAVORITES": "Favoris",

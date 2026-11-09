@@ -1,0 +1,86 @@
+:host {
+    display: block;
+    color: var(--app-text-color);
+}
+p {
+    color: var(--app-muted-color);
+    line-height: 1.5;
+}
+button,
+input,
+select {
+    font: inherit;
+    color: inherit;
+    background: var(--app-discovery-panel);
+    border: 1px solid var(--app-discovery-border);
+    padding: 10px;
+    app-region: no-drag;
+}
+button {
+    cursor: pointer;
+}
+button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+button[aria-pressed='true'] {
+    border-color: var(--app-selection-color);
+    background: var(--app-selection-surface);
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+summary:focus-visible {
+    outline: 2px solid var(--app-focus-ring);
+    outline-offset: 2px;
+}
+.tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin: 12px 0;
+}
+.mapping-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+.mapping-grid > section {
+    min-width: 0;
+}
+.rows {
+    max-height: 360px;
+    overflow: auto;
+}
+.mapping-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+.mapping-row span {
+    color: var(--app-muted-color);
+    font-size: 13px;
+}
+label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: 12px;
+}
+details {
+    margin-top: 16px;
+}
+@media (max-width: 760px) {
+    .mapping-grid {
+        grid-template-columns: 1fr;
+    }
+}

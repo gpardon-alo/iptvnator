@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import vm from 'node:vm';
 import { parse as parseYaml } from 'yaml';
 
 import { configureLinuxFrameCopyBuild } from './configure-linux-frame-copy-build.mjs';
@@ -39,6 +40,85 @@ function configuredTargets(config) {
         arch,
     }));
 }
+
+test('manual Debian builds reuse packaging gates and cannot publish a release', () => {
+    const jobs = buildWorkflowConfig.jobs;
+    const deb = jobs['build-deb'];
+    const enabled = (condition, context) =>
+        vm.runInNewContext(
+            condition.replace(/^\$\{\{\s*|\s*\}\}$/g, ''),
+            context,
+            { timeout: 100 }
+        );
+    for (const [event, packageSet, onlyDeb, repository = '4gray/iptvnator'] of [
+        ['workflow_dispatch', 'deb', true],
+        ['workflow_dispatch', 'all', false],
+        ['workflow_dispatch', undefined, false],
+        ['push', undefined, false],
+        ['pull_request', undefined, false],
+        ['push', undefined, false, 'example/iptv-player'],
+    ]) {
+        const context = {
+            github: {
+                event_name: event,
+                repository,
+                event: {
+                    pull_request: {
+                        head: { repo: { full_name: repository } },
+                    },
+                },
+            },
+            inputs: { package_set: packageSet },
+        };
+        assert.equal(enabled(deb.if, context), onlyDeb);
+        const fullBuild =
+            !onlyDeb &&
+            (repository === '4gray/iptvnator' || event === 'workflow_dispatch');
+        assert.equal(enabled(jobs['build-linux'].if, context), fullBuild);
+        assert.equal(
+            enabled(jobs['build-cross-platform'].if, context),
+            fullBuild
+        );
+        assert.equal(enabled(jobs['create-release'].if, context), fullBuild);
+    }
+    assert.equal(
+        buildWorkflowConfig.on.workflow_dispatch.inputs.package_set.default,
+        'all'
+    );
+    assert.deepEqual(deb.needs, [
+        'linux-embedded-mpv-runtime',
+        'nightly-version',
+    ]);
+    assert.deepEqual(deb.steps, jobs['build-linux'].steps);
+    const matrix = deb.strategy.matrix.include[0];
+    assert.equal(matrix.arch, 'x64');
+    assert.equal(matrix.linux_profile, 'system');
+    for (const name of [
+        'Verify DEB payloads and x64 system runtime',
+        'Upload Debian installer',
+    ]) {
+        const step = deb.steps.find((step) => step.name === name);
+        assert.equal(enabled(step.if, { matrix }), true);
+    }
+    for (const name of [
+        'Make marker-only foreign-architecture DEB packages',
+        'Verify RPM payload and x64 system runtime',
+        'Verify Pacman payload and x64 system runtime',
+    ]) {
+        const step = deb.steps.find((step) => step.name === name);
+        assert.equal(enabled(step.if, { matrix }), false);
+        assert.equal(
+            enabled(step.if, { matrix: { ...matrix, deb_only: undefined } }),
+            true
+        );
+    }
+    const upload = deb.steps.find(
+        (step) => step.name === 'Upload Debian installer'
+    );
+    assert.equal(upload.with.name, 'iptvnator-deb-amd64');
+    assert.equal(upload.with['if-no-files-found'], 'error');
+    assert.deepEqual(buildWorkflowConfig.permissions, { contents: 'read' });
+});
 
 test('configures an x64-only system pass with exact package dependencies', () => {
     const configured = configureLinuxFrameCopyBuild(electronBuilderConfig, {

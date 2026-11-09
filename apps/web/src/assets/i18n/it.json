@@ -1914,6 +1914,7 @@
             "HERO_PLAY": "Avvia la presentazione"
         },
         "SHELL": {
+            "DISCOVERY_PROTOTYPE": "Prototipo di esplorazione",
             "RAIL_DASHBOARD": "Dashboard",
             "RAIL_SOURCES": "Sorgenti",
             "RAIL_GLOBAL_FAVORITES": "Preferiti",

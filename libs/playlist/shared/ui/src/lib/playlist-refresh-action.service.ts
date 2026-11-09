@@ -12,6 +12,7 @@ import {
     RuntimeCapabilitiesService,
     SettingsStore,
     SourceActivityService,
+    BROWSER_XTREAM_REFRESH,
 } from '@iptvnator/services';
 import { ChannelActions, PlaylistActions } from '@iptvnator/m3u-state';
 import {
@@ -49,6 +50,9 @@ export class PlaylistRefreshActionService {
     private readonly settingsStore = inject(SettingsStore);
     private readonly playlistContext = inject(PlaylistContextFacade);
     private readonly xtreamRefreshFlow = inject(XtreamRefreshFlowService);
+    private readonly browserXtreamRefresh = inject(BROWSER_XTREAM_REFRESH, {
+        optional: true,
+    });
 
     private readonly refreshPreparationState =
         signal<XtreamRefreshPreparationState | null>(null);
@@ -75,7 +79,10 @@ export class PlaylistRefreshActionService {
         }
 
         if (playlist.serverUrl) {
-            return this.runtime.supportsXtreamSqliteDataSource;
+            return (
+                this.runtime.supportsXtreamSqliteDataSource ||
+                Boolean(this.browserXtreamRefresh)
+            );
         }
 
         if (playlist.url) {
@@ -94,6 +101,8 @@ export class PlaylistRefreshActionService {
 
         if (playlist.serverUrl && this.runtime.supportsXtreamSqliteDataSource) {
             this.refreshXtream(playlist);
+        } else if (playlist.serverUrl && this.browserXtreamRefresh) {
+            void this.refreshBrowserXtream(playlist);
         } else if (
             this.runtime.supportsPlaylistRefresh &&
             (playlist.url || playlist.filePath)
@@ -101,6 +110,27 @@ export class PlaylistRefreshActionService {
             void this.refreshM3u(playlist);
         } else if (playlist.url) {
             void this.refreshViaBackend(playlist, playlist.url);
+        }
+    }
+
+    private async refreshBrowserXtream(item: PlaylistMeta): Promise<void> {
+        this.m3uRefreshId.set(item._id);
+        this.isRefreshing.set(true);
+        const release = this.activity.begin([item._id]);
+        try {
+            await this.browserXtreamRefresh?.(item._id);
+        } catch {
+            this.snackBar.open(
+                this.translate.instant(
+                    'HOME.PLAYLISTS.REFRESH_XTREAM_DIALOG.ERROR'
+                ),
+                undefined,
+                { duration: 3000 }
+            );
+        } finally {
+            this.m3uRefreshId.set(null);
+            this.isRefreshing.set(false);
+            release();
         }
     }
 

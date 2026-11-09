@@ -1914,6 +1914,7 @@
             "HERO_PLAY": "Reproducir presentación"
         },
         "SHELL": {
+            "DISCOVERY_PROTOTYPE": "Prototipo de exploración",
             "RAIL_DASHBOARD": "Panel",
             "RAIL_SOURCES": "Fuentes",
             "RAIL_GLOBAL_FAVORITES": "Favoritos",

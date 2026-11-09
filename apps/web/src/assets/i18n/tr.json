@@ -1914,6 +1914,7 @@
             "HERO_PLAY": "Slayt gösterisini oynat"
         },
         "SHELL": {
+            "DISCOVERY_PROTOTYPE": "Keşif prototipi",
             "RAIL_DASHBOARD": "Pano",
             "RAIL_SOURCES": "Kaynaklar",
             "RAIL_GLOBAL_FAVORITES": "Favoriler",

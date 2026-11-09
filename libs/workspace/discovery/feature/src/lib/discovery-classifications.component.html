@@ -1,0 +1,237 @@
+<p>
+    Streams with the same channel name share one card. Change the name to
+    control grouping; original provider names identify the alternate streams.
+    Country, category and language are independent. A Sports stream stays in
+    Sports even when its language is unknown. Missing fields are listed for
+    review.
+</p>
+<div class="tools">
+    <button
+        type="button"
+        [disabled]="
+            session.saving() ||
+            session.loading() ||
+            !!session.error() ||
+            !session.needsReview().length
+        "
+        (click)="session.classifyUnclassified()"
+    >
+        {{
+            session.saving()
+                ? 'Saving…'
+                : session.pending()
+                  ? 'Classify current streams'
+                  : 'Reclassify incomplete mappings'
+        }}
+    </button>
+    <button
+        type="button"
+        [disabled]="
+            session.saving() ||
+            session.loading() ||
+            !!session.error() ||
+            !session.missingLanguagesWithDefault().length
+        "
+        (click)="fillLanguages()"
+    >
+        Fill missing languages ({{
+            session.missingLanguagesWithDefault().length
+        }})
+    </button>
+    <button
+        type="button"
+        [disabled]="!session.rows().length"
+        (click)="session.download()"
+    >
+        Export mapping JSON
+    </button>
+</div>
+<p>
+    Rules prefer explicit country, genre and language hints. Missing languages
+    can use editable country defaults. Existing languages and manual edits are
+    preserved. Refreshing a source does not run classification.
+</p>
+<p role="status">{{ session.notice() }}</p>
+<div class="tools">
+    <button
+        type="button"
+        [attr.aria-pressed]="unknownOnly()"
+        (click)="filter(true)"
+    >
+        Needs review ({{ session.needsReview().length }})
+    </button>
+    @if (unknownOnly()) {
+        <select
+            aria-label="Missing classification field"
+            [ngModel]="missingDimension()"
+            (ngModelChange)="missingDimension.set($event); page.set(0)"
+        >
+            <option value="any">Any missing field</option>
+            <option value="category">Unclassified category</option>
+            <option value="language">Unknown language</option>
+            <option value="country">Unknown country</option>
+        </select>
+    }
+    <button
+        type="button"
+        [attr.aria-pressed]="!unknownOnly()"
+        (click)="filter(false)"
+    >
+        All mappings ({{ session.rows().length }})
+    </button>
+    <input
+        aria-label="Search mappings"
+        placeholder="Search mappings"
+        [ngModel]="query()"
+        (ngModelChange)="query.set($event); page.set(0)"
+    />
+</div>
+<div class="mapping-grid">
+    <section aria-label="Stream mappings">
+        <div class="rows">
+            @for (row of visible(); track row.id) {
+                <button
+                    type="button"
+                    class="mapping-row"
+                    [attr.aria-pressed]="draft()?.id === row.id"
+                    (click)="select(row)"
+                >
+                    <strong>{{ row.name }}</strong
+                    ><span
+                        >{{ row.provider.name }} · ID
+                        {{ row.provider.stream_id }}</span
+                    >
+                    <span
+                        >{{ countryLabel(row.country)
+                        }}{{
+                            stateLabel(row.state)
+                                ? ' · ' + stateLabel(row.state)
+                                : ''
+                        }}
+                        · {{ categoryLabel(row.category) }} ·
+                        {{ row.language || 'Unknown language' }} ·
+                        {{ missingLabel(row) }}</span
+                    >
+                </button>
+            } @empty {
+                <p>No matching streams.</p>
+            }
+        </div>
+        <div class="tools">
+            <button
+                type="button"
+                [disabled]="page() === 0"
+                (click)="page.set(page() - 1)"
+            >
+                Previous
+            </button>
+            <span>{{ page() + 1 }} / {{ pages() }}</span>
+            <button
+                type="button"
+                [disabled]="page() + 1 >= pages()"
+                (click)="page.set(page() + 1)"
+            >
+                Next
+            </button>
+        </div>
+    </section>
+    <section aria-label="Edit classification">
+        @if (draft(); as row) {
+            <label
+                >Channel name (grouping)<input
+                    aria-label="Mapping display name"
+                    maxlength="200"
+                    [ngModel]="row.name"
+                    (ngModelChange)="change('name', $event)"
+            /></label>
+            <label
+                >Country<select
+                    aria-label="Mapping country"
+                    [ngModel]="row.country"
+                    (ngModelChange)="change('country', $event)"
+                >
+                    <option value="">Unknown</option>
+                    @for (group of countryGroups; track group.region) {
+                        <optgroup [label]="group.region">
+                            @for (
+                                country of group.countries;
+                                track country.id
+                            ) {
+                                <option [value]="country.id">
+                                    {{ country.name }}
+                                </option>
+                            }
+                        </optgroup>
+                    }
+                </select></label
+            >
+            @if (row.country === 'US') {
+                <label
+                    >State / district (optional)<select
+                        aria-label="Mapping state"
+                        [ngModel]="row.state ?? ''"
+                        (ngModelChange)="change('state', $event)"
+                    >
+                        <option value="">Nationwide / not specified</option>
+                        @for (state of states; track state.id) {
+                            <option [value]="state.id">{{ state.name }}</option>
+                        }
+                    </select></label
+                >
+            }
+            <label
+                >Category<select
+                    aria-label="Mapping category"
+                    [ngModel]="row.category"
+                    (ngModelChange)="change('category', $event)"
+                >
+                    <option value="">Unknown</option>
+                    @for (genre of genres; track genre[0]) {
+                        <option [value]="genre[0]">{{ genre[1] }}</option>
+                    }
+                </select></label
+            >
+            <label
+                >Language<select
+                    aria-label="Mapping language"
+                    [ngModel]="row.language"
+                    (ngModelChange)="change('language', $event)"
+                >
+                    <option value="">Unknown</option>
+                    @for (language of languages; track language) {
+                        <option [value]="language">{{ language }}</option>
+                    }
+                </select></label
+            >
+            <button
+                type="button"
+                [disabled]="session.saving() || !row.name.trim()"
+                (click)="save()"
+            >
+                Save classification
+            </button>
+            <button
+                type="button"
+                [disabled]="session.saving()"
+                (click)="reclassify()"
+            >
+                Reclassify selected stream
+            </button>
+            <p>
+                This replaces the selected stream's manual fields with the
+                current rule result.
+            </p>
+            <details>
+                <summary>Mapping JSON</summary>
+                <p>
+                    country, optional US state, category and language are the
+                    editable fields. categories is a generated summary of their
+                    labels.
+                </p>
+                <pre>{{ json() }}</pre>
+            </details>
+        } @else {
+            <p>Select a stream to review or correct its classification.</p>
+        }
+    </section>
+</div>

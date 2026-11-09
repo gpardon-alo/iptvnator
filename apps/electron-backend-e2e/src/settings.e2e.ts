@@ -56,6 +56,12 @@ test.describe('Electron Settings', () => {
 
             await expect(app.mainWindow.getByTestId('app-update-status')).toBeVisible();
             await expect(app.mainWindow.getByTestId('app-update-check')).toBeVisible();
+            const updateStatus = await app.mainWindow.evaluate(() =>
+                window.electron.getAppUpdateStatus()
+            );
+            expect(updateStatus.manualDownloadUrl).toBe(
+                'https://github.com/gpardon-alo/iptvnator/releases/latest'
+            );
             await expect(
                 app.mainWindow.getByTestId('app-update-open-release')
             ).toBeVisible();

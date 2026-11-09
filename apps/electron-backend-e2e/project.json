@@ -10,7 +10,8 @@
         "web-backend",
         "remote-control-web",
         "stalker-mock-server",
-        "xtream-mock-server"
+        "xtream-mock-server",
+        "packaging"
     ],
     "targets": {
         "source-sync": {

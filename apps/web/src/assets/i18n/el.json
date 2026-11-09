@@ -1914,6 +1914,7 @@
             "HERO_PLAY": "Αναπαραγωγή προβολής"
         },
         "SHELL": {
+            "DISCOVERY_PROTOTYPE": "Πρωτότυπο εξερεύνησης",
             "RAIL_DASHBOARD": "Πίνακας ελέγχου",
             "RAIL_SOURCES": "Πηγές",
             "RAIL_GLOBAL_FAVORITES": "Αγαπημένα",

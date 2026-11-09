@@ -1914,6 +1914,7 @@
             "HERO_PLAY": "شغّل العرض"
         },
         "SHELL": {
+            "DISCOVERY_PROTOTYPE": "نموذج تجريبي للاستكشاف",
             "RAIL_DASHBOARD": "لوحة التحكم",
             "RAIL_SOURCES": "المصادر",
             "RAIL_GLOBAL_FAVORITES": "المفضلة",

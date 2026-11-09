@@ -45,6 +45,19 @@ on:
             - '.codex/**'
             - '.claude/**'
     workflow_dispatch:
+        inputs:
+            package_set:
+                description: Packages to build (deb uploads an amd64 Debian installer)
+                type: choice
+                required: true
+                default: all
+                options:
+                    - all
+                    - deb
+            baseline_tag:
+                description: Optional draft release tag holding discovery-classification-baseline.json
+                type: string
+                required: false
 
 # Build jobs only read the repo; the create-release job raises itself to
 # contents: write at the job level to manage the rolling draft release.
@@ -58,6 +71,7 @@ jobs:
     # different versions. Empty output means "not a nightly build".
     nightly-version:
         name: Resolve nightly version
+        if: github.repository == '4gray/iptvnator' || github.event_name == 'workflow_dispatch'
         runs-on: ubuntu-latest
         timeout-minutes: 5
         outputs:
@@ -87,6 +101,7 @@ jobs:
 
     linux-embedded-mpv-runtime:
         name: Build pinned Linux Embedded MPV runtime
+        if: github.repository == '4gray/iptvnator' || github.event_name == 'workflow_dispatch'
         runs-on: ubuntu-22.04
         timeout-minutes: 120
         # Concurrency lives on the build jobs, not the workflow: cancelling a
@@ -383,6 +398,7 @@ jobs:
 
     build-cross-platform:
         name: Build on ${{ matrix.os }} ${{ matrix.arch }}
+        if: ${{ (github.repository == '4gray/iptvnator' || github.event_name == 'workflow_dispatch') && !(github.event_name == 'workflow_dispatch' && inputs.package_set == 'deb') }}
         needs: nightly-version
         runs-on: ${{ matrix.runner }}
         timeout-minutes: 120
@@ -396,18 +412,21 @@ jobs:
                     # macOS builds - separate runners to avoid native module conflicts
                     - os: macos
                       runner: macos-15-intel
+                      deb_only: false
                       arch: x64
                       embedded_mpv_platform: darwin
                       embedded_mpv_arch: x64
                       embedded_mpv_build_runtime: true
                     - os: macos
                       runner: macos-latest
+                      deb_only: false
                       arch: arm64
                       embedded_mpv_platform: darwin
                       embedded_mpv_arch: arm64
                       embedded_mpv_build_runtime: true
                     - os: windows
                       runner: windows-2022
+                      deb_only: false
                       arch: x64
                       embedded_mpv_platform: win32
                       embedded_mpv_arch: x64
@@ -475,6 +494,20 @@ jobs:
 
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
+
+            - name: Download private classification baseline
+              if: github.event_name == 'workflow_dispatch' && inputs.baseline_tag != ''
+              shell: bash
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  BASELINE_TAG: ${{ inputs.baseline_tag }}
+              run: |
+                  set -euo pipefail
+                  baseline_dir="${RUNNER_TEMP}/discovery-baseline"
+                  mkdir -p "${baseline_dir}"
+                  gh release download "${BASELINE_TAG}" --repo "${GITHUB_REPOSITORY}" \
+                      --pattern discovery-classification-baseline.json --dir "${baseline_dir}"
+                  echo "IPTVNATOR_DISCOVERY_BASELINE_FILE=${baseline_dir}/discovery-classification-baseline.json" >> "${GITHUB_ENV}"
 
             - name: Download pinned Linux Embedded MPV runtime
               if: matrix.os == 'linux'
@@ -945,7 +978,7 @@ jobs:
               run: pnpm run verify:package-layout -- "$PACKAGE_OS" "$PACKAGE_ARCH"
 
             - name: Make marker-only foreign-architecture DEB packages
-              if: matrix.os == 'linux' && matrix.linux_profile == 'system'
+              if: matrix.os == 'linux' && matrix.linux_profile == 'system' && matrix.deb_only != true
               shell: bash
               env:
                   IPTVNATOR_EMBEDDED_MPV_PLATFORM: linux
@@ -1022,7 +1055,7 @@ jobs:
                   test "${found}" = true
 
             - name: Verify RPM payload and x64 system runtime
-              if: matrix.os == 'linux' && matrix.linux_profile == 'system'
+              if: matrix.os == 'linux' && matrix.linux_profile == 'system' && matrix.deb_only != true
               shell: bash
               run: |
                   set -euo pipefail
@@ -1045,7 +1078,7 @@ jobs:
                       '
 
             - name: Verify Pacman payload and x64 system runtime
-              if: matrix.os == 'linux' && matrix.linux_profile == 'system'
+              if: matrix.os == 'linux' && matrix.linux_profile == 'system' && matrix.deb_only != true
               shell: bash
               run: |
                   set -euo pipefail
@@ -1334,7 +1367,7 @@ jobs:
                   retention-days: 7
 
             - name: Upload system-runtime Linux artifacts
-              if: matrix.os == 'linux' && matrix.linux_profile == 'system'
+              if: matrix.os == 'linux' && matrix.linux_profile == 'system' && matrix.deb_only != true
               uses: actions/upload-artifact@v7
               with:
                   name: linux-system-artifacts
@@ -1343,6 +1376,15 @@ jobs:
                       dist/executables/*.rpm
                       dist/executables/*.pacman
                       dist/executables/*.pkg.tar.*
+                  retention-days: 7
+
+            - name: Upload Debian installer
+              if: matrix.deb_only == true
+              uses: actions/upload-artifact@v7
+              with:
+                  name: iptvnator-deb-amd64
+                  path: dist/executables/*.deb
+                  if-no-files-found: error
                   retention-days: 7
 
             - name: Upload portable-runtime Linux artifacts
@@ -1383,6 +1425,7 @@ jobs:
 
     build-linux:
         name: Build on ${{ matrix.os }} ${{ matrix.arch }} (${{ matrix.linux_profile }})
+        if: ${{ (github.repository == '4gray/iptvnator' || github.event_name == 'workflow_dispatch') && !(github.event_name == 'workflow_dispatch' && inputs.package_set == 'deb') }}
         needs:
             - linux-embedded-mpv-runtime
             - nightly-version
@@ -1399,6 +1442,7 @@ jobs:
                       runner: ubuntu-22.04
                       arch: x64
                       linux_profile: system
+                      deb_only: false
                       embedded_mpv_platform: linux
                       embedded_mpv_arch: x64
                       embedded_mpv_build_runtime: false
@@ -1406,6 +1450,7 @@ jobs:
                       runner: ubuntu-22.04
                       arch: x64
                       linux_profile: portable
+                      deb_only: false
                       embedded_mpv_platform: linux
                       embedded_mpv_arch: x64
                       embedded_mpv_build_runtime: false
@@ -1413,10 +1458,34 @@ jobs:
                       runner: ubuntu-24.04
                       arch: x64
                       linux_profile: flatpak
+                      deb_only: false
                       embedded_mpv_platform: linux
                       embedded_mpv_arch: x64
                       embedded_mpv_build_runtime: false
 
+        steps: *electron-build-steps
+
+    build-deb:
+        name: Build Debian installer (amd64)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.package_set == 'deb' }}
+        needs:
+            - linux-embedded-mpv-runtime
+            - nightly-version
+        runs-on: ubuntu-22.04
+        timeout-minutes: 120
+        concurrency:
+            group: ${{ github.workflow }}-deb-${{ github.ref }}
+            cancel-in-progress: true
+        strategy:
+            matrix:
+                include:
+                    - os: linux
+                      arch: x64
+                      linux_profile: system
+                      embedded_mpv_platform: linux
+                      embedded_mpv_arch: x64
+                      embedded_mpv_build_runtime: false
+                      deb_only: true
         steps: *electron-build-steps
 
     create-release:
@@ -1425,7 +1494,7 @@ jobs:
             - nightly-version
             - build-cross-platform
             - build-linux
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        if: ${{ (github.repository == '4gray/iptvnator' || github.event_name == 'workflow_dispatch') && !(github.event_name == 'workflow_dispatch' && inputs.package_set == 'deb') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         runs-on: ubuntu-latest
         concurrency:
             group: ${{ github.workflow }}-release-${{ github.event.pull_request.number || github.ref }}

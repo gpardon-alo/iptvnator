@@ -21,7 +21,7 @@
     "publish": [
         {
             "provider": "github",
-            "owner": "4gray",
+            "owner": "gpardon-alo",
             "repo": "iptvnator"
         }
     ],
@@ -125,8 +125,8 @@
         "desktop": {
             "entry": {
                 "X-AppImage-Name": "IPTVnator",
-                "X-AppImage-Homepage": "https://github.com/4gray/iptvnator",
-                "X-AppImage-UpdateURL": "https://github.com/4gray/iptvnator"
+                "X-AppImage-Homepage": "https://github.com/gpardon-alo/iptvnator",
+                "X-AppImage-UpdateURL": "https://github.com/gpardon-alo/iptvnator"
             }
         }
     },
@@ -155,6 +155,7 @@
             ]
         ]
     },
+    "beforePack": "./tools/packaging/discovery-baseline-before-pack.cjs",
     "afterPack": "./tools/packaging/electron-after-pack.cjs",
     "snap": {
         "base": "core22",

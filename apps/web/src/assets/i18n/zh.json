@@ -1914,6 +1914,7 @@
             "HERO_PLAY": "播放轮播"
         },
         "SHELL": {
+            "DISCOVERY_PROTOTYPE": "探索原型",
             "RAIL_DASHBOARD": "仪表盘",
             "RAIL_SOURCES": "源",
             "RAIL_GLOBAL_FAVORITES": "收藏",

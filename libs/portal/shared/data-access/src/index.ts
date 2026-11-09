@@ -13,3 +13,5 @@ export * from './lib/source-cleanup.service';
 
 export * from './lib/register-workspace-back';
 export * from './lib/workspace-back-navigation.service';
+export * from './lib/discovery-mapping-storage.service';
+export * from './lib/discovery-baseline-import.service';

@@ -1914,6 +1914,7 @@
             "HERO_PLAY": "Diavoorstelling afspelen"
         },
         "SHELL": {
+            "DISCOVERY_PROTOTYPE": "Ontdekkingsprototype",
             "RAIL_DASHBOARD": "Dashboard",
             "RAIL_SOURCES": "Bronnen",
             "RAIL_GLOBAL_FAVORITES": "Favorieten",

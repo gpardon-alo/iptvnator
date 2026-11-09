@@ -729,7 +729,10 @@ describe('PWA Xtream collection identity', () => {
             ).rejects.toThrow('XTREAM_FAVORITE_IDENTITY_CONFLICT');
             expect((await source.getFavorites('p1'))[0].title).toBe('Original');
             // Explicit removal carries the original saved identity, as the Favorites row does.
-            await source.removeFavorite({ id: 42, type: 'movie', identity: { tmdbId: 100 } }, 'p1');
+            await source.removeFavorite(
+                { id: 42, type: 'movie', identity: { tmdbId: 100 } },
+                'p1'
+            );
             const setItem = Storage.prototype.setItem;
             const quota = jest
                 .spyOn(Storage.prototype, 'setItem')
@@ -771,7 +774,9 @@ describe('PWA Xtream collection identity', () => {
             await source.getContent('p1', credentials, 'movie');
             await source.addRecentItem(ref, 'p1');
             source.clearSessionCache('p1');
-            api.getStreams.mockResolvedValueOnce([{ ...original, ...expected }]);
+            api.getStreams.mockResolvedValueOnce([
+                { ...original, ...expected },
+            ]);
             await source.getContent('p1', credentials, 'movie');
             await source.getRecentItems('p1');
             await source.removeRecentItem(ref, 'p1');
@@ -1101,12 +1106,17 @@ describe('PWA Xtream collection identity', () => {
             const catalog = new Promise((resolve) => {
                 releaseCatalog = resolve;
             });
-            api.getStreams.mockReturnValue(catalog);
+            let onFetch!: () => void;
+            const started = new Promise<void>((done) => (onFetch = done));
+            api.getStreams.mockImplementation(() => {
+                onFetch();
+                return catalog;
+            });
             const loading = Promise.all([
                 source.getFavorites('p1'),
                 source.getRecentItems('p1'),
             ]);
-            for (let i = 0; i < 20; i++) await Promise.resolve();
+            await started;
             const requestsBeforeAction = api.getStreams.mock.calls.length;
             expect(requestsBeforeAction).toBeGreaterThan(0);
             const adding =
@@ -1148,15 +1158,18 @@ describe('PWA Xtream collection identity', () => {
     it('preserves newer storage changes while legacy hydration is pending', async () => {
         localStorage.setItem('xtream-favorites', JSON.stringify({ p1: [42] }));
         let resolveMovie!: (items: unknown[]) => void;
+        let onFetch!: () => void;
+        const started = new Promise<void>((done) => (onFetch = done));
         api.getStreams.mockImplementation((_credentials, type) =>
             type === 'movie'
                 ? new Promise((resolve) => {
                       resolveMovie = resolve;
+                      onFetch();
                   })
                 : Promise.resolve([])
         );
         const pending = source.getFavorites('p1');
-        for (let i = 0; i < 10 && !resolveMovie; i++) await Promise.resolve();
+        await started;
         localStorage.setItem(
             'xtream-favorites',
             JSON.stringify({ p1: ['series:99'], other: ['live:77'] })

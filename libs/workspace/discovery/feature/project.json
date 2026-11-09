@@ -1,0 +1,39 @@
+{
+    "name": "workspace-discovery-feature",
+    "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+    "sourceRoot": "libs/workspace/discovery/feature/src",
+    "prefix": "lib",
+    "projectType": "library",
+    "tags": ["scope:workspace", "domain:workspace", "type:feature"],
+    "implicitDependencies": ["ui-styles"],
+    "targets": {
+        "test": {
+            "inputs": [
+                "default",
+                "^production",
+                "{workspaceRoot}/jest.preset.js",
+                "{projectRoot}/src/test-setup.ts",
+                "{workspaceRoot}/apps/web/src/assets/discovery/world.json",
+                {
+                    "externalDependencies": [
+                        "jest",
+                        "@nx/jest",
+                        "ts-jest",
+                        "jest-preset-angular"
+                    ]
+                }
+            ]
+        },
+        "lint": {
+            "inputs": [
+                "default",
+                "^default",
+                "{workspaceRoot}/.eslintrc.json",
+                "{workspaceRoot}/.eslintignore",
+                "{workspaceRoot}/eslint.config.mjs",
+                "{workspaceRoot}/tools/eslint-rules/**/*",
+                "{workspaceRoot}/tools/eslint/**/*"
+            ]
+        }
+    }
+}

@@ -1914,6 +1914,7 @@
             "HERO_PLAY": "Automatikus lapozás indítása"
         },
         "SHELL": {
+            "DISCOVERY_PROTOTYPE": "Felfedezési prototípus",
             "RAIL_DASHBOARD": "Vezérlőpult",
             "RAIL_SOURCES": "Források",
             "RAIL_GLOBAL_FAVORITES": "Kedvencek",

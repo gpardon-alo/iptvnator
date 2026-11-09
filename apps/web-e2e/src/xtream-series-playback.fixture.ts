@@ -97,6 +97,34 @@ export async function routeEpisodeClip(page: Page): Promise<void> {
     await routePlaybackClip(page, 'series');
 }
 
+/** Local synthetic HLS exercises the same live path as a provider. */
+export async function routeLiveClip(page: Page): Promise<void> {
+    const segment = readFileSync(
+        join(__dirname, '../../xtream-mock-server/src/fixtures/live.mpegts')
+    );
+    await page.route(
+        (url) =>
+            url.origin === MOCK_SERVER && url.pathname.startsWith('/live/'),
+        async (route) => {
+            const path = new URL(route.request().url()).pathname;
+            if (path.endsWith('.m3u8')) {
+                await route.fulfill({
+                    contentType: 'application/vnd.apple.mpegurl',
+                    body:
+                        '#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:6\n#EXT-X-MEDIA-SEQUENCE:0\n#EXTINF:6,\n' +
+                        path.replace('.m3u8', '.ts') +
+                        '\n',
+                });
+            } else {
+                await route.fulfill({
+                    contentType: 'video/mp2t',
+                    body: segment,
+                });
+            }
+        }
+    );
+}
+
 /** A local movie clip keeps history tests independent of the external HLS stub. */
 export async function routeMovieClip(page: Page): Promise<void> {
     await routePlaybackClip(page, 'movie');

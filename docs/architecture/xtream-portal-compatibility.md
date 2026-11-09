@@ -56,7 +56,19 @@ Ownership follows the workspace boundaries:
 Catalog writes belong to the runtime loaders behind `getCategories` and
 `getContent`; `IXtreamDataSource` does not expose separate bulk-save methods.
 Electron loaders keep writing through the worker-backed `DatabaseService`;
-PWA loaders normalize API responses into their session caches. Tests load PWA
+PWA loaders normalize API responses into their session caches and persist disposable
+catalog entries in the profile-scoped IndexedDB database
+`<sourceProfileName>:xtream-catalog-v1`. Categories and live/movie/series lists
+expire 24 hours after a successful fetch and refresh on their next access.
+Successful empty lists are cached too. Cache identity includes playlist, content
+type and a SHA-256 fingerprint of the connection (including credentials and user
+agent); raw connection fields are not stored in cache metadata. Account status,
+EPG, detail and playback requests retain their existing freshness rules.
+Storage denial/quota failures fall back to session caching. Failed or cancelled
+fetches never replace a saved catalog. Switching sources clears only session
+state; deletion removes the source's persistent cache. The browser Refresh action
+clears that cache and reloads the app, preserving favorites/history/positions.
+No catalog payload is uploaded to server storage. Tests load PWA
 catalogs through those same API-backed readers instead of seeding a second
 public write path.
 

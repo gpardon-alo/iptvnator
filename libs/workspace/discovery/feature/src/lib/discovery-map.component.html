@@ -1,0 +1,121 @@
+<div class="map-toolbar">
+    <div class="breadcrumbs">
+        <button
+            type="button"
+            (click)="regionChange.emit('World')"
+            aria-label="Return to world map"
+        >
+            <mat-icon>public</mat-icon><span>World</span>
+        </button>
+        @if (region() !== 'World') {
+            <mat-icon>chevron_right</mat-icon><span>{{ region() }}</span>
+        }
+    </div>
+    <div class="map-tools">
+        <select
+            aria-label="Explore a region"
+            [value]="region()"
+            (change)="regionChange.emit($any($event.target).value)"
+        >
+            @for (name of regions; track name) {
+                <option [value]="name">{{ name }}</option>
+            }
+        </select>
+        <button
+            type="button"
+            class="view-switch"
+            [attr.aria-pressed]="listMode()"
+            (click)="listMode.set(!listMode())"
+            [attr.aria-label]="listMode() ? 'Show map' : 'Show location list'"
+        >
+            <mat-icon>{{
+                listMode() ? 'map' : 'format_list_bulleted'
+            }}</mat-icon>
+        </button>
+    </div>
+</div>
+<div class="map-canvas" [class.map-canvas--regional]="region() !== 'World'">
+    @if (listMode()) {
+        <div class="location-list" aria-label="Available locations">
+            @if (failed()) {
+                <p>Map unavailable. You can still browse by location.</p>
+            }
+            @for (place of places(); track place.id) {
+                <button
+                    type="button"
+                    [attr.aria-pressed]="selected().includes(place.id)"
+                    (click)="locationToggle.emit(place.id)"
+                >
+                    <mat-icon>{{
+                        selected().includes(place.id)
+                            ? 'check_circle'
+                            : 'location_on'
+                    }}</mat-icon
+                    >{{ place.name }}
+                </button>
+            }
+        </div>
+    } @else {
+        <svg
+            [attr.viewBox]="frame().viewBox"
+            role="group"
+            aria-label="Interactive geographic channel filter"
+        >
+            <g [attr.transform]="frame().transform ?? null">
+                @for (shape of shapes(); track $index) {
+                    <path
+                        [attr.d]="shape.path"
+                        [class.available]="available().has(shape.id)"
+                        [class.selected]="selected().includes(shape.id)"
+                        [attr.id]="'discovery-region-' + shape.id"
+                        [attr.role]="
+                            available().has(shape.id) ? 'button' : null
+                        "
+                        [attr.tabindex]="available().has(shape.id) ? 0 : null"
+                        [attr.aria-label]="
+                            available().has(shape.id) ? shape.name : null
+                        "
+                        [attr.aria-pressed]="
+                            available().has(shape.id)
+                                ? selected().includes(shape.id)
+                                : null
+                        "
+                        [attr.aria-hidden]="!available().has(shape.id) || null"
+                        (click)="
+                            available().has(shape.id) &&
+                                locationToggle.emit(shape.id)
+                        "
+                        (keydown)="mapKey($event, shape)"
+                        (focus)="focused.set(shape.id)"
+                        (blur)="focused.set('')"
+                        (mouseenter)="focused.set(shape.id)"
+                        (mouseleave)="focused.set('')"
+                    />
+                }
+                @for (shape of labels(); track shape.id) {
+                    <text
+                        [attr.x]="shape.x"
+                        [attr.y]="shape.y"
+                        [attr.font-size]="labelSize()"
+                        aria-hidden="true"
+                    >
+                        {{ shape.name }}
+                    </text>
+                }
+            </g>
+        </svg>
+        <div class="map-caption" aria-hidden="true">
+            <span
+                >EXPLORE
+                {{
+                    region() === 'World' ? 'THE WORLD' : region().toUpperCase()
+                }}</span
+            >
+            <p>A different perspective<br />on live television.</p>
+        </div>
+    }
+    <div class="map-legend">
+        <span><i></i>{{ places().length }} locations to explore</span
+        ><span>Choose one or more</span>
+    </div>
+</div>

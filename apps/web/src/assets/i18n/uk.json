@@ -1914,6 +1914,7 @@
             "HERO_PLAY": "Відновити слайдшоу"
         },
         "SHELL": {
+            "DISCOVERY_PROTOTYPE": "Прототип огляду каналів",
             "RAIL_DASHBOARD": "Домівка",
             "RAIL_SOURCES": "Джерела",
             "RAIL_GLOBAL_FAVORITES": "Вподобання",

@@ -1914,6 +1914,7 @@
             "HERO_PLAY": "Play slideshow"
         },
         "SHELL": {
+            "DISCOVERY_PROTOTYPE": "Discovery prototype",
             "RAIL_DASHBOARD": "Dashboard",
             "RAIL_SOURCES": "Sources",
             "RAIL_GLOBAL_FAVORITES": "Favorites",

@@ -48,6 +48,7 @@ import {
     findCollectionItems,
     normalizeCollectionIdentity,
 } from './pwa-collection-identity';
+import { PwaCatalogCache } from './pwa-catalog-cache';
 import { PwaCollectionStorage } from './pwa-collection-storage';
 import { PwaCollectionCatalog } from './pwa-collection-catalog';
 import type { XtreamCachedContentItem } from './pwa-cached-content';
@@ -66,12 +67,13 @@ type StoredXtreamPlaylistData = Omit<XtreamPlaylistData, 'password'> & {
 
 /**
  * PWA implementation of the Xtream data source.
- * Uses API-only strategy: always fetch from API, no database caching.
+ * Keeps disposable provider catalogs in IndexedDB for 24 hours.
  * Favorites, recently viewed and positions are stored in USER_DATA_STORAGE.
  */
 @Injectable({ providedIn: 'root' })
 export class PwaXtreamDataSource implements IXtreamDataSource {
     private readonly apiService = inject(XtreamApiService);
+    private readonly catalogCache = inject(PwaCatalogCache);
     private readonly injector = inject(Injector);
     private readonly parentalLock = inject(ParentalLockService);
     private readonly logger = createLogger('PwaXtreamDataSource');
@@ -173,6 +175,7 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
 
         // Clear cache
         this.clearCacheForPlaylist(playlistId);
+        await this.catalogCache.clear(playlistId);
     }
 
     private getPlaylistsFromStorage(): XtreamPlaylistData[] {
@@ -333,24 +336,22 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
         options?.signal?.throwIfAborted();
         const cacheKey = `${playlistId}-${type}-categories`;
 
-        // Check in-memory cache first
-        const cachedCategories = this.categoryCache.get(cacheKey);
-        if (cachedCategories) {
-            return this.withoutLockedCategories(
-                playlistId,
-                type,
-                cachedCategories
-            );
-        }
-
-        // Fetch from API
-        options?.onPhaseChange?.('loading-categories');
-        const categories = await this.apiService.getCategories(
+        const categories = await this.catalogCache.load(
+            playlistId,
+            `${type}-categories`,
             credentials,
-            type,
-            ...(options?.signal ? ([{ signal: options.signal }] as const) : [])
+            () => {
+                options?.onPhaseChange?.('loading-categories');
+                return this.apiService.getCategories(
+                    credentials,
+                    type,
+                    ...(options?.signal
+                        ? ([{ signal: options.signal }] as const)
+                        : [])
+                );
+            },
+            options?.signal
         );
-        options?.signal?.throwIfAborted();
 
         // Cache in memory
         this.categoryCache.set(cacheKey, categories);
@@ -431,14 +432,17 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
             if (!playlist) {
                 return [];
             }
-            categories = await this.apiService.getCategories(
-                {
-                    serverUrl: playlist.serverUrl,
-                    username: playlist.username,
-                    password: playlist.password,
-                    userAgent: playlist.userAgent?.trim() || undefined,
-                },
-                categoryType
+            const credentials = {
+                serverUrl: playlist.serverUrl,
+                username: playlist.username,
+                password: playlist.password,
+                userAgent: playlist.userAgent?.trim() || undefined,
+            };
+            categories = await this.catalogCache.load(
+                playlistId,
+                `${categoryType}-categories`,
+                credentials,
+                () => this.apiService.getCategories(credentials, categoryType)
             );
             this.categoryCache.set(cacheKey, categories);
         }
@@ -500,36 +504,35 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
     > {
         const cacheKey = `${playlistId}-${type}-content`;
 
-        // Check in-memory cache first
-        const cachedContent = this.contentCache.get(cacheKey);
-        if (cachedContent) {
-            return this.withoutLockedContent(
-                playlistId,
-                type,
-                cachedContent
-            ) as XtreamLiveStream[] | XtreamVodStream[] | XtreamSerieItem[];
-        }
-
-        // Fetch from API
-        options?.onPhaseChange?.(
-            type === 'live'
-                ? 'loading-live'
-                : type === 'movie'
-                  ? 'loading-movies'
-                  : 'loading-series'
+        const content = await this.catalogCache.load(
+            playlistId,
+            `${type}-content`,
+            credentials,
+            async () => {
+                options?.onPhaseChange?.(
+                    type === 'live'
+                        ? 'loading-live'
+                        : type === 'movie'
+                          ? 'loading-movies'
+                          : 'loading-series'
+                );
+                options?.signal?.throwIfAborted();
+                return this.normalizeContentItems(
+                    await this.apiService.getStreams(
+                        credentials,
+                        type,
+                        ...(options?.signal
+                            ? ([{ signal: options.signal }] as const)
+                            : [])
+                    ),
+                    type
+                );
+            },
+            options?.signal,
+            () =>
+                this.contentCache.get(cacheKey) as
+                    XtreamContentItem[] | undefined
         );
-        options?.signal?.throwIfAborted();
-        const content = await this.normalizeContentItems(
-            await this.apiService.getStreams(
-                credentials,
-                type,
-                ...(options?.signal
-                    ? ([{ signal: options.signal }] as const)
-                    : [])
-            ),
-            type
-        );
-        options?.signal?.throwIfAborted();
 
         // Report total and progress (PWA doesn't have incremental save, so report all at once)
         if (onTotal) {
@@ -1186,11 +1189,17 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
         this.clearCacheForPlaylist(playlistId);
     }
 
+    async refreshCatalog(playlistId: string): Promise<void> {
+        this.clearCacheForPlaylist(playlistId);
+        await this.catalogCache.clear(playlistId);
+    }
+
     private clearCacheForPlaylist(playlistId: string): void {
+        this.catalogCache.clearSession(playlistId);
         const keysToDelete: string[] = [];
 
         this.categoryCache.forEach((_, key) => {
-            if (key.startsWith(playlistId)) {
+            if (key.startsWith(`${playlistId}-`)) {
                 keysToDelete.push(key);
             }
         });
@@ -1198,7 +1207,7 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
 
         const contentKeysToDelete: string[] = [];
         this.contentCache.forEach((_, key) => {
-            if (key.startsWith(playlistId)) {
+            if (key.startsWith(`${playlistId}-`)) {
                 contentKeysToDelete.push(key);
             }
         });

@@ -1914,6 +1914,7 @@
             "HERO_PLAY": "スライドショーを再生"
         },
         "SHELL": {
+            "DISCOVERY_PROTOTYPE": "ディスカバリーの試作版",
             "RAIL_DASHBOARD": "ダッシュボード",
             "RAIL_SOURCES": "ソース",
             "RAIL_GLOBAL_FAVORITES": "お気に入り",

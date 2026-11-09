@@ -1914,6 +1914,7 @@
             "HERO_PLAY": "Возобновить показ"
         },
         "SHELL": {
+            "DISCOVERY_PROTOTYPE": "Прототип обзора каналов",
             "RAIL_DASHBOARD": "Панель",
             "RAIL_SOURCES": "Источники",
             "RAIL_GLOBAL_FAVORITES": "Избранное",

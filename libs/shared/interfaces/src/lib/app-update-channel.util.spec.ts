@@ -22,28 +22,28 @@ describe('app update channel util', () => {
 
     it('maps each channel to its repository and pages', () => {
         expect(appUpdateRepository('stable')).toEqual({
-            owner: '4gray',
+            owner: 'gpardon-alo',
             repo: 'iptvnator',
         });
         expect(appUpdateRepository('nightly')).toEqual({
-            owner: '4gray',
-            repo: 'iptvnator-nightly',
+            owner: 'gpardon-alo',
+            repo: 'iptvnator',
         });
         // /releases/latest never resolves to a prerelease.
         expect(appUpdateReleasesPageUrl('stable')).toBe(
-            'https://github.com/4gray/iptvnator/releases/latest'
+            'https://github.com/gpardon-alo/iptvnator/releases/latest'
         );
         expect(appUpdateReleasesPageUrl('nightly')).toBe(
-            'https://github.com/4gray/iptvnator-nightly/releases'
+            'https://github.com/gpardon-alo/iptvnator/releases'
         );
         expect(appUpdateReleasesApiUrl('nightly')).toBe(
-            'https://api.github.com/repos/4gray/iptvnator-nightly/releases'
+            'https://api.github.com/repos/gpardon-alo/iptvnator/releases'
         );
         expect(appUpdateReleasesListUrl('stable')).toBe(
-            'https://github.com/4gray/iptvnator/releases'
+            'https://github.com/gpardon-alo/iptvnator/releases'
         );
         expect(appUpdateReleasesListUrl('nightly')).toBe(
-            'https://github.com/4gray/iptvnator-nightly/releases'
+            'https://github.com/gpardon-alo/iptvnator/releases'
         );
     });
 
@@ -92,6 +92,9 @@ describe('app update channel util', () => {
     it('orders versions by semver precedence', () => {
         expect(compareAppVersions('0.24.0', '0.23.0')).toBe(1);
         expect(compareAppVersions('0.23.0', '0.23.0')).toBe(0);
+        // Build metadata cannot make the next fork build an update.
+        expect(compareAppVersions('0.25.0+fork.2', '0.25.0+fork.1')).toBe(0);
+        expect(compareAppVersions('0.25.1', '0.25.0+fork.1')).toBe(1);
         // A nightly sits between the released version and the next patch.
         expect(compareAppVersions('0.23.1-nightly.20260915.7', '0.23.0')).toBe(
             1

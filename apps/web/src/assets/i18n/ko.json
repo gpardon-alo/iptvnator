@@ -1914,6 +1914,7 @@
             "HERO_PLAY": "슬라이드쇼 재생"
         },
         "SHELL": {
+            "DISCOVERY_PROTOTYPE": "탐색 프로토타입",
             "RAIL_DASHBOARD": "대시보드",
             "RAIL_SOURCES": "소스",
             "RAIL_GLOBAL_FAVORITES": "즐겨찾기",

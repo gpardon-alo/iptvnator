@@ -48,4 +48,8 @@ export * from './lib/vod-watched-toggle';
 export * from './lib/pending-playback-start';
 export * from './lib/detail/season-title';
 export * from './lib/detail/playback-progress';
+export * from './lib/discovery-classification';
+export * from './lib/discovery-language-defaults';
 export * from './lib/detail/country-short-name';
+export * from './lib/discovery-us-states';
+export * from './lib/discovery-baseline';

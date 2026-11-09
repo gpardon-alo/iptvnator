@@ -30,6 +30,7 @@ import {
     type RendererPerformancePhaseEvent,
 } from '@iptvnator/shared/logging';
 import { PlaylistContextFacade } from '@iptvnator/playlist/shared/util';
+import { BROWSER_XTREAM_REFRESH } from '@iptvnator/services';
 import { PlaylistRefreshActionService } from './playlist-refresh-action.service';
 
 const performanceHookSymbol = Symbol.for(RENDERER_PERFORMANCE_PHASE_HOOK_KEY);
@@ -112,6 +113,7 @@ describe('PlaylistRefreshActionService', () => {
         getTrustOptions: jest.Mock;
         updateSettings: jest.Mock;
     };
+    let browserRefresh: jest.Mock;
     let runtime: {
         supportsPlaylistRefresh: boolean;
         supportsXtreamSqliteDataSource: boolean;
@@ -123,6 +125,7 @@ describe('PlaylistRefreshActionService', () => {
 
     beforeEach(() => {
         localStorage.clear();
+        browserRefresh = jest.fn().mockResolvedValue(undefined);
 
         databaseService = {
             readAppState: jest.fn().mockResolvedValue({ value: null }),
@@ -227,6 +230,10 @@ describe('PlaylistRefreshActionService', () => {
                 {
                     provide: DatabaseService,
                     useValue: databaseService,
+                },
+                {
+                    provide: BROWSER_XTREAM_REFRESH,
+                    useValue: browserRefresh,
                 },
                 {
                     provide: DataService,
@@ -470,14 +477,28 @@ describe('PlaylistRefreshActionService', () => {
         );
     });
 
-    it('treats Xtream playlists as refreshable only when the SQLite data source is available', () => {
+    it('refreshes browser catalogs without deleting desktop data or user collections', async () => {
+        runtime.supportsXtreamSqliteDataSource = false;
+        const item = createPlaylistMeta();
+        service.refresh(item);
+        expect(browserRefresh).toHaveBeenCalledWith(item._id);
+        expect(service.isRefreshing()).toBe(true);
+        await browserRefresh.mock.results[0].value;
+        await Promise.resolve();
+        expect(service.isRefreshing()).toBe(false);
+        expect(
+            databaseService.deleteXtreamPlaylistContent
+        ).not.toHaveBeenCalled();
+    });
+
+    it('offers Xtream refresh for SQLite and the supplied browser catalog owner', () => {
         runtime.supportsXtreamSqliteDataSource = true;
 
         expect(service.canRefresh(createPlaylistMeta())).toBe(true);
 
         runtime.supportsXtreamSqliteDataSource = false;
 
-        expect(service.canRefresh(createPlaylistMeta())).toBe(false);
+        expect(service.canRefresh(createPlaylistMeta())).toBe(true);
     });
 
     it('stores Xtream restore data before updating playlist meta and navigating', async () => {

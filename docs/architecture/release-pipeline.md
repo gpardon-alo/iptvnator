@@ -271,6 +271,34 @@ until the rules catch up.
 
 ## Linux CI package installation
 
+For an on-demand amd64 Debian installer, manually run **Build and Make Electron
+App** (`build-and-make.yaml`) on the desired branch with `package_set: deb`.
+Download `iptvnator-deb-amd64` from the run's artifacts within seven days.
+This mode reuses the shared Electron packaging steps, system-runtime profile,
+worker-layout verification and Ubuntu DEB runtime probe. Only the amd64 DEB is
+uploaded; other platform jobs and draft-release publication are skipped.
+The system profile also assembles RPM/Pacman packages internally to preserve
+its exact runtime-manifest target contract, but omits their distribution probes.
+The pinned Linux runtime prerequisite and its cache/source checks still run.
+The default `all` option preserves the full build and release behavior.
+
+Fork pushes leave the expensive Electron packaging matrix idle; use manual
+dispatch for fork builds. Upstream Docker Hub and Snap Store publication jobs
+are restricted to the upstream repository. The fork's Debian-only release is
+published from the reviewed dispatch commit with the amd64 DEB, its SHA-256
+checksum and the matching Linux runtime source-compliance archive. It does not
+use the upstream 27-asset verification or publish a website announcement.
+
+To include reviewed classifications without committing provider data, attach the
+validated `discovery-classification-baseline.json` to a private draft release in
+the fork, then dispatch with its tag in `baseline_tag`. The build downloads that
+single asset using its read-only repository token. The `beforePack` hook checks
+the schema, source identities and credential-free fields before staging the asset
+into the packaged renderer. Local builds use `IPTVNATOR_DISCOVERY_BASELINE_FILE`.
+Do not publish the staging draft or attach credentials; the resulting installer
+contains the classifications. Baseline import behavior is documented in
+[geographic discovery](geographic-discovery.md#packaged-classification-baselines).
+
 The Linux packaging dependency step replaces the runner's Ubuntu `mirror+file`
 source with the official HTTPS archive, preserving suites, components and signing
 keys. This avoids returning to a stalled Azure mirror during index downloads.
@@ -329,6 +357,25 @@ deletes the draft only when the PR is closed; anything else — an open PR, a
 lookup failure, a `test-<branch>` draft — is left alone.
 
 ## Nightly channel
+
+### Fork update source
+
+This checkout uses `gpardon-alo/iptvnator` for both desktop update channels,
+release notes and manual downloads. Stable filters out prereleases; Nightly
+selects `-nightly.*` tags from the same repository. Electron Builder's publish
+owner and AppImage links match that source. Package name, app ID and profile
+paths retain upstream identity so an installation can be upgraded in place.
+The upstream-only nightly publication workflow described below remains gated
+to the upstream repository; this fork does not publish automatic nightlies.
+
+Fork releases use increasing numeric patch versions in `package.json`. Do not
+use `+fork.N` as the upgrade counter: SemVer ignores build metadata when
+comparing versions. Confirm the installed Debian version before choosing the
+first fork version, and inspect the generated DEB version before upgrading.
+The first fork build is `0.25.1`, upgrading the existing `0.24.0` installation;
+subsequent fork builds increment the numeric patch version.
+
+### Upstream nightly publication
 
 Every push to `master` of `4gray/iptvnator` is also a nightly. The same
 `build-and-make.yaml` run that builds the matrix publishes its artifacts as a

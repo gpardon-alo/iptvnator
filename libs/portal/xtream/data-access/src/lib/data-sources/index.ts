@@ -1,6 +1,9 @@
 import { inject, Injector, Provider } from '@angular/core';
 import {
     PLAYLIST_DELETE_CLEANUP,
+    BROWSER_XTREAM_REFRESH,
+    DataService,
+    resetHostConnectivityGuard,
     RuntimeCapabilitiesService,
 } from '@iptvnator/services';
 import { ElectronXtreamDataSource } from './electron-xtream-data-source';
@@ -18,7 +21,7 @@ export { PwaXtreamDataSource } from './pwa-xtream-data-source';
 /**
  * Factory function that returns the appropriate data source based on environment.
  * - Electron: Uses DatabaseService for DB-first caching
- * - PWA: Uses API-only with in-memory caching and localStorage for user data
+ * - PWA: Uses a 24-hour IndexedDB catalog cache and separate user-data storage
  */
 export function xtreamDataSourceFactory(): IXtreamDataSource {
     const runtime = inject(RuntimeCapabilitiesService);
@@ -40,6 +43,23 @@ export function provideXtreamDataSource(
     return [
         ElectronXtreamDataSource,
         PwaXtreamDataSource,
+        {
+            provide: BROWSER_XTREAM_REFRESH,
+            useFactory: () => {
+                const runtime = inject(RuntimeCapabilitiesService);
+                const injector = inject(Injector);
+                if (runtime.supportsXtreamSqliteDataSource) return null;
+                return async (playlistId: string) => {
+                    const source = injector.get(PwaXtreamDataSource);
+                    const data = injector.get(DataService);
+                    const playlist = await source.getPlaylist(playlistId);
+                    await resetHostConnectivityGuard(data, playlist?.serverUrl);
+                    await source.refreshCatalog(playlistId);
+                    // Restart the active route/import with fresh catalogs, retaining user data.
+                    window.location.reload();
+                };
+            },
+        },
         {
             provide: XTREAM_DATA_SOURCE,
             useFactory: factory,

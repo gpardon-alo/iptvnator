@@ -23,6 +23,18 @@
     }
 
     <div class="rail-footer">
+        <a
+            class="rail-shortcut nav-item"
+            routerLink="/discovery"
+            [matTooltip]="'WORKSPACE.SHELL.DISCOVERY_PROTOTYPE' | translate"
+            [matTooltipPosition]="'right'"
+            [attr.aria-label]="
+                'WORKSPACE.SHELL.DISCOVERY_PROTOTYPE' | translate
+            "
+            data-test-id="rail-discovery-prototype"
+        >
+            <mat-icon aria-hidden="true">travel_explore</mat-icon>
+        </a>
         @if (serverState() !== 'inactive') {
             <a
                 class="rail-shortcut nav-item rail-server"

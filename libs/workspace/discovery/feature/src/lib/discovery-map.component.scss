@@ -1,0 +1,187 @@
+:host {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+}
+.map-toolbar,
+.map-tools,
+.breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.map-toolbar {
+    justify-content: space-between;
+    padding: 0 0 12px;
+    min-height: 40px;
+}
+.breadcrumbs {
+    font-size: 14px;
+    color: var(--app-muted-color);
+}
+button,
+select {
+    font: inherit;
+    color: var(--app-text-color);
+    background: var(--app-discovery-panel);
+    border: 1px solid var(--app-discovery-border);
+    border-radius: 8px;
+    min-height: 38px;
+    cursor: pointer;
+}
+.breadcrumbs button {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    border: 0;
+    background: none;
+    padding: 0;
+}
+.breadcrumbs > mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+select {
+    padding: 0 8px;
+    max-width: 160px;
+}
+.view-switch {
+    display: grid;
+    place-items: center;
+    width: 40px;
+}
+.map-canvas {
+    position: relative;
+    min-height: 0;
+    flex: 1;
+    background: radial-gradient(
+        ellipse at 48% 42%,
+        var(--app-discovery-ocean),
+        var(--app-discovery-background) 80%
+    );
+    border: 1px solid var(--app-discovery-border);
+}
+svg {
+    width: 100%;
+    height: 100%;
+    padding: 10px 14px 40px;
+    box-sizing: border-box;
+}
+path {
+    fill: var(--app-discovery-land-muted);
+    stroke: var(--app-discovery-background);
+    stroke-width: 0.8px;
+    vector-effect: non-scaling-stroke;
+}
+path.available {
+    fill: var(--app-discovery-land);
+    cursor: pointer;
+}
+path.available:hover,
+path.available:focus-visible {
+    fill: var(--app-discovery-land-focus);
+    stroke: var(--app-focus-ring);
+    stroke-width: 2px;
+    outline: none;
+}
+path.selected {
+    fill: var(--app-selection-color);
+    stroke: var(--app-focus-ring);
+    stroke-width: 1.3px;
+}
+text {
+    fill: var(--app-text-color);
+    text-anchor: middle;
+    font-weight: 600;
+    paint-order: stroke;
+    stroke: var(--app-discovery-background);
+    stroke-width: 2px;
+    pointer-events: none;
+}
+.map-caption {
+    position: absolute;
+    bottom: 65px;
+    left: 28px;
+    pointer-events: none;
+}
+.map-caption span {
+    font-size: 10px;
+    color: var(--app-muted-color);
+    letter-spacing: 2px;
+}
+.map-caption p {
+    font-size: clamp(17px, 1.6vw, 26px);
+    line-height: 1.35;
+    font-weight: 500;
+    margin: 10px 0;
+}
+.map-legend {
+    position: absolute;
+    bottom: 14px;
+    left: 20px;
+    right: 20px;
+    display: flex;
+    justify-content: space-between;
+    color: var(--app-muted-color);
+    font-size: 12px;
+    pointer-events: none;
+}
+.map-legend span {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--app-selection-color);
+}
+.location-list {
+    position: absolute;
+    inset: 0 0 40px;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    align-content: start;
+    padding: 20px;
+    gap: 10px;
+}
+.location-list button {
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+}
+.location-list button[aria-pressed='true'] {
+    border-color: var(--app-selection-color);
+    background: var(--app-selection-surface);
+    color: var(--app-selection-text-color);
+}
+@media (max-width: 900px) {
+    .breadcrumbs {
+        gap: 4px;
+    }
+    .breadcrumbs > span {
+        display: none;
+    }
+    .map-caption {
+        bottom: 60px;
+        left: 16px;
+    }
+    .map-legend span:last-child {
+        display: none;
+    }
+}
+
+// Regional maps use the lower canvas for geography rather than a large caption.
+.map-canvas--regional .map-caption {
+    bottom: 38px;
+}
+.map-canvas--regional .map-caption p {
+    display: none;
+}
