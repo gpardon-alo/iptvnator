@@ -301,3 +301,8 @@ baseline; invalid existing data aborts the transaction without a receipt. Failed
 imports remain retryable. New baseline versions add absent identities without
 overwriting desktop edits; restoring the pre-import snapshot is a separate,
 explicit recovery action.
+
+The standalone desktop header reuses the shared zoom-aware traffic-light clearance
+directive and provides a drag region with no-drag controls. Provider XMLTV channel
+IDs stay in runtime metadata and are passed to the shared EPG resolver, outside
+the portable classification records.

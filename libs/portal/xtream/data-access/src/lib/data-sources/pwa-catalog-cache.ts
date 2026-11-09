@@ -25,7 +25,7 @@ export class PwaCatalogCache {
         credentials: XtreamCredentials,
         fetch: () => Promise<T[]>,
         signal?: AbortSignal,
-        currentRows?: () => T[] | undefined
+        currentRows?: (validatedRows: T[]) => T[] | undefined
     ): Promise<T[]> {
         const generation = this.generations.get(playlistId) ?? 0;
         const { hashStalkerProtocolValue, STALKER_HASH_ALGORITHM } =
@@ -61,7 +61,7 @@ export class PwaCatalogCache {
                 age < PWA_CATALOG_TTL
             ) {
                 this.entries.set(key, entry);
-                return currentRows?.() ?? (entry.rows as T[]);
+                return currentRows?.(entry.rows as T[]) ?? (entry.rows as T[]);
             }
             const rows = await fetch();
             signal?.throwIfAborted();

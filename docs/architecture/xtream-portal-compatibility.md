@@ -64,8 +64,9 @@ Successful empty lists are cached too. Cache identity includes playlist, content
 type and a SHA-256 fingerprint of the connection (including credentials and user
 agent); raw connection fields are not stored in cache metadata. Account status,
 EPG, detail and playback requests retain their existing freshness rules.
-Storage denial/quota failures fall back to session caching. Failed or cancelled
-fetches never replace a saved catalog. Switching sources clears only session
+Storage denial/quota failures fall back to session caching. Failed fetches never replace a saved catalog. Session metadata enrichments
+are reused only for the exact validated catalog entry; cancellation during
+persistence cannot attach an earlier session catalog to a refreshed cache entry. Switching sources clears only session
 state; deletion removes the source's persistent cache. The browser Refresh action
 clears that cache and reloads the app, preserving favorites/history/positions.
 No catalog payload is uploaded to server storage. Tests load PWA

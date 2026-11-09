@@ -75,6 +75,7 @@ export class DiscoverySourceSession {
             ? DEMO_CHANNELS
             : groupDiscoveryChannels(this.rows(), this.logos())
     );
+    readonly epgChannelIds = signal(new Map<number, string>());
     private saved: ClassifiedStream[] = [];
     private readonly logos = signal(new Map<number, string>());
     private generation = 0;
@@ -142,6 +143,17 @@ export class DiscoverySourceSession {
                 this.baseline.apply(id).then(() => this.storage.read(id)),
             ]);
             if (generation !== this.generation) return;
+            this.epgChannelIds.set(
+                new Map(
+                    items.map((item) => {
+                        const content = item as Partial<XtreamContentItem>;
+                        return [
+                            Number(content.xtream_id ?? content.stream_id),
+                            content.epg_channel_id ?? '',
+                        ];
+                    })
+                )
+            );
             this.logos.set(
                 new Map(
                     items.map((item) => {

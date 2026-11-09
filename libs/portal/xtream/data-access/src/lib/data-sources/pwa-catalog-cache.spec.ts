@@ -71,6 +71,44 @@ describe('persistent PWA catalog cache', () => {
         expect(JSON.stringify([...saved])).not.toContain(credentials.serverUrl);
     });
 
+    it('validates session enrichments against the fetched entry after an aborted persistence wait', async () => {
+        const cache = new PwaCatalogCache();
+        const old = [{ name: 'old' }];
+        await cache.load(
+            'source',
+            'live-content',
+            credentials,
+            async () => old
+        );
+        now += PWA_CATALOG_TTL;
+        const controller = new AbortController();
+        storage.write.mockImplementationOnce(async () => {
+            controller.abort();
+        });
+        await expect(
+            cache.load(
+                'source',
+                'live-content',
+                credentials,
+                async () => [{ name: 'new' }],
+                controller.signal
+            )
+        ).rejects.toMatchObject({ name: 'AbortError' });
+        const currentRows = jest.fn((validatedRows) =>
+            validatedRows === old ? old : undefined
+        );
+        const rows = await cache.load(
+            'source',
+            'live-content',
+            credentials,
+            async () => [],
+            undefined,
+            currentRows
+        );
+        expect(currentRows).toHaveBeenCalledWith([{ name: 'new' }]);
+        expect(rows).toEqual([{ name: 'new' }]);
+    });
+
     it('forces refresh only for the selected source', async () => {
         const cache = new PwaCatalogCache();
         const fetch = jest.fn().mockResolvedValue([]);

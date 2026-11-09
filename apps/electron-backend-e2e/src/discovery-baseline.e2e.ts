@@ -38,6 +38,33 @@ test('Electron imports a packaged baseline through file assets without replacing
             contentTypes: ['live'],
         });
         await app.mainWindow.getByTestId('rail-discovery-prototype').click();
+        const header = app.mainWindow.locator('.topbar');
+        await expect(header).toHaveCSS('-webkit-app-region', 'drag');
+        await expect(header.locator('.brand')).toHaveCSS(
+            '-webkit-app-region',
+            'no-drag'
+        );
+        if (process.platform === 'darwin') {
+            const brandWindowLeft = () =>
+                header
+                    .locator('.brand')
+                    .evaluate(
+                        (el) =>
+                            (el.getBoundingClientRect().left *
+                                window.outerWidth) /
+                            window.innerWidth
+                    );
+            await expect.poll(brandWindowLeft).toBeGreaterThanOrEqual(84);
+            for (let step = 0; step < 8; step++) {
+                await app.mainWindow.evaluate(() =>
+                    window.electron.adjustZoomLevel('out')
+                );
+            }
+            await expect.poll(brandWindowLeft).toBeGreaterThanOrEqual(83);
+            await app.mainWindow.evaluate(() =>
+                window.electron.adjustZoomLevel('reset')
+            );
+        }
         const selector = app.mainWindow.getByLabel('Discovery source');
         const sourceId =
             (await selector

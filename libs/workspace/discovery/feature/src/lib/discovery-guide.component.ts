@@ -77,6 +77,7 @@ export class DiscoveryGuideComponent {
     }
     readonly row = input<ClassifiedStream | null>(null);
     readonly logo = input('');
+    readonly epgChannelId = input('');
     readonly session = inject(DiscoveryGuideSession);
     readonly collapsed = signal(false);
     readonly date = signal<string | null>(null);
@@ -85,11 +86,11 @@ export class DiscoveryGuideComponent {
             const row = this.row();
             this.session.enabled();
             this.date.set(null);
-            void this.session.load(row);
+            void this.session.load(row, this.epgChannelId());
             cleanup(() => this.session.close());
         });
     }
     reload(): void {
-        void this.session.load(this.row());
+        void this.session.load(this.row(), this.epgChannelId());
     }
 }

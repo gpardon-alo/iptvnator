@@ -43,7 +43,8 @@
 button,
 a,
 input,
-select {
+select,
+label {
     app-region: no-drag;
 }
 button,
@@ -68,12 +69,17 @@ button:disabled {
     cursor: default;
 }
 .topbar {
-    height: 78px;
-    flex: 0 0 78px;
+    app-region: drag;
+    padding-left: max(0px, calc(var(--traffic-lights-clear-x, 0px) - 32px));
+    height: max(78px, var(--traffic-lights-clear-y, 0px));
+    flex: 0 0 max(78px, var(--traffic-lights-clear-y, 0px));
     display: flex;
     align-items: center;
     gap: 30px;
     border-bottom: 1px solid var(--app-discovery-border);
+}
+.topbar.custom-window-controls {
+    padding-right: 110px;
 }
 .brand {
     display: inline-flex;

@@ -768,11 +768,8 @@ export class StreamResolverService {
             }
 
             // 1) Check uploaded XMLTV EPG via the provider's epg_channel_id.
-            // The field is populated at runtime from the content table's
-            // epg_channel_id column but is not declared on the TS interface.
-            const epgKey = (
-                item as unknown as Record<string, string | undefined | null>
-            )['epgChannelId']?.trim();
+            // Runtime catalog metadata supplies the provider's XMLTV identity.
+            const epgKey = item.epgChannelId?.trim();
             if (this.supportsProgramLookup && epgKey) {
                 const uploaded = await this.epgBridge
                     .getChannelPrograms(epgKey)

@@ -1,5 +1,8 @@
-<div class="discovery" lang="en">
-    <header class="topbar">
+<div class="discovery" lang="en" [appTrafficLightsClearance]="runtime.isMacOS">
+    <header
+        class="topbar"
+        [class.custom-window-controls]="runtime.usesCustomWindowControls"
+    >
         <a
             routerLink="/workspace"
             class="brand"
@@ -369,6 +372,13 @@
                     @if (playbackRow()) {
                         <app-discovery-guide
                             [row]="playbackRow()"
+                            [epgChannelId]="
+                                catalog
+                                    .epgChannelIds()
+                                    .get(
+                                        playbackRow()?.provider?.stream_id ?? 0
+                                    ) ?? ''
+                            "
                             [logo]="
                                 currentSource()?.facets?.logo ??
                                 match.channel.logo

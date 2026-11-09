@@ -92,6 +92,7 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
 
     // In-memory cache for the current session
     private categoryCache = new Map<string, XtreamCategory[]>();
+    private readonly contentCacheEntries = new Map<string, unknown[]>();
     private contentCache = new Map<string, XtreamCachedContentItem[]>();
     private playlistPasswords = new Map<string, string>();
 
@@ -504,6 +505,7 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
     > {
         const cacheKey = `${playlistId}-${type}-content`;
 
+        let validatedRows: unknown[] | undefined;
         const content = await this.catalogCache.load(
             playlistId,
             `${type}-content`,
@@ -529,9 +531,13 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
                 );
             },
             options?.signal,
-            () =>
-                this.contentCache.get(cacheKey) as
-                    XtreamContentItem[] | undefined
+            (rows) => {
+                validatedRows = rows;
+                return this.contentCacheEntries.get(cacheKey) === rows
+                    ? (this.contentCache.get(cacheKey) as
+                          XtreamContentItem[] | undefined)
+                    : undefined;
+            }
         );
 
         // Report total and progress (PWA doesn't have incremental save, so report all at once)
@@ -544,6 +550,7 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
 
         // Cache in memory
         this.contentCache.set(cacheKey, content);
+        this.contentCacheEntries.set(cacheKey, validatedRows ?? content);
 
         return this.withoutLockedContent(playlistId, type, content);
     }
@@ -1211,7 +1218,10 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
                 contentKeysToDelete.push(key);
             }
         });
-        contentKeysToDelete.forEach((key) => this.contentCache.delete(key));
+        contentKeysToDelete.forEach((key) => {
+            this.contentCache.delete(key);
+            this.contentCacheEntries.delete(key);
+        });
     }
 }
 

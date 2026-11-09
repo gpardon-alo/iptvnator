@@ -26,7 +26,10 @@ export class DiscoveryGuideSession {
         this.failed.set(false);
     }
 
-    async load(row: ClassifiedStream | null): Promise<void> {
+    async load(
+        row: ClassifiedStream | null,
+        epgChannelId?: string
+    ): Promise<void> {
         this.close();
         if (!row || !this.enabled()) return;
         const generation = this.generation;
@@ -46,6 +49,7 @@ export class DiscoveryGuideSession {
                         playlistName: '',
                         xtreamId: row.provider.stream_id,
                         name: row.provider.name,
+                        epgChannelId,
                     }),
                 []
             );

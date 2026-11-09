@@ -44,6 +44,7 @@ describe('Discovery source classification session', () => {
                     xtream_id: 10,
                     category_id: '1',
                     title: 'PE: Solis News Spanish',
+                    epg_channel_id: 'synthetic.xmltv.channel',
                 },
             ]),
         };
@@ -73,6 +74,7 @@ describe('Discovery source classification session', () => {
     it('loads through the shared cache data source and classifies only on explicit action', async () => {
         await session.load();
         expect(session.pending()).toBe(1);
+        expect(session.epgChannelIds().get(10)).toBe('synthetic.xmltv.channel');
         expect(storage.write).not.toHaveBeenCalled();
         await session.classifyUnclassified();
         expect(session.rows()[0].categories).toEqual([

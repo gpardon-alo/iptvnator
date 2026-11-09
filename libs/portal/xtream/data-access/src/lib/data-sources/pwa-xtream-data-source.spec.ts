@@ -1,3 +1,4 @@
+import { PwaCatalogCache, PWA_CATALOG_TTL } from './pwa-catalog-cache';
 import { TestBed } from '@angular/core/testing';
 import { PlaybackPositionData } from '@iptvnator/shared/interfaces';
 import { PwaXtreamDataSource } from './pwa-xtream-data-source';
@@ -70,6 +71,51 @@ describe('PwaXtreamDataSource', () => {
 
     afterEach(() => {
         localStorage.clear();
+    });
+
+    it('publishes the fresh catalog after cancellation during persistence instead of reusing the old session rows', async () => {
+        const clock = jest.spyOn(Date, 'now').mockReturnValue(1000);
+        const cache = TestBed.inject(PwaCatalogCache);
+        const storage = (
+            cache as unknown as {
+                storage: { write: (...args: unknown[]) => Promise<void> };
+            }
+        ).storage;
+        const write = jest.spyOn(storage, 'write').mockResolvedValue(undefined);
+        try {
+            apiService.getStreams.mockResolvedValueOnce([
+                { stream_id: 41, name: 'Old synthetic', category_id: '7' },
+            ]);
+            await dataSource.getContent('source', credentials, 'live');
+            clock.mockReturnValue(1000 + PWA_CATALOG_TTL);
+            const controller = new AbortController();
+            write.mockImplementationOnce(async () => {
+                controller.abort();
+            });
+            apiService.getStreams.mockResolvedValueOnce([
+                { stream_id: 42, name: 'Fresh synthetic', category_id: '7' },
+            ]);
+            await expect(
+                dataSource.getContent(
+                    'source',
+                    credentials,
+                    'live',
+                    undefined,
+                    undefined,
+                    { signal: controller.signal }
+                )
+            ).rejects.toMatchObject({ name: 'AbortError' });
+            const rows = await dataSource.getContent(
+                'source',
+                credentials,
+                'live'
+            );
+            expect(rows).toEqual([expect.objectContaining({ xtream_id: 42 })]);
+            expect(apiService.getStreams).toHaveBeenCalledTimes(2);
+        } finally {
+            write.mockRestore();
+            clock.mockRestore();
+        }
     });
 
     it('filters locked duplicate identities for history without changing PIN lookups', async () => {

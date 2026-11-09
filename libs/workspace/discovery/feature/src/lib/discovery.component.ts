@@ -1,3 +1,5 @@
+import { TrafficLightsClearanceDirective } from '@iptvnator/ui/components';
+import { RuntimeCapabilitiesService } from '@iptvnator/services';
 import { discoveryLocationIds } from '@iptvnator/portal/shared/util';
 import { A11yModule } from '@angular/cdk/a11y';
 import {
@@ -78,6 +80,7 @@ function initialFilters(): DiscoveryFilters {
     selector: 'app-discovery',
     standalone: true,
     imports: [
+        TrafficLightsClearanceDirective,
         FormsModule,
         MatIcon,
         RouterLink,
@@ -96,6 +99,7 @@ function initialFilters(): DiscoveryFilters {
     host: { '(keydown)': 'navigate($event)' },
 })
 export class DiscoveryComponent {
+    readonly runtime = inject(RuntimeCapabilitiesService);
     readonly catalog = inject(DiscoverySourceSession);
     readonly refreshAction = inject(PlaylistRefreshActionService);
     readonly currentPlaylist = computed(

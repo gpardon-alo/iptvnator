@@ -44,12 +44,13 @@ describe('Discovery selected-channel guide', () => {
         preferences = TestBed.inject(EpgPreferencesService);
     });
     it('resolves the selected provider identity and retains timestamp and display-offset handling', async () => {
-        await session.load(row);
+        await session.load(row, 'synthetic.xmltv.channel');
         expect(resolver.loadEpgItems).toHaveBeenCalledWith(
             expect.objectContaining({
                 playlistId: 'synthetic',
                 xtreamId: 42,
                 contentType: 'live',
+                epgChannelId: 'synthetic.xmltv.channel',
             })
         );
         expect(session.programs()[0]).toMatchObject({

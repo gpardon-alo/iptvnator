@@ -54,6 +54,9 @@ export interface UnifiedCollectionItem {
     /** Full M3U channel metadata used by shared live collection row actions */
     m3uChannel?: Channel;
 
+    /** Provider XMLTV channel identity for uploaded guide lookup. */
+    epgChannelId?: string;
+
     /** Xtream numeric stream ID */
     xtreamId?: number;
 
