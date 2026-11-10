@@ -163,4 +163,31 @@ describe('State facets on saved streams', () => {
             filterChannels(groups, { ...filters, locations: ['US-CA'] })
         ).toEqual([]);
     });
+    it('filters each stream by its declared quality and defaults historical mappings to Unknown', () => {
+        const groups = groupDiscoveryChannels(
+            [
+                { ...first, quality: 'HD' },
+                { ...second, quality: 'FHD' },
+            ],
+            new Map()
+        );
+        expect(
+            filterChannels(groups, {
+                ...filters,
+                qualities: ['HD'],
+            })[0].sources.map((s) => s.id)
+        ).toEqual([first.id]);
+        expect(
+            filterChannels(groups, {
+                ...filters,
+                qualities: ['FHD'],
+            })[0].sources.map((s) => s.id)
+        ).toEqual([second.id]);
+        expect(
+            filterChannels(groups, { ...filters, qualities: ['SD'] })
+        ).toEqual([]);
+        expect(
+            groupDiscoveryChannels([first], new Map())[0].sources[0].quality
+        ).toBe('Unknown');
+    });
 });

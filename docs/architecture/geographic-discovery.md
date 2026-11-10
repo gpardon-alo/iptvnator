@@ -39,7 +39,9 @@ country/territory inventory lives separately in `discovery-locations.ts`.
 
 - Locations, categories, languages and qualities use OR within a dimension,
   AND across dimensions; an empty selection is unrestricted.
-- Source quality is explicit mock metadata. Quality filters also constrain the
+- Source quality comes from explicit demo metadata or the optional saved mapping
+  `quality` field (`4K`, `FHD`, `HD`, `SD`, `Unknown`). Missing quality defaults to
+  Unknown; provider names are never used to infer it. Quality filters also constrain the
   source selector. Unknown quality remains its own choice.
 - Each fixture has a logical channel ID and distinct source IDs. Regional feeds
   stay separate even when their displayed names match.
@@ -125,10 +127,33 @@ overall completeness never replaces a known facet. Existing persisted status
 values remain compatible and are not used to project category or language.
 Cards show country, category and language, using provider artwork when available
 and a neutral app icon when absent, rather than synthetic demo artwork.
-Users can edit all three fields and the display name, export mapping JSON, rerun
+Users can edit all three fields and the display name, export/import mapping JSON, rerun
 rules for unmatched streams, or explicitly reclassify a selected stream. Bulk
 reclassification preserves manual edits, including partial manual mappings; the
 selected-stream action explicitly replaces them with the current rule result.
+**Import dictionary** accepts the exported JSON array (maximum 32 MiB) for the
+selected source. Validate the complete file before a single atomic storage write:
+source-scoped IDs must remain unchanged, fields must match the portable
+mapping schema, and country/category/US state values must be supported. Imported
+entries replace matching saved mappings and become manual edits, including partial
+classifications. Omitted and absent-stream mappings remain stored. Current catalog
+provider evidence wins over imported evidence for active streams; absent imported
+streams stay off screen. Derived labels and completeness are rebuilt from the
+edited fields. Repeated IDs with matching editable fields and provider names merge,
+including duplicates from different provider folders; conflicting duplicates abort
+with an entry number. Exports emit one record per source-scoped stream ID. Import
+announces reading progress, focuses its result and reports validation failures with
+fixed field names and entry numbers, without echoing provider data. Failed reads,
+validation or writes retain previous mappings. Import
+is device-local; exporting still includes only the current catalog's visible rows.
+
+Quality is an optional top-level dictionary field, separate from the derived
+`categories` labels and classification completeness. Historical mappings without
+it remain valid and display Unknown. Imports, storage and packaged baselines
+validate the same five values; duplicate comparison includes effective quality.
+Saved quality drives each real stream's filter and chooser label and survives
+provider refresh, manual edits and explicit classification actions.
+
 **Fill missing languages** is a separate explicit save action for existing mappings,
 including partial manual mappings. It fills only blank languages, prefers explicit
 feed-language hints over country defaults, preserves every other field and keeps

@@ -89,3 +89,19 @@ test('rejects credentials, source mismatch and conflicting duplicates before pac
         assert.throws(() => validateBaseline(value));
     }
 });
+
+test('accepts optional supported quality and rejects unsupported quality before packaging', () => {
+    for (const quality of ['4K', 'FHD', 'HD', 'SD', 'Unknown']) {
+        const value = manifest();
+        value.baselines[0].rows[0].quality = quality;
+        assert.equal(
+            validateBaseline(value).baselines[0].rows[0].quality,
+            quality
+        );
+    }
+    for (const quality of ['', 'UHD', 'hd', null, 1080]) {
+        const value = manifest();
+        value.baselines[0].rows[0].quality = quality;
+        assert.throws(() => validateBaseline(value));
+    }
+});

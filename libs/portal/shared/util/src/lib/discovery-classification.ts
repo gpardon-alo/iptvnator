@@ -1,6 +1,15 @@
 import { discoveryState } from './discovery-us-states';
 import { DISCOVERY_LANGUAGE_DEFAULTS } from './discovery-language-defaults';
 
+export const DISCOVERY_QUALITIES = [
+    '4K',
+    'FHD',
+    'HD',
+    'SD',
+    'Unknown',
+] as const;
+export type DiscoveryQuality = (typeof DISCOVERY_QUALITIES)[number];
+
 /** Provider references are scoped to a source and live content, never a DB row ID. */
 export interface DiscoveryProviderStream {
     source_id: string;
@@ -19,6 +28,8 @@ export interface ClassifiedStream {
     state?: string;
     category: string;
     language: string;
+    /** Omitted historical values display as Unknown; quality is not inferred. */
+    quality?: DiscoveryQuality;
     status: 'classified' | 'unclassified';
     origin: 'rules' | 'manual';
     ruleVersion: number;

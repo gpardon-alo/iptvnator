@@ -337,4 +337,216 @@ describe('Discovery source classification session', () => {
         await session.edit({ ...session.rows()[0], country: 'PE' });
         expect(session.rows()[0].state).toBe('');
     });
+    const dictionaryFile = (value: unknown) =>
+        ({
+            size: 100,
+            text: async () => JSON.stringify(value),
+        }) as File;
+
+    it('imports corrections as manual, rebuilds summaries and retains current provider evidence', async () => {
+        await session.load();
+        const row = session.rows()[0];
+        await session.importDictionary(
+            dictionaryFile([
+                {
+                    ...row,
+                    name: 'Bulk correction',
+                    country: 'US',
+                    state: 'US-FL',
+                    category: 'sports',
+                    language: 'Spanish',
+                    provider: { ...row.provider, name: 'Old provider name' },
+                },
+            ])
+        );
+        expect(session.rows()[0]).toMatchObject({
+            name: 'Bulk correction',
+            origin: 'manual',
+            country: 'US',
+            state: 'US-FL',
+            language: 'Spanish',
+            status: 'classified',
+            categories: ['United States', 'Sports', 'Spanish'],
+            provider: row.provider,
+        });
+        storage.read.mockResolvedValue(storage.write.mock.calls[0][1]);
+        await session.load();
+        expect(session.rows()[0].language).toBe('Spanish');
+        await session.classifyUnclassified();
+        expect(session.rows()[0].language).toBe('Spanish');
+    });
+    it('merges a partial dictionary and keeps absent mappings without showing absent streams', async () => {
+        await session.load();
+        const row = session.rows()[0];
+        const absent = {
+            ...row,
+            id: 'local:synthetic:live:11',
+            provider: { ...row.provider, stream_id: 11 },
+            name: 'Absent stream',
+        };
+        storage.read.mockResolvedValue([row, absent]);
+        await session.load();
+        await session.importDictionary(
+            dictionaryFile([{ ...absent, language: 'Spanish' }])
+        );
+        expect(session.rows()).toEqual([row]);
+        expect(storage.write).toHaveBeenLastCalledWith('synthetic', [
+            row,
+            expect.objectContaining({
+                name: 'Absent stream',
+                language: 'Spanish',
+                origin: 'manual',
+            }),
+        ]);
+    });
+    it.each([
+        'duplicate',
+        'source',
+        'country',
+        'category',
+        'state',
+        'extra',
+        'malformed',
+    ])(
+        'rejects an invalid %s dictionary without partial writes',
+        async (kind) => {
+            await session.load();
+            const row = session.rows()[0];
+            let value: unknown = [row];
+            if (kind === 'duplicate')
+                value = [row, { ...row, language: 'Portuguese' }];
+            if (kind === 'source')
+                value = [
+                    {
+                        ...row,
+                        provider: { ...row.provider, source_id: 'other' },
+                    },
+                ];
+            if (kind === 'country') value = [{ ...row, country: 'ZZ' }];
+            if (kind === 'category') value = [{ ...row, category: 'invalid' }];
+            if (kind === 'state')
+                value = [{ ...row, country: 'US', state: 'US-XX' }];
+            if (kind === 'extra')
+                value = [
+                    {
+                        ...row,
+                        provider: {
+                            ...row.provider,
+                            url: 'https://example.test',
+                        },
+                    },
+                ];
+            if (kind === 'malformed') value = null;
+            await session.importDictionary(dictionaryFile(value));
+            expect(storage.write).not.toHaveBeenCalled();
+            expect(session.rows()).toEqual([row]);
+            expect(session.notice()).toContain('Could not import dictionary');
+        }
+    );
+    it('retains visible and saved mappings on import persistence failure and allows retry', async () => {
+        await session.load();
+        const row = session.rows()[0];
+        storage.write.mockRejectedValueOnce(new Error('quota'));
+        const file = dictionaryFile([{ ...row, language: 'Spanish' }]);
+        await session.importDictionary(file);
+        expect(session.rows()).toEqual([row]);
+        expect(session.notice()).toContain('Could not save dictionary');
+        expect(session.saving()).toBe(false);
+        await session.importDictionary(file);
+        expect(session.rows()[0].language).toBe('Spanish');
+    });
+    it('does not import a file if its source session changed while reading', async () => {
+        await session.load();
+        let finish!: (text: string) => void;
+        const file = {
+            size: 1,
+            text: () =>
+                new Promise<string>((resolve) => {
+                    finish = resolve;
+                }),
+        } as File;
+        const importing = session.importDictionary(file);
+        expect(session.saving()).toBe(true);
+        expect(session.notice()).toBe('Reading dictionary…');
+        await session.load();
+        finish(JSON.stringify(session.rows()));
+        await importing;
+        expect(storage.write).not.toHaveBeenCalled();
+        expect(session.saving()).toBe(false);
+    });
+    it('rejects oversized or unreadable files without writes', async () => {
+        await session.load();
+        const text = jest.fn().mockRejectedValue(new Error('read failed'));
+        await session.importDictionary({
+            size: 33 * 1024 * 1024,
+            text,
+        } as unknown as File);
+        expect(text).not.toHaveBeenCalled();
+        await session.importDictionary({ size: 1, text } as unknown as File);
+        expect(storage.write).not.toHaveBeenCalled();
+        expect(session.saving()).toBe(false);
+    });
+    it('protects an imported language even when country and category are blank', async () => {
+        await session.load();
+        await session.importDictionary(
+            dictionaryFile([{ ...session.rows()[0], language: 'Portuguese' }])
+        );
+        await session.classifyUnclassified();
+        expect(session.rows()[0]).toMatchObject({
+            country: '',
+            category: '',
+            language: 'Portuguese',
+            origin: 'manual',
+        });
+    });
+    it('rejects JSON syntax errors without replacing previous rows', async () => {
+        await session.load();
+        const before = session.rows();
+        await session.importDictionary({
+            size: 1,
+            text: async () => '{',
+        } as File);
+        expect(session.rows()).toBe(before);
+        expect(storage.write).not.toHaveBeenCalled();
+        expect(session.notice()).toContain('Could not import dictionary');
+    });
+    it('imports repeated stream IDs from different folders once when their corrections agree', async () => {
+        await session.load();
+        const row = { ...session.rows()[0], language: 'Portuguese' };
+        await session.importDictionary(
+            dictionaryFile([
+                {
+                    ...row,
+                    provider: {
+                        ...row.provider,
+                        category_name: 'Synthetic news',
+                    },
+                },
+                {
+                    ...row,
+                    provider: {
+                        ...row.provider,
+                        category_name: 'Synthetic regional',
+                    },
+                },
+            ])
+        );
+        expect(session.notice()).toContain('Imported 1 dictionary mappings');
+        expect(session.rows()[0].language).toBe('Portuguese');
+        expect(storage.write.mock.calls[0][1]).toHaveLength(1);
+    });
+    it('preserves imported quality across reload, provider refresh and classification actions', async () => {
+        await session.load();
+        await session.importDictionary(
+            dictionaryFile([{ ...session.rows()[0], quality: 'HD' }])
+        );
+        expect(session.channels()[0].sources[0].quality).toBe('HD');
+        storage.read.mockResolvedValue(storage.write.mock.calls[0][1]);
+        await session.load();
+        expect(session.channels()[0].sources[0].quality).toBe('HD');
+        await session.reclassify(session.rows()[0]);
+        expect(session.rows()[0].quality).toBe('HD');
+        await session.edit({ ...session.rows()[0], language: 'Portuguese' });
+        expect(session.rows()[0].quality).toBe('HD');
+    });
 });

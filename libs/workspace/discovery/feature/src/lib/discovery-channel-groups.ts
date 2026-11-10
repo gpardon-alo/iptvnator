@@ -45,7 +45,7 @@ export function groupDiscoveryChannels(
         channel.sources.push({
             id: row.id,
             label: row.provider.name,
-            quality: 'Unknown',
+            quality: row.quality ?? 'Unknown',
             facets,
         });
         groups.set(key, channel);

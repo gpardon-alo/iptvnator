@@ -2,8 +2,10 @@ import {
     ChangeDetectionStrategy,
     Component,
     computed,
+    ElementRef,
     inject,
     signal,
+    viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
@@ -30,6 +32,8 @@ import { DiscoverySourceSession } from './discovery-source-session';
 })
 export class DiscoveryClassificationsComponent {
     readonly session = inject(DiscoverySourceSession);
+    private readonly importStatus =
+        viewChild<ElementRef<HTMLParagraphElement>>('importStatus');
     readonly countryGroups = [...new Set(COUNTRIES.map((c) => c.region))].map(
         (region) => ({
             region,
@@ -89,6 +93,20 @@ export class DiscoveryClassificationsComponent {
         await this.session.reclassify(row);
         const saved = this.session.rows().find((r) => r.id === row.id);
         if (saved) this.select(saved);
+    }
+    async importDictionary(input: HTMLInputElement): Promise<void> {
+        const file = input.files?.[0];
+        input.value = '';
+        if (!file) return;
+        const importing = this.session.importDictionary(file);
+        this.importStatus()?.nativeElement.focus();
+        await importing;
+        this.importStatus()?.nativeElement.focus();
+        this.page.set(0);
+        const selected = this.session
+            .rows()
+            .find((row) => row.id === this.draft()?.id);
+        if (selected) this.select(selected);
     }
     async fillLanguages(): Promise<void> {
         await this.session.fillMissingLanguages();

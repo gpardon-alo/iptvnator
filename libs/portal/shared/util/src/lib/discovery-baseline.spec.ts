@@ -115,4 +115,22 @@ describe('Discovery baseline validation and merge', () => {
         expect(merged).toEqual([existing, absent]);
         expect(mergeDiscoveryBaseline([], baseline)).toEqual([row]);
     });
+    it.each(['4K', 'FHD', 'HD', 'SD', 'Unknown'])(
+        'accepts optional %s quality in stored mappings and baselines',
+        (quality) => {
+            const value = manifest();
+            Object.assign(value.baselines[0].rows[0], { quality });
+            expect(
+                parseDiscoveryBaseline(value).baselines[0].rows[0].quality
+            ).toBe(quality);
+        }
+    );
+    it.each(['', 'UHD', 'hd', null, 1080])(
+        'rejects unsupported quality %p',
+        (quality) => {
+            const value = manifest();
+            Object.assign(value.baselines[0].rows[0], { quality });
+            expect(() => parseDiscoveryBaseline(value)).toThrow();
+        }
+    );
 });

@@ -45,13 +45,43 @@
     >
         Export mapping JSON
     </button>
+    <input
+        #dictionaryFile
+        type="file"
+        accept=".json,application/json"
+        aria-label="Dictionary JSON file"
+        hidden
+        (change)="importDictionary(dictionaryFile)"
+    />
+    <button
+        type="button"
+        [disabled]="
+            session.saving() ||
+            session.loading() ||
+            !!session.error() ||
+            !session.sourceId()
+        "
+        (click)="dictionaryFile.click()"
+    >
+        Import dictionary
+    </button>
 </div>
+<p>
+    Export the dictionary, edit names, country, optional US state, category or
+    language or quality, then import the JSON for this source. Keep IDs
+    unchanged. Imported entries replace matching mappings and become manual
+    edits; omitted mappings are kept. Quality accepts 4K, FHD, HD, SD or
+    Unknown; omitting it means Unknown. Channels absent from the provider stay
+    off the screen.
+</p>
 <p>
     Rules prefer explicit country, genre and language hints. Missing languages
     can use editable country defaults. Existing languages and manual edits are
     preserved. Refreshing a source does not run classification.
 </p>
-<p role="status">{{ session.notice() }}</p>
+<p #importStatus role="status" aria-live="polite" tabindex="-1">
+    {{ session.notice() }}
+</p>
 <div class="tools">
     <button
         type="button"

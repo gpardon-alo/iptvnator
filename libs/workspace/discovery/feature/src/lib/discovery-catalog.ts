@@ -1,3 +1,7 @@
+import {
+    DISCOVERY_QUALITIES,
+    type DiscoveryQuality,
+} from '@iptvnator/portal/shared/util';
 /** Synthetic catalog owned by the Discovery prototype; no provider data or streams. */
 export const CATEGORIES = [
     ['general', 'General TV', 'live_tv'],
@@ -12,8 +16,8 @@ export const CATEGORIES = [
     ['education', 'Education', 'school'],
     ['religion', 'Religion', 'auto_awesome'],
 ] as const;
-export const QUALITIES = ['4K', 'FHD', 'HD', 'SD', 'Unknown'] as const;
-export type Quality = (typeof QUALITIES)[number];
+export const QUALITIES = DISCOVERY_QUALITIES;
+export type Quality = DiscoveryQuality;
 export {
     COUNTRIES,
     STATES,

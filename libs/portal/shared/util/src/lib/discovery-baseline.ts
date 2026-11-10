@@ -1,5 +1,6 @@
 import {
     discoveryStreamId,
+    DISCOVERY_QUALITIES,
     type ClassifiedStream,
 } from './discovery-classification';
 import { discoveryState } from './discovery-us-states';
@@ -40,6 +41,8 @@ export function assertDiscoveryMappings(
                     (typeof row.state !== 'string' ||
                         (row.state &&
                             (row.country !== 'US' || !discoveryState(row))))) ||
+                (row.quality !== undefined &&
+                    !DISCOVERY_QUALITIES.includes(row.quality)) ||
                 !Array.isArray(row.categories) ||
                 !row.categories.every((v: unknown) => typeof v === 'string') ||
                 !['classified', 'unclassified'].includes(row.status) ||
@@ -93,6 +96,7 @@ export function parseDiscoveryBaseline(
                     'state',
                     'category',
                     'language',
+                    'quality',
                     'status',
                     'origin',
                     'ruleVersion',

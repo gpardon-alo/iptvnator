@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { expect, test } from './fixtures';
 import { configureMockProviderBackend } from './provider-target-route';
 import {
@@ -221,8 +222,72 @@ test('Discovery classifies a cached source, reviews unknowns and retains mapping
     ).toContainText('Dominican Republic · Sports · Spanish · Complete');
     const downloadEvent = page.waitForEvent('download');
     await dialog.getByRole('button', { name: 'Export mapping JSON' }).click();
-    expect((await downloadEvent).suggestedFilename()).toBe(
+    const downloaded = await downloadEvent;
+    expect(downloaded.suggestedFilename()).toBe(
         'discovery-classifications.json'
+    );
+    const dictionary = JSON.parse(
+        await readFile((await downloaded.path()) ?? '', 'utf8')
+    );
+    const corrected = dictionary.find(
+        (row: { name: string }) => row.name === 'My synthetic channel'
+    );
+    corrected.language = 'Portuguese';
+    corrected.quality = 'HD';
+    const importFile = {
+        name: 'edited-dictionary.json',
+        mimeType: 'application/json',
+        buffer: Buffer.from(JSON.stringify([corrected])),
+    };
+    const chooserEvent = page.waitForEvent('filechooser');
+    await dialog
+        .getByRole('button', { name: 'Import dictionary', exact: true })
+        .click();
+    await (await chooserEvent).setFiles(importFile);
+    await expect(dialog.getByRole('status')).toContainText(
+        'Imported 1 dictionary mappings'
+    );
+    const importedRow = dialog
+        .locator('.mapping-row')
+        .filter({ hasText: 'My synthetic channel' });
+    await importedRow.click();
+    await expect(dialog.getByLabel('Mapping language')).toHaveValue(
+        'Portuguese'
+    );
+    // An invalid retry leaves the imported row intact, and the same file can be selected again.
+    await dialog.getByLabel('Dictionary JSON file').setInputFiles({
+        ...importFile,
+        buffer: Buffer.from(
+            JSON.stringify([corrected, { ...corrected, language: 'English' }])
+        ),
+    });
+    await expect(dialog.getByRole('status')).toContainText(
+        'Could not import dictionary'
+    );
+    await expect(dialog.getByLabel('Mapping language')).toHaveValue(
+        'Portuguese'
+    );
+    await expect(dialog.getByRole('status')).toBeFocused();
+    await expect(dialog.getByRole('status')).toContainText(
+        'conflicting names or classifications'
+    );
+    await dialog.getByLabel('Dictionary JSON file').setInputFiles({
+        ...importFile,
+        buffer: Buffer.from(
+            JSON.stringify([
+                corrected,
+                {
+                    ...corrected,
+                    provider: {
+                        ...corrected.provider,
+                        category_name: 'Synthetic alternate folder',
+                    },
+                },
+            ])
+        ),
+    });
+    await expect(dialog.getByRole('status')).toContainText(
+        'Imported 1 dictionary mappings'
     );
     await page.screenshot({ path: '../../dist/discovery-classifications.png' });
     await dialog.getByRole('button', { name: 'Close classifications' }).click();
@@ -233,6 +298,15 @@ test('Discovery classifies a cached source, reviews unknowns and retains mapping
     await expect(
         page.getByRole('button', { name: 'My synthetic channel', exact: true })
     ).toBeVisible();
+    await page.getByRole('button', { name: 'HD', exact: true }).click();
+    await expect(page.locator('.result-count')).toHaveText('1 channel');
+    await expect(page.locator('.channel-tile')).toContainText(
+        'My synthetic channel'
+    );
+    await page.getByRole('button', { name: 'HD', exact: true }).click();
+    await page.getByRole('button', { name: 'Unknown', exact: true }).click();
+    await expect(page.locator('.result-count')).toHaveText('3 channels');
+    await page.getByRole('button', { name: 'Unknown', exact: true }).click();
     await page
         .getByRole('button', { name: 'Refresh source', exact: true })
         .click();
@@ -297,6 +371,9 @@ test('Discovery classifies a cached source, reviews unknowns and retains mapping
         .locator('.mapping-row')
         .filter({ hasText: 'My synthetic channel' });
     await editedRow.click();
+    await expect(dialog.getByLabel('Mapping language')).toHaveValue(
+        'Portuguese'
+    );
     await dialog.getByLabel('Mapping language').selectOption('');
     await dialog.getByRole('button', { name: 'Save classification' }).click();
     await expect(editedRow).toContainText('Unknown language');
