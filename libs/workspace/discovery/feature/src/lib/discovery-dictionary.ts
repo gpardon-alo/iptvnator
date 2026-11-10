@@ -25,7 +25,9 @@ export function parseDiscoveryDictionary(
         throw new DictionaryImportError(
             'The dictionary must be a JSON array exported from Classifications.'
         );
-    const providers = new Map(current.map((row) => [row.id, row.provider]));
+    const providers = new Map(
+        discoveryDictionaryRows(current).map((row) => [row.id, row.provider])
+    );
     const unique = new Map<string, ClassifiedStream>();
     const signatures = new Map<string, string>();
     input.forEach((value, index) => {

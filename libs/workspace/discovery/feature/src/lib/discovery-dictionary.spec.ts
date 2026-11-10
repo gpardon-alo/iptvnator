@@ -95,4 +95,20 @@ describe('Discovery dictionary round trips', () => {
             )
         ).toThrow('conflicting names or classifications');
     });
+    it('preserves the first catalog provider evidence when a stream is in multiple folders', () => {
+        const first = row();
+        const otherFolder = {
+            ...first,
+            provider: {
+                ...first.provider,
+                category_name: 'Synthetic English folder',
+            },
+        };
+        const imported = parseDiscoveryDictionary(
+            JSON.stringify([first]),
+            'synthetic',
+            [first, otherFolder]
+        );
+        expect(imported[0].provider).toEqual(first.provider);
+    });
 });
