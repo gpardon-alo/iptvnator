@@ -11,6 +11,13 @@ this marker — see `.changes/README.md`.
 
 <!-- next-release -->
 
+# [0.25.2](https://github.com/gpardon-alo/iptvnator/compare/v0.25.1...v0.25.2) (2026-11-09)
+
+### Features
+
+- **discovery** — Discovery supports importing an edited mapping JSON dictionary for bulk classification corrections. Imported entries are saved as manual edits, while mappings omitted from the file are preserved. Matching duplicates from provider folders merge automatically, and import results show clear validation feedback.
+- **discovery** — Discovery dictionaries accept an optional quality field: 4K, FHD, HD, SD or Unknown. Saved quality drives stream labels and picture-quality filters; existing mappings without it remain Unknown.
+
 # [0.24.0](https://github.com/4gray/iptvnator/compare/v0.23.0...v0.24.0) (2026-09-24)
 
 
