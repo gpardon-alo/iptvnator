@@ -84,3 +84,22 @@ details {
         grid-template-columns: 1fr;
     }
 }
+
+.tools:first-child {
+    margin-top: 0;
+}
+.hint {
+    font-size: 13px;
+    margin: 8px 0;
+}
+.notice {
+    border-inline-start: 3px solid currentColor;
+    padding: 8px 12px;
+    overflow-wrap: anywhere;
+}
+.notice-success {
+    color: var(--app-success-color, #81c784);
+}
+.notice-error {
+    color: var(--app-danger-text, #ffb4ab);
+}

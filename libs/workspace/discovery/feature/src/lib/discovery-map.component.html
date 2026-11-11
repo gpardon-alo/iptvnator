@@ -14,28 +14,37 @@
     <div class="map-tools">
         <select
             aria-label="Explore a region"
-            [value]="region()"
-            (change)="regionChange.emit($any($event.target).value)"
+            [ngModel]="region()"
+            (ngModelChange)="regionChange.emit($event)"
         >
             @for (name of regions; track name) {
                 <option [value]="name">{{ name }}</option>
             }
         </select>
-        <button
-            type="button"
-            class="view-switch"
-            [attr.aria-pressed]="listMode()"
-            (click)="listMode.set(!listMode())"
-            [attr.aria-label]="listMode() ? 'Show map' : 'Show location list'"
-        >
-            <mat-icon>{{
-                listMode() ? 'map' : 'format_list_bulleted'
-            }}</mat-icon>
-        </button>
+        @if (region() !== 'Sports') {
+            <button
+                type="button"
+                class="view-switch"
+                [attr.aria-pressed]="listMode()"
+                (click)="listMode.set(!listMode())"
+                [attr.aria-label]="
+                    listMode() ? 'Show map' : 'Show location list'
+                "
+            >
+                <mat-icon>{{
+                    listMode() ? 'map' : 'format_list_bulleted'
+                }}</mat-icon>
+            </button>
+        }
     </div>
 </div>
 <div class="map-canvas" [class.map-canvas--regional]="region() !== 'World'">
-    @if (listMode()) {
+    @if (region() === 'Sports') {
+        <app-discovery-sports
+            [selected]="selectedLeague()"
+            (leagueToggle)="leagueToggle.emit($event)"
+        />
+    } @else if (listMode()) {
         <div class="location-list" aria-label="Available locations">
             @if (failed()) {
                 <p>Map unavailable. You can still browse by location.</p>
@@ -114,8 +123,10 @@
             <p>A different perspective<br />on live television.</p>
         </div>
     }
-    <div class="map-legend">
-        <span><i></i>{{ places().length }} locations to explore</span
-        ><span>Choose one or more</span>
-    </div>
+    @if (region() !== 'Sports') {
+        <div class="map-legend">
+            <span><i></i>{{ places().length }} locations to explore</span
+            ><span>Choose one or more</span>
+        </div>
+    }
 </div>

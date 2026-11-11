@@ -214,6 +214,7 @@ describe('Discovery source classification session', () => {
         await session.fillMissingLanguages();
         expect(session.rows()[0].language).toBe('');
         expect(session.notice()).toContain('Could not save');
+        expect(session.noticeKind()).toBe('error');
     });
     it('regroups edited roots and restores the grouping after reload without merging saved stream records', async () => {
         data.getContent.mockResolvedValue([
@@ -264,6 +265,7 @@ describe('Discovery source classification session', () => {
         await session.classifyUnclassified();
         expect(session.pending()).toBe(1);
         expect(session.notice()).toContain('Could not save');
+        expect(session.noticeKind()).toBe('error');
         await session.classifyUnclassified();
         expect(session.pending()).toBe(0);
     });
@@ -441,6 +443,7 @@ describe('Discovery source classification session', () => {
             expect(storage.write).not.toHaveBeenCalled();
             expect(session.rows()).toEqual([row]);
             expect(session.notice()).toContain('Could not import dictionary');
+            expect(session.noticeKind()).toBe('error');
         }
     );
     it('retains visible and saved mappings on import persistence failure and allows retry', async () => {
@@ -468,6 +471,7 @@ describe('Discovery source classification session', () => {
         const importing = session.importDictionary(file);
         expect(session.saving()).toBe(true);
         expect(session.notice()).toBe('Reading dictionary…');
+        expect(session.noticeKind()).toBe('info');
         await session.load();
         finish(JSON.stringify(session.rows()));
         await importing;
@@ -509,6 +513,7 @@ describe('Discovery source classification session', () => {
         expect(session.rows()).toBe(before);
         expect(storage.write).not.toHaveBeenCalled();
         expect(session.notice()).toContain('Could not import dictionary');
+        expect(session.noticeKind()).toBe('error');
     });
     it('imports repeated stream IDs from different folders once when their corrections agree', async () => {
         await session.load();
@@ -532,6 +537,7 @@ describe('Discovery source classification session', () => {
             ])
         );
         expect(session.notice()).toContain('Imported 1 dictionary mappings');
+        expect(session.noticeKind()).toBe('success');
         expect(session.rows()[0].language).toBe('Portuguese');
         expect(storage.write.mock.calls[0][1]).toHaveLength(1);
     });

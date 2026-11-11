@@ -1,3 +1,4 @@
+import { DISCOVERY_LEAGUES } from './discovery-leagues';
 import { TrafficLightsClearanceDirective } from '@iptvnator/ui/components';
 import { RuntimeCapabilitiesService } from '@iptvnator/services';
 import { discoveryLocationIds } from '@iptvnator/portal/shared/util';
@@ -40,6 +41,7 @@ import {
 import { DiscoveryGuideComponent } from './discovery-guide.component';
 import { DiscoveryPlayerComponent } from './discovery-player.component';
 import { DiscoveryMapComponent } from './discovery-map.component';
+import { DiscoveryHoverScrollDirective } from './discovery-hover-scroll.directive';
 
 const PREFERENCES_KEY = 'iptvnator-discovery-prototype:v1';
 function initialFilters(): DiscoveryFilters {
@@ -64,6 +66,9 @@ function initialFilters(): DiscoveryFilters {
             defaults[key] = Array.isArray(value[key])
                 ? value[key].filter((v: string) => allowed.some((a) => a === v))
                 : [];
+        defaults.league = DISCOVERY_LEAGUES.some((l) => l.id === value.league)
+            ? value.league
+            : '';
         defaults.query =
             typeof value.query === 'string' ? value.query.slice(0, 100) : '';
         if (defaults.categories.length > 1)
@@ -88,6 +93,7 @@ function initialFilters(): DiscoveryFilters {
         A11yModule,
         ContentCardComponent,
         DiscoveryMapComponent,
+        DiscoveryHoverScrollDirective,
         DiscoveryPlayerComponent,
         DiscoveryGuideComponent,
         DiscoveryClassificationsComponent,
@@ -117,16 +123,33 @@ export class DiscoveryComponent {
     );
     private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
     readonly filters = signal(initialFilters());
-    readonly region = signal('World');
+    readonly region = signal(this.filters().league ? 'Sports' : 'World');
     readonly selected = signal<ChannelMatch | null>(null);
     readonly sourceId = signal('');
     readonly watching = signal(false);
     readonly stack = signal<ChannelMatch | null>(null);
     readonly categories = CATEGORIES;
     readonly channelLabel = discoveryChannelLabel;
-    readonly selectedCategoryNames = computed(() =>
-        this.filters().categories.map(discoveryCategoryLabel).join(' + ')
-    );
+    readonly filterSummary = computed(() => {
+        const f = this.filters();
+        return [
+            ...(f.league
+                ? [
+                      DISCOVERY_LEAGUES.find((l) => l.id === f.league)?.name ??
+                          f.league,
+                  ]
+                : []),
+            ...f.locations.map(
+                (id) => LOCATIONS.find((l) => l.id === id)?.name ?? id
+            ),
+            ...f.categories.map(discoveryCategoryLabel),
+            ...f.languages.map((l) =>
+                l === 'Unknown' ? 'Unknown language' : l
+            ),
+            ...f.qualities.map((q) => `${q} quality`),
+            ...(f.query.trim() ? [`Search: “${f.query.trim()}”`] : []),
+        ];
+    });
     readonly languages = [...LANGUAGES, 'Unknown'];
     readonly qualities = QUALITIES;
     readonly countries = COUNTRIES;
@@ -148,7 +171,8 @@ export class DiscoveryComponent {
             f.categories.length +
             f.languages.length +
             f.qualities.length +
-            Number(Boolean(f.query))
+            Number(Boolean(f.query.trim())) +
+            Number(Boolean(f.league))
         );
     });
     readonly locationNames = computed(() =>
@@ -225,6 +249,20 @@ export class DiscoveryComponent {
                 dimension === 'categories'
                     ? toggleDiscoveryCategory(f.categories, value)
                     : toggleSelection(f[dimension], value),
+        }));
+        this.viewport()?.scrollToOffset(0);
+    }
+    setRegion(value: string): void {
+        this.region.set(value);
+        this.filters.update((f) =>
+            value === 'Sports' ? { ...f, locations: [] } : { ...f, league: '' }
+        );
+        this.viewport()?.scrollToOffset(0);
+    }
+    selectLeague(id: string): void {
+        this.filters.update((f) => ({
+            ...f,
+            league: f.league === id ? '' : id,
         }));
         this.viewport()?.scrollToOffset(0);
     }

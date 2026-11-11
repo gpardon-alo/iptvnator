@@ -1,0 +1,110 @@
+[
+  {
+    "id": "laliga",
+    "name": "LaLiga (Spain)",
+    "page": "https://www.thesportsdb.com/league/4335",
+    "image": "https://r2.thesportsdb.com/images/media/league/badge/ja4it51687628717.png"
+  },
+  {
+    "id": "champions-league",
+    "name": "UEFA Champions League",
+    "page": "https://www.thesportsdb.com/league/4480",
+    "image": "https://r2.thesportsdb.com/images/media/league/badge/facv1u1742998896.png"
+  },
+  {
+    "id": "nations-league",
+    "name": "UEFA Nations League",
+    "page": "https://www.thesportsdb.com/league/4490",
+    "image": "https://r2.thesportsdb.com/images/media/league/badge/cwsp321698386224.png"
+  },
+  {
+    "id": "premier-league",
+    "name": "Premier League",
+    "page": "https://www.thesportsdb.com/league/4328",
+    "image": "https://r2.thesportsdb.com/images/media/league/badge/gasy9d1737743125.png"
+  },
+  {
+    "id": "bundesliga",
+    "name": "Bundesliga",
+    "page": "https://www.thesportsdb.com/league/4331",
+    "image": "https://r2.thesportsdb.com/images/media/league/badge/teqh1b1679952008.png"
+  },
+  {
+    "id": "serie-a",
+    "name": "Serie A (Italy)",
+    "page": "https://www.thesportsdb.com/league/4332",
+    "image": "https://r2.thesportsdb.com/images/media/league/badge/67q3q21679951383.png"
+  },
+  {
+    "id": "ligue-1",
+    "name": "Ligue 1 (France)",
+    "page": "https://www.thesportsdb.com/league/4334",
+    "image": "https://r2.thesportsdb.com/images/media/league/badge/9f7z9d1742983155.png"
+  },
+  {
+    "id": "liga-portugal",
+    "name": "Liga Portugal",
+    "page": "https://www.thesportsdb.com/league/4344",
+    "image": "https://r2.thesportsdb.com/images/media/league/badge/3tgdke1782689102.png"
+  },
+  {
+    "id": "liga-mx",
+    "name": "Liga MX",
+    "page": "https://www.thesportsdb.com/league/4350",
+    "image": "https://r2.thesportsdb.com/images/media/league/badge/mav5rx1686157960.png"
+  },
+  {
+    "id": "mls",
+    "name": "MLS",
+    "page": "https://www.thesportsdb.com/league/4346",
+    "image": "https://r2.thesportsdb.com/images/media/league/badge/dqo6r91549878326.png"
+  },
+  {
+    "id": "liga-1-peru",
+    "name": "Liga 1 (Peru)",
+    "page": "https://www.thesportsdb.com/league/4688",
+    "image": "https://r2.thesportsdb.com/images/media/league/badge/1ujpwc1580040216.png"
+  },
+  {
+    "id": "liga-chile",
+    "name": "Liga de Primera (Chile)",
+    "page": "https://www.thesportsdb.com/league/4627",
+    "image": "https://r2.thesportsdb.com/images/media/league/badge/x9m78e1768232019.png"
+  },
+  {
+    "id": "primera-a",
+    "name": "Primera A / BetPlay (Colombia)",
+    "page": "https://www.thesportsdb.com/league/4497",
+    "image": "https://r2.thesportsdb.com/images/media/league/badge/sdz1351580833297.png"
+  },
+  {
+    "id": "brasileirao",
+    "name": "Brasileirão",
+    "page": "https://www.thesportsdb.com/league/4351",
+    "image": "https://r2.thesportsdb.com/images/media/league/badge/lywv7t1766787179.png"
+  },
+  {
+    "id": "nba",
+    "name": "NBA",
+    "page": "https://www.thesportsdb.com/league/4387",
+    "image": "https://r2.thesportsdb.com/images/media/league/badge/frdjqy1536585083.png"
+  },
+  {
+    "id": "nhl",
+    "name": "NHL",
+    "page": "https://www.thesportsdb.com/league/4380",
+    "image": "https://r2.thesportsdb.com/images/media/league/badge/4cem2k1619616539.png"
+  },
+  {
+    "id": "nfl",
+    "name": "NFL",
+    "page": "https://www.thesportsdb.com/league/4391",
+    "image": "https://r2.thesportsdb.com/images/media/league/badge/0z0j131793688031.png"
+  },
+  {
+    "id": "mlb",
+    "name": "MLB",
+    "page": "https://www.thesportsdb.com/league/4424",
+    "image": "https://r2.thesportsdb.com/images/media/league/badge/c5r83j1521893739.png"
+  }
+]

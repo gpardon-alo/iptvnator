@@ -4,6 +4,7 @@ import {
     provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { COUNTRIES } from './discovery-catalog';
 import { DiscoveryMapComponent } from './discovery-map.component';
 
 describe('Discovery map asset transport', () => {
@@ -34,6 +35,23 @@ describe('Discovery map asset transport', () => {
         await Promise.resolve();
         expect(fixture.componentInstance.failed()).toBe(true);
         expect(fixture.componentInstance.listMode()).toBe(true);
+        http.verify();
+    });
+    it('lists available countries alphabetically within the selected region', () => {
+        const inventory = COUNTRIES.map((country) => country.id);
+        const fixture = TestBed.createComponent(DiscoveryMapComponent);
+        const http = TestBed.inject(HttpTestingController);
+        http.expectOne('assets/discovery/world.json').flush([]);
+        http.expectOne('assets/discovery/states.json').flush([]);
+        fixture.componentRef.setInput('locationIds', ['US', 'PE', 'BR', 'AR']);
+        expect(
+            fixture.componentInstance.places().map((country) => country.name)
+        ).toEqual(['Argentina', 'Brazil', 'Peru', 'United States']);
+        fixture.componentRef.setInput('region', 'South America');
+        expect(
+            fixture.componentInstance.places().map((country) => country.name)
+        ).toEqual(['Argentina', 'Brazil', 'Peru']);
+        expect(COUNTRIES.map((country) => country.id)).toEqual(inventory);
         http.verify();
     });
 });

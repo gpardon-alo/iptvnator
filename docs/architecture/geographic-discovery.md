@@ -336,3 +336,51 @@ the portable classification records.
 
 Map assets use the application HTTP client, including its XHR transport for
 packaged Electron file URLs. Electron coverage verifies both world and state paths.
+
+## Discovery controls
+
+The left-aligned filter summary lists selected locations, categories, languages,
+qualities and search text. Clearing filters resets all five dimensions. Country
+availability comes from the current source mappings (or demo catalog), narrowed
+by the selected region, independently of other filters. Country lists sort
+alphabetically by their English display names within the selected region,
+without changing the shared location inventory.
+
+The settings gear opens three actions: Classifications, Refresh source and Return
+to main app. Source actions retain their loading, saving and capability guards.
+The classification dialog keeps its header outside the scrolling body; operation
+feedback carries an explicit success/error state with semantic colors and text.
+Hovering a ribbon arrow scrolls continuously for mouse pointers; clicks and
+keyboard activation still skip a page. Pointer exit, cancellation, window blur,
+visibility changes and destruction cancel the animation frame.
+
+Channel cards sort by the editable display name, case-insensitively with numeric
+ordering (Channel 2 before Channel 10). Sorting affects the filtered presentation
+only: source order and saved mappings stay intact. Grouping still uses channel
+identity/name, and alternate streams retain their quality ranking.
+
+The channel search field shows a slash shortcut hint while empty. Pressing `/`
+from outside a text input focuses search. When text is present, an accessible
+clear button replaces the hint; it clears only the query and returns focus to
+search, preserving all other filter selections.
+
+## Sports tournament shortcuts
+
+The region selector includes Sports, replacing geography with 18 locally bundled
+league-logo buttons. `discovery-leagues.ts` owns the public tournament inventory
+and phrase aliases. A single selected league filters each stream by its editable
+channel name or original provider name; any alias may match. Matching ignores
+case, accents, punctuation and repeated whitespace, with word boundaries to keep
+NBA distinct from WNBA. Country/category/language metadata is not searched for
+league phrases, and a Sports classification is not required.
+
+Entering Sports clears hidden location selections. Visible category, language,
+quality and free-text filters continue to intersect with the league shortcut.
+Clicking the selected league again clears it; Clear filters resets it alongside
+other dimensions. Leaving Sports clears the league filter. A selected league is
+validated and persisted with device preferences; restoring it reopens Sports.
+The dictionary format, provider data and classification rules remain unchanged.
+
+Logo PNGs and their source manifest live in `assets/discovery/leagues/`, sourced
+from TheSportsDB's league records. Runtime browsing makes no requests to that
+service; a failed image keeps the tournament label available.

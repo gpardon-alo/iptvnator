@@ -61,6 +61,7 @@ export class DiscoverySourceSession {
     readonly saving = signal(false);
     readonly error = signal('');
     readonly notice = signal('');
+    readonly noticeKind = signal<'info' | 'success' | 'error'>('info');
     readonly unclassified = computed(() =>
         this.rows().filter((r) => !r.category)
     );
@@ -118,7 +119,7 @@ export class DiscoverySourceSession {
         this.activeSource = '';
         this.rows.set([]);
         this.error.set('');
-        this.notice.set('');
+        this.setNotice('');
         this.loading.set(false);
         this.sourceId.set(id);
         try {
@@ -133,7 +134,7 @@ export class DiscoverySourceSession {
         this.activeSource = id;
         this.loading.set(true);
         this.error.set('');
-        this.notice.set('');
+        this.setNotice('');
         try {
             const playlist = await this.data.getPlaylist(id);
             if (!playlist) throw new Error('Source unavailable');
@@ -252,7 +253,7 @@ export class DiscoverySourceSession {
         const id = this.sourceId();
         const generation = this.generation;
         this.saving.set(true);
-        this.notice.set('');
+        this.setNotice('');
         try {
             // Retain absent streams so a later catalog can restore their custom mapping.
             const merged = new Map(this.saved.map((row) => [row.id, row]));
@@ -262,10 +263,11 @@ export class DiscoverySourceSession {
             if (generation !== this.generation) return;
             this.saved = saved;
             this.rows.set(rows);
-            this.notice.set('Mappings saved on this device.');
+            this.setNotice('Mappings saved on this device.', 'success');
         } catch {
-            this.notice.set(
-                'Could not save mappings. Your previous saved version is retained; please retry.'
+            this.setNotice(
+                'Could not save mappings. Your previous saved version is retained; please retry.',
+                'error'
             );
         } finally {
             this.saving.set(false);
@@ -277,7 +279,7 @@ export class DiscoverySourceSession {
         const id = this.sourceId();
         const generation = this.generation;
         this.saving.set(true);
-        this.notice.set('Reading dictionary…');
+        this.setNotice('Reading dictionary…');
         let validated = false;
         try {
             if (file.size > 32 * 1024 * 1024)
@@ -298,19 +300,28 @@ export class DiscoverySourceSession {
             if (generation !== this.generation) return;
             this.saved = saved;
             this.rows.set(rows);
-            this.notice.set(
-                `Imported ${imported.length} dictionary mappings on this device.`
+            this.setNotice(
+                `Imported ${imported.length} dictionary mappings on this device.`,
+                'success'
             );
         } catch (error) {
             if (generation === this.generation)
-                this.notice.set(
+                this.setNotice(
                     validated
                         ? 'Could not save dictionary. Previous mappings are retained; please retry.'
-                        : `Could not import dictionary. ${error instanceof DictionaryImportError ? error.message : 'The file could not be read. Try selecting it again.'} Previous mappings are retained.`
+                        : `Could not import dictionary. ${error instanceof DictionaryImportError ? error.message : 'The file could not be read. Try selecting it again.'} Previous mappings are retained.`,
+                    'error'
                 );
         } finally {
             this.saving.set(false);
         }
+    }
+    private setNotice(
+        message: string,
+        kind: 'info' | 'success' | 'error' = 'info'
+    ): void {
+        this.noticeKind.set(kind);
+        this.notice.set(message);
     }
     download(): void {
         downloadDiscoveryDictionary(this.rows());
