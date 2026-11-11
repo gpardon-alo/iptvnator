@@ -11,6 +11,16 @@ this marker — see `.changes/README.md`.
 
 <!-- next-release -->
 
+# [0.25.3](https://github.com/gpardon-alo/iptvnator/compare/v0.25.2...v0.25.3) (2026-11-11)
+
+### Features
+
+- **discovery** — Choose Sports in Discovery to browse 18 tournament logos instead of the map. Selecting a league finds channel and provider names using its keyphrases, including LaLiga / La Liga and Champions League / Liga de Campeones. Language, quality and text filters remain available.
+
+### Fixes
+
+- **discovery** — Discovery sorts countries and channel cards by name, shows all filters on the left, and clears search with an X. Hover over arrows to scroll; source actions live in the settings menu. Picture quality has more spacing, and the simpler classification dialog keeps its close button visible with green success and red error messages.
+
 # [0.25.2](https://github.com/gpardon-alo/iptvnator/compare/v0.25.1...v0.25.2) (2026-11-09)
 
 ### Features
