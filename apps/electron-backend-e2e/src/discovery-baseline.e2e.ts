@@ -158,6 +158,9 @@ test('Electron imports a packaged baseline through file assets without replacing
         await app.mainWindow
             .getByLabel('Discovery source')
             .selectOption(sourceId);
+        await app.mainWindow
+            .getByRole('textbox', { name: 'Search channels' })
+            .fill('Packaged synthetic root');
         await expect(
             app.mainWindow
                 .locator('app-content-card')
