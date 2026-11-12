@@ -123,6 +123,34 @@ describe('TrafficLightsClearanceDirective', () => {
         expect(clearance()).toEqual({ x: '168px', y: '96px' });
     });
 
+    it('remeasures when the native window width settles after resize', () => {
+        let pending: FrameRequestCallback | undefined;
+        const request = jest
+            .spyOn(window, 'requestAnimationFrame')
+            .mockImplementation((callback) => {
+                pending = callback;
+                return 42;
+            });
+        const cancel = jest.spyOn(window, 'cancelAnimationFrame');
+        render();
+        setWindowWidths(1200, 900);
+        window.dispatchEvent(new Event('resize'));
+        setWindowWidths(900, 900);
+        pending?.(0);
+        fixture.detectChanges();
+        expect(clearance()).toEqual({ x: '84px', y: '48px' });
+
+        window.dispatchEvent(new Event('resize'));
+        window.dispatchEvent(new Event('resize'));
+        expect(cancel).toHaveBeenCalledWith(42);
+        cancel.mockClear();
+        fixture.destroy();
+        expect(cancel).toHaveBeenCalledTimes(1);
+        expect(cancel).toHaveBeenCalledWith(42);
+        request.mockRestore();
+        cancel.mockRestore();
+    });
+
     it('publishes nothing off macOS and stops listening when disabled', () => {
         render();
         const removeListener = jest.spyOn(window, 'removeEventListener');
