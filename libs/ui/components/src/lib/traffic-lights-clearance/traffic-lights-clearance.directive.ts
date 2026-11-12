@@ -88,22 +88,22 @@ export class TrafficLightsClearanceDirective {
             const view = this.view;
             if (!this.enabled() || !view) return;
             const update = () => this.zoomFactor.set(pageZoomFactor(view));
-            let frame: number | undefined;
+            let timer: number | undefined;
             const resize = () => {
                 update();
                 // Electron can deliver resize before outerWidth catches up
                 // with innerWidth. Re-measure once layout has settled.
-                if (frame !== undefined) view.cancelAnimationFrame(frame);
-                frame = view.requestAnimationFrame(() => {
-                    frame = undefined;
+                if (timer !== undefined) view.clearTimeout(timer);
+                timer = view.setTimeout(() => {
+                    timer = undefined;
                     update();
-                });
+                }, 100);
             };
             update();
             view.addEventListener('resize', resize);
             onCleanup(() => {
                 view.removeEventListener('resize', resize);
-                if (frame !== undefined) view.cancelAnimationFrame(frame);
+                if (timer !== undefined) view.clearTimeout(timer);
             });
         });
     }

@@ -124,19 +124,19 @@ describe('TrafficLightsClearanceDirective', () => {
     });
 
     it('remeasures when the native window width settles after resize', () => {
-        let pending: FrameRequestCallback | undefined;
+        let pending: (() => void) | undefined;
         const request = jest
-            .spyOn(window, 'requestAnimationFrame')
+            .spyOn(window, 'setTimeout')
             .mockImplementation((callback) => {
-                pending = callback;
+                pending = callback as () => void;
                 return 42;
             });
-        const cancel = jest.spyOn(window, 'cancelAnimationFrame');
+        const cancel = jest.spyOn(window, 'clearTimeout');
         render();
         setWindowWidths(1200, 900);
         window.dispatchEvent(new Event('resize'));
         setWindowWidths(900, 900);
-        pending?.(0);
+        pending?.();
         fixture.detectChanges();
         expect(clearance()).toEqual({ x: '84px', y: '48px' });
 
