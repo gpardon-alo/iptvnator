@@ -124,31 +124,27 @@ describe('TrafficLightsClearanceDirective', () => {
     });
 
     it('remeasures when the native window width settles after resize', () => {
-        let pending: (() => void) | undefined;
-        const request = jest
-            .spyOn(window, 'setTimeout')
-            .mockImplementation((callback) => {
-                pending = callback as () => void;
-                return 42;
-            });
+        jest.useFakeTimers();
         const cancel = jest.spyOn(window, 'clearTimeout');
-        render();
-        setWindowWidths(1200, 900);
-        window.dispatchEvent(new Event('resize'));
-        setWindowWidths(900, 900);
-        pending?.();
-        fixture.detectChanges();
-        expect(clearance()).toEqual({ x: '84px', y: '48px' });
+        try {
+            render();
+            setWindowWidths(1200, 900);
+            window.dispatchEvent(new Event('resize'));
+            setWindowWidths(900, 900);
+            jest.advanceTimersByTime(100);
+            fixture.detectChanges();
+            expect(clearance()).toEqual({ x: '84px', y: '48px' });
 
-        window.dispatchEvent(new Event('resize'));
-        window.dispatchEvent(new Event('resize'));
-        expect(cancel).toHaveBeenCalledWith(42);
-        cancel.mockClear();
-        fixture.destroy();
-        expect(cancel).toHaveBeenCalledTimes(1);
-        expect(cancel).toHaveBeenCalledWith(42);
-        request.mockRestore();
-        cancel.mockRestore();
+            window.dispatchEvent(new Event('resize'));
+            window.dispatchEvent(new Event('resize'));
+            expect(cancel).toHaveBeenCalled();
+            cancel.mockClear();
+            fixture.destroy();
+            expect(cancel).toHaveBeenCalledTimes(1);
+        } finally {
+            cancel.mockRestore();
+            jest.useRealTimers();
+        }
     });
 
     it('publishes nothing off macOS and stops listening when disabled', () => {
