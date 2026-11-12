@@ -833,8 +833,16 @@ describe('AppUpdateService', () => {
             });
             expect(updater.checkForUpdates).toHaveBeenCalledTimes(2);
             expect(updater.setFeedURL).toHaveBeenLastCalledWith(
-                expect.objectContaining({ repo: 'iptvnator-nightly' })
+                expect.objectContaining({
+                    owner: 'gpardon-alo',
+                    repo: 'iptvnator',
+                })
             );
+            expect(updater).toMatchObject({
+                channel: 'nightly',
+                allowPrerelease: true,
+                allowDowngrade: false,
+            });
             expect(win.webContents.send).not.toHaveBeenCalledWith(
                 expect.anything(),
                 expect.objectContaining({
