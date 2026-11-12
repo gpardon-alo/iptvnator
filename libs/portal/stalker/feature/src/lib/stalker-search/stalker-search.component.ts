@@ -4,6 +4,7 @@ import {
     computed,
     effect,
     inject,
+    linkedSignal,
     signal,
     untracked,
     viewChild,
@@ -12,10 +13,11 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import {
     StalkerPortalRepairService,
+    type StalkerSearchContentType,
     StalkerSessionService,
 } from '@iptvnator/portal/stalker/data-access';
 import {
@@ -25,6 +27,7 @@ import {
 } from '@iptvnator/services';
 import {
     ALL_CATEGORIES_WITHHELD,
+    GLOBAL_SEARCH_MIN_LENGTH,
     PlaybackPositionData,
     ResolvedPortalPlayback,
     VodDetailsItem,
@@ -40,7 +43,10 @@ import {
     PORTAL_EXTERNAL_PLAYBACK,
     PORTAL_PLAYBACK_POSITIONS,
     PORTAL_PLAYER,
+    clearNavigationStateKeys,
+    getStalkerSimilarOrigin,
     queryParamSignal,
+    STALKER_SIMILAR_ORIGIN,
     workspacePortalCommands,
 } from '@iptvnator/portal/shared/util';
 import { createLogger } from '@iptvnator/portal/shared/util';
@@ -64,7 +70,7 @@ import { StalkerVodPlaybackController } from '../stalker-vod-playback-controller
 import { createPlaybackSessionKey } from '@iptvnator/playback/util';
 import { createStalkerVodDetailActions } from '../stalker-vod-detail-actions';
 import { StalkerSearchPagingController } from './stalker-search-paging.controller';
-import type { StalkerSearchContentType } from './stalker-search-results.util';
+import { StalkerWorkspaceRouteSession } from '../stalker-workspace-route-session.service';
 
 interface StalkerFilter {
     key: StalkerSearchContentType;
@@ -89,6 +95,10 @@ interface StalkerFilter {
 })
 export class StalkerSearchComponent {
     private readonly activatedRoute = inject(ActivatedRoute);
+    private readonly router = inject(Router);
+    private readonly routeSession = inject(StalkerWorkspaceRouteSession, {
+        optional: true,
+    });
     private readonly backNavigation = inject(WorkspaceBackNavigationService);
     private readonly dataService = inject(DataService);
     private readonly parentalLock = inject(ParentalLockService);
@@ -110,12 +120,13 @@ export class StalkerSearchComponent {
      * it at zero, so closing the detail must restore the spot explicitly.
      */
     private savedResultsScrollTop = 0;
+    readonly similarSearchReturn = () => {
+        const pagingId = this.router.lastSuccessfulNavigation?.()?.id;
+        if (pagingId !== undefined) this.paging.saveForSimilarReturn(pagingId);
+        return { scrollTop: this.savedResultsScrollTop, pagingId };
+    };
     private currentPlaybackOwnerKey = '';
 
-    readonly filters = signal<Record<StalkerSearchContentType, boolean>>({
-        series: false,
-        vod: true,
-    });
     readonly filterConfig: StalkerFilter[] = [
         {
             key: 'vod',
@@ -130,6 +141,7 @@ export class StalkerSearchComponent {
     ];
 
     readonly searchTerm = signal('');
+    readonly minSearchLength = GLOBAL_SEARCH_MIN_LENGTH;
     readonly routeSearchTerm = queryParamSignal(
         this.activatedRoute,
         'q',
@@ -140,8 +152,26 @@ export class StalkerSearchComponent {
         const playlist = this.playlistContext.activePlaylist();
         return playlist?.macAddress ? playlist : null;
     });
+    private readonly currentPlaylistId = computed(
+        () => this.currentPlaylist()?._id
+    );
 
-    readonly selectedFilterType = signal<StalkerSearchContentType>('vod');
+    private readonly routeSearchKind = queryParamSignal(
+        this.activatedRoute,
+        'kind',
+        (kind) => (kind === 'vod' || kind === 'series' ? kind : null)
+    );
+    readonly selectedFilterType = linkedSignal<
+        readonly [string | undefined, StalkerSearchContentType | null],
+        StalkerSearchContentType
+    >({
+        source: () => [this.currentPlaylistId(), this.routeSearchKind()],
+        computation: ([, kind], previous) => kind ?? previous?.value ?? 'vod',
+    });
+    readonly filters = computed(() => ({
+        series: this.selectedFilterType() === 'series',
+        vod: this.selectedFilterType() === 'vod',
+    }));
     private readonly favoritesRefresh = createRefreshTrigger();
 
     readonly itemDetails = signal<StalkerSelectedVodItem | null>(null);
@@ -230,6 +260,38 @@ export class StalkerSearchComponent {
         });
 
         effect(() => {
+            if (this.routeSession?.isReady() === false) return;
+            const playlistId = this.currentPlaylist()?._id;
+            if (
+                !playlistId ||
+                this.router.lastSuccessfulNavigation?.()?.trigger !== 'popstate'
+            )
+                return;
+            untracked(() => {
+                const origin = getStalkerSimilarOrigin(window.history.state);
+                if (!origin?.search || origin.playlistId !== playlistId) return;
+                clearNavigationStateKeys([STALKER_SIMILAR_ORIGIN]);
+                this.updateFilter(origin.catalog, true);
+                if (origin.search.pagingId !== undefined) {
+                    this.paging.restoreAfterSimilarReturn(
+                        origin.search.pagingId
+                    );
+                }
+                const item = origin.item as StalkerVodSource;
+                if (
+                    this.parentalLock.isStalkerCategoryLocked(
+                        playlistId,
+                        origin.catalog,
+                        item.category_id
+                    )
+                )
+                    return;
+                this.selectItem(item);
+                this.savedResultsScrollTop = origin.search.scrollTop;
+            });
+        });
+
+        effect(() => {
             // Re-evaluate favorite state whenever favorites resource changes.
             this.portalFavorites.value();
             this.syncSelectedVodFavorite();
@@ -278,18 +340,7 @@ export class StalkerSearchComponent {
 
     updateFilter(key: StalkerSearchContentType, value: boolean) {
         if (value) {
-            // Single selection mode - set clicked filter, disable others
             this.selectedFilterType.set(key);
-            this.filters.update(() => {
-                const newFilters: Record<StalkerSearchContentType, boolean> = {
-                    series: false,
-                    vod: false,
-                };
-                this.filterConfig.forEach((filter) => {
-                    newFilters[filter.key] = filter.key === key;
-                });
-                return newFilters;
-            });
         }
     }
 

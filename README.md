@@ -68,9 +68,10 @@ Run the browser app and its backend together with Docker:
 docker compose -f docker/docker-compose.yml up --build -d
 ```
 
-Open <http://localhost:4333>. No separate backend container is needed.
-Connected clients can share source definitions. Favorites and watch progress
-have separate synchronization opt-ins; history stays local to each device.
+Open <http://localhost:4333>. No separate backend container is needed. You can
+also [run a server from the desktop app](docker/README.md#run-the-server-from-the-desktop-app).
+Connected clients can share sources. Favorites, Recently Viewed and supported
+watch progress each have their own synchronization opt-in.
 
 The PWA does not include M3U XMLTV, Embedded MPV, managed external-player
 launching, the download manager or Electron remote-control features.
@@ -133,11 +134,16 @@ remote. Tested on the Dreambox DM520 and Vu+ Uno 4K SE.
 Support development through [GitHub Sponsors](https://github.com/sponsors/4gray),
 [Ko-fi](https://ko-fi.com/4gray), or a star on GitHub.
 
-<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+## Contributors
 
-[![All Contributors](https://img.shields.io/badge/all_contributors-13-orange.svg?style=flat-square)](https://github.com/4gray/iptvnator/graphs/contributors)
+[![GitHub commit contributors](https://img.shields.io/github/contributors/4gray/iptvnator)](https://github.com/4gray/iptvnator/graphs/contributors)
 
-<!-- ALL-CONTRIBUTORS-BADGE:END -->
+<details>
+<summary>Show contributors</summary>
+
+[![Contributor avatars](https://contrib.rocks/image?repo=4gray/iptvnator)](https://github.com/4gray/iptvnator/graphs/contributors)
+
+</details>
 
 ## License and trademark
 
