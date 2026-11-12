@@ -123,6 +123,30 @@ describe('TrafficLightsClearanceDirective', () => {
         expect(clearance()).toEqual({ x: '168px', y: '96px' });
     });
 
+    it('remeasures when the native window width settles after resize', () => {
+        jest.useFakeTimers();
+        const cancel = jest.spyOn(window, 'clearTimeout');
+        try {
+            render();
+            setWindowWidths(1200, 900);
+            window.dispatchEvent(new Event('resize'));
+            setWindowWidths(900, 900);
+            jest.advanceTimersByTime(100);
+            fixture.detectChanges();
+            expect(clearance()).toEqual({ x: '84px', y: '48px' });
+
+            window.dispatchEvent(new Event('resize'));
+            window.dispatchEvent(new Event('resize'));
+            expect(cancel).toHaveBeenCalled();
+            cancel.mockClear();
+            fixture.destroy();
+            expect(cancel).toHaveBeenCalledTimes(1);
+        } finally {
+            cancel.mockRestore();
+            jest.useRealTimers();
+        }
+    });
+
     it('publishes nothing off macOS and stops listening when disabled', () => {
         render();
         const removeListener = jest.spyOn(window, 'removeEventListener');

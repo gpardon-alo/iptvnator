@@ -1,3 +1,4 @@
+import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { discoveryMapFrame } from './discovery-map-framing';
@@ -11,6 +12,7 @@ import {
     signal,
 } from '@angular/core';
 import { MatIcon } from '@angular/material/icon';
+import { DiscoverySportsComponent } from './discovery-sports.component';
 import { COUNTRIES, STATES } from './discovery-catalog';
 import {
     discoveryWorldShapes,
@@ -18,6 +20,7 @@ import {
 } from './discovery-map-shapes';
 export const MAP_REGIONS = [
     'World',
+    'Sports',
     'South America',
     'North America',
     'Central America',
@@ -32,7 +35,7 @@ export const MAP_REGIONS = [
 @Component({
     selector: 'app-discovery-map',
     standalone: true,
-    imports: [MatIcon],
+    imports: [FormsModule, MatIcon, DiscoverySportsComponent],
     templateUrl: './discovery-map.component.html',
     styleUrl: './discovery-map.component.scss',
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -42,6 +45,8 @@ export class DiscoveryMapComponent {
     readonly locationIds = input<string[] | null>(null);
     readonly selected = input<string[]>([]);
     readonly region = input('World');
+    readonly selectedLeague = input('');
+    readonly leagueToggle = output<string>();
     readonly regionChange = output<string>();
     readonly locationToggle = output<string>();
     readonly regions = MAP_REGIONS;
@@ -73,7 +78,7 @@ export class DiscoveryMapComponent {
                           c.region === this.region()) &&
                       (this.locationIds() === null ||
                           this.locationIds()?.includes(c.id))
-              )
+              ).sort((a, b) => a.name.localeCompare(b.name, 'en'))
     );
     readonly available = computed(
         () => new Set(this.places().map((p) => p.id))

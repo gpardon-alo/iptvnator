@@ -1,10 +1,3 @@
-<p>
-    Streams with the same channel name share one card. Change the name to
-    control grouping; original provider names identify the alternate streams.
-    Country, category and language are independent. A Sports stream stays in
-    Sports even when its language is unknown. Missing fields are listed for
-    review.
-</p>
 <div class="tools">
     <button
         type="button"
@@ -45,13 +38,43 @@
     >
         Export mapping JSON
     </button>
+    <input
+        #dictionaryFile
+        type="file"
+        accept=".json,application/json"
+        aria-label="Dictionary JSON file"
+        hidden
+        (change)="importDictionary(dictionaryFile)"
+    />
+    <button
+        type="button"
+        [disabled]="
+            session.saving() ||
+            session.loading() ||
+            !!session.error() ||
+            !session.sourceId()
+        "
+        (click)="dictionaryFile.click()"
+    >
+        Import dictionary
+    </button>
 </div>
-<p>
-    Rules prefer explicit country, genre and language hints. Missing languages
-    can use editable country defaults. Existing languages and manual edits are
-    preserved. Refreshing a source does not run classification.
+<p class="hint">
+    Manual edits are preserved. Export and import the dictionary for bulk
+    changes; keep IDs unchanged.
 </p>
-<p role="status">{{ session.notice() }}</p>
+<p
+    #importStatus
+    role="status"
+    aria-live="polite"
+    tabindex="-1"
+    class="notice"
+    [hidden]="!session.notice()"
+    [class.notice-success]="session.noticeKind() === 'success'"
+    [class.notice-error]="session.noticeKind() === 'error'"
+>
+    {{ session.notice() }}
+</p>
 <div class="tools">
     <button
         type="button"
@@ -213,21 +236,17 @@
             <button
                 type="button"
                 [disabled]="session.saving()"
+                title="Replace this stream’s manual fields with the current rule result"
                 (click)="reclassify()"
             >
                 Reclassify selected stream
             </button>
-            <p>
-                This replaces the selected stream's manual fields with the
-                current rule result.
+            <p class="hint">
+                Reclassifying replaces this stream’s manual edits.
             </p>
             <details>
                 <summary>Mapping JSON</summary>
-                <p>
-                    country, optional US state, category and language are the
-                    editable fields. categories is a generated summary of their
-                    labels.
-                </p>
+
                 <pre>{{ json() }}</pre>
             </details>
         } @else {

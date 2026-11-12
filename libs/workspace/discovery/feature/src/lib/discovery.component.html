@@ -29,23 +29,45 @@
                 <option [value]="source._id">{{ source.title }}</option>
             }
         </select>
-        <label class="search"
-            ><mat-icon>search</mat-icon
-            ><input
-                aria-label="Search channels"
-                placeholder="Find your next channel"
-                [value]="filters().query"
-                (input)="search($any($event.target).value)"
-                maxlength="100"
-            /><kbd>/</kbd></label
-        >
+        <div class="search" role="search">
+            <label for="discovery-channel-search"
+                ><mat-icon>search</mat-icon></label
+            >
+            <div class="search-field">
+                <input
+                    #channelSearch
+                    id="discovery-channel-search"
+                    aria-label="Search channels"
+                    aria-keyshortcuts="/"
+                    placeholder="Find your next channel"
+                    [value]="filters().query"
+                    (input)="search($any($event.target).value)"
+                    maxlength="100"
+                />
+                @if (filters().query) {
+                    <button
+                        type="button"
+                        class="clear-search"
+                        aria-label="Clear channel search"
+                        title="Clear search"
+                        (click)="search(''); channelSearch.focus()"
+                    >
+                        <mat-icon>close</mat-icon>
+                    </button>
+                } @else {
+                    <kbd title="Press / to focus search" aria-hidden="true"
+                        >/</kbd
+                    >
+                }
+            </div>
+        </div>
         <button
             type="button"
             class="icon-button"
             aria-label="Discovery settings"
             (click)="preferences.showModal()"
         >
-            <mat-icon>tune</mat-icon>
+            <mat-icon>settings</mat-icon>
         </button>
     </header>
     <div class="discovery-body" [attr.inert]="watching() ? '' : null">
@@ -62,9 +84,11 @@
                 </span>
             }
             <div class="filter-summary">
-                @if (selectedCategoryNames()) {
-                    <span>{{ selectedCategoryNames() }}</span>
-                }
+                <div class="filter-values" aria-label="Active filters">
+                    @for (label of filterSummary(); track $index) {
+                        <span>{{ label }}</span>
+                    }
+                </div>
                 @if (activeCount()) {
                     <span>{{ activeCount() }} filters active</span>
                 }
@@ -77,28 +101,6 @@
                     <mat-icon>restart_alt</mat-icon>Clear filters
                 </button>
             </div>
-            @if (catalog.sourceId()) {
-                <div class="source-actions">
-                    <button
-                        type="button"
-                        (click)="mappings.showModal()"
-                        [disabled]="catalog.loading() || !!catalog.error()"
-                    >
-                        Classifications
-                    </button>
-                    <button
-                        type="button"
-                        (click)="refreshSource()"
-                        [disabled]="
-                            catalog.loading() ||
-                            catalog.saving() ||
-                            !refreshAction.canRefresh(currentPlaylist())
-                        "
-                    >
-                        Refresh source
-                    </button>
-                </div>
-            }
         </div>
         <main class="explorer">
             <aside class="categories" aria-label="Channel categories">
@@ -152,7 +154,9 @@
                     [locationIds]="availableLocations()"
                     [selected]="filters().locations"
                     [region]="region()"
-                    (regionChange)="region.set($event)"
+                    [selectedLeague]="filters().league ?? ''"
+                    (leagueToggle)="selectLeague($event)"
+                    (regionChange)="setRegion($event)"
                     (locationToggle)="toggle('locations', $event)"
                 />
             </section>
@@ -220,6 +224,9 @@
                         type="button"
                         class="icon-button"
                         aria-label="Previous channels"
+                        title="Hover to scroll; click to skip a page"
+                        [discoveryHoverScroll]="-1"
+                        [scrollViewport]="viewport()"
                         (click)="scroll(-1)"
                     >
                         <mat-icon>chevron_left</mat-icon></button
@@ -227,6 +234,9 @@
                         type="button"
                         class="icon-button"
                         aria-label="Next channels"
+                        title="Hover to scroll; click to skip a page"
+                        [discoveryHoverScroll]="1"
+                        [scrollViewport]="viewport()"
                         (click)="scroll(1)"
                     >
                         <mat-icon>chevron_right</mat-icon>
@@ -433,9 +443,13 @@
             }
         }
     </dialog>
-    <dialog #preferences class="discovery-dialog">
+    <dialog
+        #preferences
+        class="discovery-dialog"
+        aria-label="Discovery settings"
+    >
         <header>
-            <h2>Discovery prototype</h2>
+            <h2>Discovery settings</h2>
             <button
                 type="button"
                 class="icon-button"
@@ -445,21 +459,35 @@
                 <mat-icon>close</mat-icon>
             </button>
         </header>
-        <p>A separate space to explore your new interface.</p>
-        <ul>
-            <li>
-                Choose a saved Xtream source to classify current live streams
-            </li>
-            <li>Review Unclassified streams and save manual corrections</li>
-            <li>Source refresh retains your device-local classifications</li>
-            <li>Demo catalog and playback preview remain available</li>
-            <li>Explore countries and US states</li>
-            <li>Filters saved on this device</li>
-            <li>Program schedule deferred to a later phase</li>
-        </ul>
-        <a routerLink="/workspace"
-            >Return to the main app <mat-icon>arrow_forward</mat-icon></a
-        >
+        <div class="settings-actions">
+            <button
+                type="button"
+                (click)="preferences.close(); mappings.showModal()"
+                [disabled]="
+                    !catalog.sourceId() ||
+                    catalog.loading() ||
+                    catalog.saving() ||
+                    !!catalog.error()
+                "
+            >
+                <mat-icon>label</mat-icon>Classifications
+            </button>
+            <button
+                type="button"
+                (click)="preferences.close(); refreshSource()"
+                [disabled]="
+                    !catalog.sourceId() ||
+                    catalog.loading() ||
+                    catalog.saving() ||
+                    !refreshAction.canRefresh(currentPlaylist())
+                "
+            >
+                <mat-icon>refresh</mat-icon>Refresh source
+            </button>
+            <a routerLink="/workspace"
+                ><mat-icon>arrow_back</mat-icon>Return to main app</a
+            >
+        </div>
     </dialog>
     <dialog
         #mappings
@@ -477,8 +505,10 @@
                 <mat-icon>close</mat-icon>
             </button>
         </header>
-        @if (mappings.open && catalog.sourceId()) {
-            <app-discovery-classifications />
-        }
+        <div class="mapping-dialog-body">
+            @if (mappings.open && catalog.sourceId()) {
+                <app-discovery-classifications />
+            }
+        </div>
     </dialog>
 </div>

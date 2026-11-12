@@ -1,3 +1,8 @@
+import { matchesDiscoveryLeague } from './discovery-leagues';
+import {
+    DISCOVERY_QUALITIES,
+    type DiscoveryQuality,
+} from '@iptvnator/portal/shared/util';
 /** Synthetic catalog owned by the Discovery prototype; no provider data or streams. */
 export const CATEGORIES = [
     ['general', 'General TV', 'live_tv'],
@@ -12,8 +17,8 @@ export const CATEGORIES = [
     ['education', 'Education', 'school'],
     ['religion', 'Religion', 'auto_awesome'],
 ] as const;
-export const QUALITIES = ['4K', 'FHD', 'HD', 'SD', 'Unknown'] as const;
-export type Quality = (typeof QUALITIES)[number];
+export const QUALITIES = DISCOVERY_QUALITIES;
+export type Quality = DiscoveryQuality;
 export {
     COUNTRIES,
     STATES,
@@ -42,6 +47,7 @@ export interface DemoChannel extends DiscoveryFacets {
     sources: DemoSource[];
 }
 export interface DiscoveryFilters {
+    league?: string;
     locations: string[];
     categories: string[];
     languages: string[];
@@ -95,47 +101,62 @@ export const DEMO_CHANNELS: DemoChannel[] = DEMO_LOCATIONS.map(
         }))
 ).reduce<DemoChannel[]>((all, rows) => all.concat(rows), []);
 
+const CHANNEL_NAME_ORDER = new Intl.Collator('en', {
+    numeric: true,
+    sensitivity: 'base',
+});
+
 export function filterChannels(
     channels: DemoChannel[],
     filters: DiscoveryFilters
 ): ChannelMatch[] {
     const query = filters.query.trim().toLocaleLowerCase();
-    return channels.reduce<ChannelMatch[]>((matches, channel) => {
-        const sources = channel.sources
-            .filter((source) => {
-                const facet = source.facets ?? channel;
-                return (
-                    (!filters.locations.length ||
-                        filters.locations.includes(facet.country) ||
-                        Boolean(
-                            facet.state &&
-                            filters.locations.includes(facet.state)
-                        )) &&
-                    (!filters.categories.length ||
-                        filters.categories.includes(facet.category)) &&
-                    (!filters.languages.length ||
-                        filters.languages.includes(facet.language)) &&
-                    (!filters.qualities.length ||
-                        filters.qualities.includes(source.quality)) &&
-                    (!query ||
-                        `${channel.name} ${source.label} ${facet.location} ${facet.language}`
-                            .toLocaleLowerCase()
-                            .includes(query))
+    return channels
+        .reduce<ChannelMatch[]>((matches, channel) => {
+            const sources = channel.sources
+                .filter((source) => {
+                    const facet = source.facets ?? channel;
+                    return (
+                        matchesDiscoveryLeague(
+                            filters.league,
+                            channel.name,
+                            source.label
+                        ) &&
+                        (!filters.locations.length ||
+                            filters.locations.includes(facet.country) ||
+                            Boolean(
+                                facet.state &&
+                                filters.locations.includes(facet.state)
+                            )) &&
+                        (!filters.categories.length ||
+                            filters.categories.includes(facet.category)) &&
+                        (!filters.languages.length ||
+                            filters.languages.includes(facet.language)) &&
+                        (!filters.qualities.length ||
+                            filters.qualities.includes(source.quality)) &&
+                        (!query ||
+                            `${channel.name} ${source.label} ${facet.location} ${facet.language}`
+                                .toLocaleLowerCase()
+                                .includes(query))
+                    );
+                })
+                .sort(
+                    (a, b) =>
+                        QUALITIES.indexOf(a.quality) -
+                        QUALITIES.indexOf(b.quality)
                 );
-            })
-            .sort(
-                (a, b) =>
-                    QUALITIES.indexOf(a.quality) - QUALITIES.indexOf(b.quality)
-            );
-        if (sources.length)
-            matches.push({
-                channel: sources[0].facets
-                    ? { ...channel, ...sources[0].facets }
-                    : channel,
-                sources,
-            });
-        return matches;
-    }, []);
+            if (sources.length)
+                matches.push({
+                    channel: sources[0].facets
+                        ? { ...channel, ...sources[0].facets }
+                        : channel,
+                    sources,
+                });
+            return matches;
+        }, [])
+        .sort((a, b) =>
+            CHANNEL_NAME_ORDER.compare(a.channel.name, b.channel.name)
+        );
 }
 
 export function toggleSelection(values: string[], value: string): string[] {

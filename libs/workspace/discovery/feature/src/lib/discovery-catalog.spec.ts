@@ -15,6 +15,45 @@ const empty: DiscoveryFilters = {
 };
 
 describe('Discovery prototype filtering', () => {
+    it('sorts matching cards by name naturally without changing source ranking or input order', () => {
+        const base = DEMO_CHANNELS[0];
+        const sources = [
+            { id: 'synthetic-hd', label: 'HD source', quality: 'HD' as const },
+            { id: 'synthetic-4k', label: '4K source', quality: '4K' as const },
+        ];
+        const channels = ['Zeta', 'Channel 10', 'alpha', 'Channel 2'].map(
+            (name) => ({
+                ...base,
+                id: name,
+                name,
+                sources,
+            })
+        );
+        const matches = filterChannels(channels, empty);
+        expect(matches.map((match) => match.channel.name)).toEqual([
+            'alpha',
+            'Channel 2',
+            'Channel 10',
+            'Zeta',
+        ]);
+        expect(matches[0].sources.map((source) => source.quality)).toEqual([
+            '4K',
+            'HD',
+        ]);
+        expect(channels.map((channel) => channel.name)).toEqual([
+            'Zeta',
+            'Channel 10',
+            'alpha',
+            'Channel 2',
+        ]);
+        expect(sources.map((source) => source.quality)).toEqual(['HD', '4K']);
+        expect(
+            filterChannels(channels, { ...empty, query: 'channel' }).map(
+                (match) => match.channel.name
+            )
+        ).toEqual(['Channel 2', 'Channel 10']);
+    });
+
     it('filters category and unknown language independently and displays known facets', () => {
         const base = DEMO_CHANNELS[0];
         const channels = [

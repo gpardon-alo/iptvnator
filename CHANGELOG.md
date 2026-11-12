@@ -11,6 +11,27 @@ this marker — see `.changes/README.md`.
 
 <!-- next-release -->
 
+# [0.25.3](https://github.com/gpardon-alo/iptvnator/compare/v0.25.2...v0.25.3) (2026-11-11)
+
+### Features
+
+- **discovery** — Choose Sports in Discovery to browse 18 tournament logos instead of the map. Selecting a league finds channel and provider names using its keyphrases, including LaLiga / La Liga and Champions League / Liga de Campeones. Language, quality and text filters remain available.
+
+### Fixes
+
+- **discovery** — Discovery sorts countries and channel cards by name, shows all filters on the left, and clears search with an X. Hover over arrows to scroll; source actions live in the settings menu. Picture quality has more spacing, and the simpler classification dialog keeps its close button visible with green success and red error messages.
+
+# [0.25.2](https://github.com/gpardon-alo/iptvnator/compare/v0.25.1...v0.25.2) (2026-11-09)
+
+### Features
+
+- **discovery** — Discovery supports importing an edited mapping JSON dictionary for bulk classification corrections. Imported entries are saved as manual edits, while mappings omitted from the file are preserved. Matching duplicates from provider folders merge automatically, and import results show clear validation feedback.
+- **discovery** — Discovery dictionaries accept an optional quality field: 4K, FHD, HD, SD or Unknown. Saved quality drives stream labels and picture-quality filters; existing mappings without it remain Unknown.
+
+### Fixes
+
+- **discovery** — Reimporting a dictionary preserves the first provider listing when the same stream appears in multiple folders.
+
 # [0.24.0](https://github.com/4gray/iptvnator/compare/v0.23.0...v0.24.0) (2026-09-24)
 
 

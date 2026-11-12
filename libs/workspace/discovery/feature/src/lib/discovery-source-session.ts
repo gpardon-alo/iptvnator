@@ -32,6 +32,11 @@ import {
     type DemoChannel,
 } from './discovery-catalog';
 import { groupDiscoveryChannels } from './discovery-channel-groups';
+import {
+    DictionaryImportError,
+    downloadDiscoveryDictionary,
+    parseDiscoveryDictionary,
+} from './discovery-dictionary';
 
 @Injectable()
 export class DiscoverySourceSession {
@@ -56,6 +61,7 @@ export class DiscoverySourceSession {
     readonly saving = signal(false);
     readonly error = signal('');
     readonly notice = signal('');
+    readonly noticeKind = signal<'info' | 'success' | 'error'>('info');
     readonly unclassified = computed(() =>
         this.rows().filter((r) => !r.category)
     );
@@ -113,7 +119,7 @@ export class DiscoverySourceSession {
         this.activeSource = '';
         this.rows.set([]);
         this.error.set('');
-        this.notice.set('');
+        this.setNotice('');
         this.loading.set(false);
         this.sourceId.set(id);
         try {
@@ -128,7 +134,7 @@ export class DiscoverySourceSession {
         this.activeSource = id;
         this.loading.set(true);
         this.error.set('');
-        this.notice.set('');
+        this.setNotice('');
         try {
             const playlist = await this.data.getPlaylist(id);
             if (!playlist) throw new Error('Source unavailable');
@@ -206,7 +212,10 @@ export class DiscoverySourceSession {
     async classifyUnclassified(): Promise<void> {
         const next = this.rows().map((row) =>
             discoveryMissingFields(row).length > 0 && row.origin !== 'manual'
-                ? classifyDiscoveryStream(row.provider, COUNTRIES)
+                ? {
+                      ...classifyDiscoveryStream(row.provider, COUNTRIES),
+                      ...(row.quality ? { quality: row.quality } : {}),
+                  }
                 : row
         );
         await this.save(next);
@@ -232,7 +241,10 @@ export class DiscoverySourceSession {
         await this.save(next);
     }
     async reclassify(row: ClassifiedStream): Promise<void> {
-        const next = classifyDiscoveryStream(row.provider, COUNTRIES);
+        const next = {
+            ...classifyDiscoveryStream(row.provider, COUNTRIES),
+            ...(row.quality ? { quality: row.quality } : {}),
+        };
         await this.save(this.rows().map((r) => (r.id === row.id ? next : r)));
     }
     private async save(rows: ClassifiedStream[]): Promise<void> {
@@ -241,7 +253,7 @@ export class DiscoverySourceSession {
         const id = this.sourceId();
         const generation = this.generation;
         this.saving.set(true);
-        this.notice.set('');
+        this.setNotice('');
         try {
             // Retain absent streams so a later catalog can restore their custom mapping.
             const merged = new Map(this.saved.map((row) => [row.id, row]));
@@ -251,25 +263,67 @@ export class DiscoverySourceSession {
             if (generation !== this.generation) return;
             this.saved = saved;
             this.rows.set(rows);
-            this.notice.set('Mappings saved on this device.');
+            this.setNotice('Mappings saved on this device.', 'success');
         } catch {
-            this.notice.set(
-                'Could not save mappings. Your previous saved version is retained; please retry.'
+            this.setNotice(
+                'Could not save mappings. Your previous saved version is retained; please retry.',
+                'error'
             );
         } finally {
             this.saving.set(false);
         }
     }
+    async importDictionary(file: File): Promise<void> {
+        if (this.saving() || this.loading() || this.error() || !this.sourceId())
+            return;
+        const id = this.sourceId();
+        const generation = this.generation;
+        this.saving.set(true);
+        this.setNotice('Reading dictionary…');
+        let validated = false;
+        try {
+            if (file.size > 32 * 1024 * 1024)
+                throw new DictionaryImportError(
+                    'The dictionary exceeds the 32 MiB limit.'
+                );
+            const text = await file.text();
+            if (generation !== this.generation) return;
+            const imported = parseDiscoveryDictionary(text, id, this.rows());
+            const changes = new Map(imported.map((row) => [row.id, row]));
+            const rows = this.rows().map((row) => changes.get(row.id) ?? row);
+            const merged = new Map(this.saved.map((row) => [row.id, row]));
+            rows.forEach((row) => merged.set(row.id, row));
+            imported.forEach((row) => merged.set(row.id, row));
+            const saved = [...merged.values()];
+            validated = true;
+            await this.storage.write(id, saved);
+            if (generation !== this.generation) return;
+            this.saved = saved;
+            this.rows.set(rows);
+            this.setNotice(
+                `Imported ${imported.length} dictionary mappings on this device.`,
+                'success'
+            );
+        } catch (error) {
+            if (generation === this.generation)
+                this.setNotice(
+                    validated
+                        ? 'Could not save dictionary. Previous mappings are retained; please retry.'
+                        : `Could not import dictionary. ${error instanceof DictionaryImportError ? error.message : 'The file could not be read. Try selecting it again.'} Previous mappings are retained.`,
+                    'error'
+                );
+        } finally {
+            this.saving.set(false);
+        }
+    }
+    private setNotice(
+        message: string,
+        kind: 'info' | 'success' | 'error' = 'info'
+    ): void {
+        this.noticeKind.set(kind);
+        this.notice.set(message);
+    }
     download(): void {
-        const url = URL.createObjectURL(
-            new Blob([JSON.stringify(this.rows(), null, 2)], {
-                type: 'application/json',
-            })
-        );
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'discovery-classifications.json';
-        link.click();
-        setTimeout(() => URL.revokeObjectURL(url), 0);
+        downloadDiscoveryDictionary(this.rows());
     }
 }

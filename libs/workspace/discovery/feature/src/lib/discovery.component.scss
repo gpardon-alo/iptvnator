@@ -5,6 +5,8 @@
     overflow: auto;
     // A deliberately scoped dark canvas for this isolated TV-first prototype.
     --app-discovery-background: #0c1727;
+    --app-discovery-logo-background: #fff;
+    --app-discovery-logo-text: #172033;
     --app-discovery-panel: #14243a;
     --app-discovery-border: #25374c;
     --app-discovery-ocean: #162e47;
@@ -20,6 +22,8 @@
     --app-selection-text-color: #a9e4ff;
     --app-selection-border: #45b4e7;
     --app-focus-ring: #bbebff;
+    --app-success-color: #4ade80;
+    --app-danger-text: #ff8d9b;
     --app-card-bg: #14243a;
     --cover-aspect-ratio: 16/9;
     --cover-title-size: 17px;
@@ -123,9 +127,42 @@ button:disabled {
     align-items: center;
     color: var(--app-muted-color);
 }
+.search-field {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.search > label {
+    display: flex;
+}
+.search-field kbd,
+.clear-search {
+    position: absolute;
+    right: 0;
+}
+.clear-search {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    color: var(--app-muted-color);
+    background: transparent;
+}
+.clear-search:hover {
+    color: var(--app-text-color);
+    background: var(--app-selection-surface);
+}
+.clear-search mat-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+}
 .search input {
     width: 200px;
-    padding: 10px 0;
+    padding: 10px 34px 10px 0;
     color: var(--app-text-color);
     background: none;
     border: 0;
@@ -167,11 +204,12 @@ h1 {
 }
 .filter-summary {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 24px;
     color: var(--app-muted-color);
     font-size: 13px;
-    margin-left: auto;
+    margin-left: 0;
 }
 .clear-button {
     background: none;
@@ -647,7 +685,7 @@ footer > span {
         font-size: 22px;
     }
     .filter-summary {
-        font-size: 0;
+        font-size: 11px;
     }
     .clear-button {
         font-size: 11px;
@@ -771,7 +809,8 @@ footer > span {
         margin-top: 12px;
     }
     .quality h2 {
-        height: 35px;
+        height: auto;
+        margin-bottom: 14px;
     }
 }
 .catalog-source {
@@ -793,27 +832,72 @@ footer > span {
 .catalog-toolbar > span {
     color: var(--app-muted-color);
 }
-.source-actions {
+.filter-values {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    overflow-wrap: anywhere;
+}
+.filter-values span {
+    padding: 3px 8px;
+    border: 1px solid var(--app-discovery-border);
+    border-radius: 6px;
+}
+.filter-values:empty {
+    display: none;
+}
+.settings-actions {
+    display: grid;
+    gap: 8px;
+    margin-top: 16px;
+}
+.settings-actions button,
+.settings-actions a {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 12px;
+    padding: 12px;
+    font: inherit;
+    text-align: left;
+    text-decoration: none;
+    color: var(--app-text-color);
+    background: var(--app-discovery-background);
+    border: 1px solid var(--app-discovery-border);
+    border-radius: 8px;
 }
-.source-actions button,
+.settings-actions button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+.settings-actions button:enabled:hover,
+.settings-actions a:hover {
+    background: var(--app-selection-surface);
+}
 .catalog-toolbar > span button {
     background: none;
     border: 0;
-    padding: 6px 0;
     color: var(--app-selection-text-color);
-    text-decoration: underline;
-    text-underline-offset: 3px;
-}
-.source-actions button:hover {
-    color: var(--app-text-color);
 }
 .mapping-dialog {
     width: min(1100px, 95vw);
     max-width: 1100px;
     max-height: 85dvh;
+    padding: 0;
+    overflow: hidden;
+}
+.mapping-dialog[open] {
+    display: flex;
+    flex-direction: column;
+}
+.mapping-dialog > header {
+    flex-shrink: 0;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--app-discovery-border);
+}
+.mapping-dialog-body {
+    min-height: 0;
+    overflow: auto;
+    padding: 16px 24px;
 }
 
 .preview-info:has(app-discovery-guide) {

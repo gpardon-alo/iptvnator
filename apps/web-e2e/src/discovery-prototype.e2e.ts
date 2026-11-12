@@ -1,3 +1,5 @@
+import type { Page } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 import { expect, test } from './fixtures';
 import { configureMockProviderBackend } from './provider-target-route';
 import {
@@ -8,6 +10,16 @@ import {
 } from './xtream-series-playback.fixture';
 
 test.use({ viewport: { width: 1440, height: 900 } });
+
+async function openClassifications(page: Page) {
+    await page
+        .getByRole('button', { name: 'Discovery settings', exact: true })
+        .click();
+    await page
+        .getByRole('dialog', { name: 'Discovery settings', exact: true })
+        .getByRole('button', { name: 'Classifications', exact: true })
+        .click();
+}
 
 test('Discovery explores Central America, Caribbean islands and the complete South America list', async ({
     page,
@@ -179,6 +191,17 @@ test('Discovery classifies a cached source, reviews unknowns and retains mapping
     const id = await option.getAttribute('value');
     await source.selectOption(id!);
     await expect(page.locator('.result-count')).toHaveText('4 channels');
+    const ribbonNames = await page
+        .locator('.channel-tile')
+        .evaluateAll((cards) =>
+            cards.map((card) => card.getAttribute('aria-label') ?? '')
+        );
+    expect(ribbonNames).toHaveLength(4);
+    expect(ribbonNames).toEqual(
+        [...ribbonNames].sort((a, b) =>
+            a.localeCompare(b, 'en', { numeric: true, sensitivity: 'base' })
+        )
+    );
     await expect(page.locator('.catalog-toolbar')).not.toContainText(
         'need review'
     );
@@ -192,9 +215,7 @@ test('Discovery classifies a cached source, reviews unknowns and retains mapping
             .evaluate((el) => el.getBoundingClientRect().height)
     ).toBeGreaterThan(240);
     await expect(page.locator('.channel-viewport')).toBeVisible();
-    await page
-        .getByRole('button', { name: 'Classifications', exact: true })
-        .click();
+    await openClassifications(page);
     const dialog = page.getByRole('dialog', { name: 'Stream classifications' });
     await dialog
         .getByRole('button', { name: 'Classify current streams' })
@@ -221,8 +242,85 @@ test('Discovery classifies a cached source, reviews unknowns and retains mapping
     ).toContainText('Dominican Republic · Sports · Spanish · Complete');
     const downloadEvent = page.waitForEvent('download');
     await dialog.getByRole('button', { name: 'Export mapping JSON' }).click();
-    expect((await downloadEvent).suggestedFilename()).toBe(
+    const downloaded = await downloadEvent;
+    expect(downloaded.suggestedFilename()).toBe(
         'discovery-classifications.json'
+    );
+    const dictionary = JSON.parse(
+        await readFile((await downloaded.path()) ?? '', 'utf8')
+    );
+    const corrected = dictionary.find(
+        (row: { name: string }) => row.name === 'My synthetic channel'
+    );
+    corrected.language = 'Portuguese';
+    corrected.quality = 'HD';
+    const importFile = {
+        name: 'edited-dictionary.json',
+        mimeType: 'application/json',
+        buffer: Buffer.from(JSON.stringify([corrected])),
+    };
+    const chooserEvent = page.waitForEvent('filechooser');
+    await dialog
+        .getByRole('button', { name: 'Import dictionary', exact: true })
+        .click();
+    await (await chooserEvent).setFiles(importFile);
+    await expect(dialog.getByRole('status')).toContainText(
+        'Imported 1 dictionary mappings'
+    );
+    await expect(dialog.getByRole('status')).toHaveClass(/notice-success/);
+    const importedRow = dialog
+        .locator('.mapping-row')
+        .filter({ hasText: 'My synthetic channel' });
+    await importedRow.click();
+    await expect(dialog.getByLabel('Mapping language')).toHaveValue(
+        'Portuguese'
+    );
+    // An invalid retry leaves the imported row intact, and the same file can be selected again.
+    await dialog.getByLabel('Dictionary JSON file').setInputFiles({
+        ...importFile,
+        buffer: Buffer.from(
+            JSON.stringify([corrected, { ...corrected, language: 'English' }])
+        ),
+    });
+    await expect(dialog.getByRole('status')).toContainText(
+        'Could not import dictionary'
+    );
+    await expect(dialog.getByLabel('Mapping language')).toHaveValue(
+        'Portuguese'
+    );
+    await expect(dialog.getByRole('status')).toHaveClass(/notice-error/);
+    await expect(dialog.getByRole('status')).toBeFocused();
+    await page.setViewportSize({ width: 1024, height: 600 });
+    await dialog.locator('.mapping-dialog-body').evaluate((el) => {
+        el.scrollTop = el.scrollHeight;
+    });
+    await expect(
+        dialog.getByRole('button', { name: 'Close classifications' })
+    ).toBeInViewport();
+    await dialog.locator('.mapping-dialog-body').evaluate((el) => {
+        el.scrollTop = 0;
+    });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await expect(dialog.getByRole('status')).toContainText(
+        'conflicting names or classifications'
+    );
+    await dialog.getByLabel('Dictionary JSON file').setInputFiles({
+        ...importFile,
+        buffer: Buffer.from(
+            JSON.stringify([
+                corrected,
+                {
+                    ...corrected,
+                    provider: {
+                        ...corrected.provider,
+                        category_name: 'Synthetic alternate folder',
+                    },
+                },
+            ])
+        ),
+    });
+    await expect(dialog.getByRole('status')).toContainText(
+        'Imported 1 dictionary mappings'
     );
     await page.screenshot({ path: '../../dist/discovery-classifications.png' });
     await dialog.getByRole('button', { name: 'Close classifications' }).click();
@@ -233,7 +331,20 @@ test('Discovery classifies a cached source, reviews unknowns and retains mapping
     await expect(
         page.getByRole('button', { name: 'My synthetic channel', exact: true })
     ).toBeVisible();
+    await page.getByRole('button', { name: 'HD', exact: true }).click();
+    await expect(page.locator('.result-count')).toHaveText('1 channel');
+    await expect(page.locator('.channel-tile')).toContainText(
+        'My synthetic channel'
+    );
+    await page.getByRole('button', { name: 'HD', exact: true }).click();
+    await page.getByRole('button', { name: 'Unknown', exact: true }).click();
+    await expect(page.locator('.result-count')).toHaveText('3 channels');
+    await page.getByRole('button', { name: 'Unknown', exact: true }).click();
     await page
+        .getByRole('button', { name: 'Discovery settings', exact: true })
+        .click();
+    await page
+        .getByRole('dialog', { name: 'Discovery settings', exact: true })
         .getByRole('button', { name: 'Refresh source', exact: true })
         .click();
     await expect.poll(() => liveRequests).toBe(cachedRequests + 1);
@@ -278,9 +389,7 @@ test('Discovery classifies a cached source, reviews unknowns and retains mapping
     await page.screenshot({
         path: '../../dist/discovery-independent-facets.png',
     });
-    await page
-        .getByRole('button', { name: 'Classifications', exact: true })
-        .click();
+    await openClassifications(page);
     await dialog
         .getByLabel('Missing classification field')
         .selectOption('category');
@@ -297,6 +406,9 @@ test('Discovery classifies a cached source, reviews unknowns and retains mapping
         .locator('.mapping-row')
         .filter({ hasText: 'My synthetic channel' });
     await editedRow.click();
+    await expect(dialog.getByLabel('Mapping language')).toHaveValue(
+        'Portuguese'
+    );
     await dialog.getByLabel('Mapping language').selectOption('');
     await dialog.getByRole('button', { name: 'Save classification' }).click();
     await expect(editedRow).toContainText('Unknown language');
@@ -337,9 +449,7 @@ test('Discovery classifies a cached source, reviews unknowns and retains mapping
     await page
         .getByRole('button', { name: 'Clear filters', exact: true })
         .click();
-    await page
-        .getByRole('button', { name: 'Classifications', exact: true })
-        .click();
+    await openClassifications(page);
     await dialog.getByRole('button', { name: 'All mappings (4)' }).click();
     const pulseRow = dialog
         .locator('.mapping-row')
@@ -350,9 +460,6 @@ test('Discovery classifies a cached source, reviews unknowns and retains mapping
         .fill('My synthetic channel');
     await dialog.getByLabel('Mapping country').selectOption('DE');
     await dialog.getByText('Mapping JSON', { exact: true }).click();
-    await expect(dialog.locator('details p')).toContainText(
-        'generated summary'
-    );
     const draft = JSON.parse((await dialog.locator('pre').textContent())!);
     expect(draft.categories).toEqual(['Germany', 'Sports']);
     await dialog.getByRole('button', { name: 'Save classification' }).click();
@@ -451,9 +558,7 @@ test('Discovery classifies a cached source, reviews unknowns and retains mapping
     await video.focus();
     await page.keyboard.press('Escape');
     await expect(page.locator('.preview video')).toHaveCount(0);
-    await page
-        .getByRole('button', { name: 'Classifications', exact: true })
-        .click();
+    await openClassifications(page);
     await dialog.getByRole('button', { name: 'All mappings (4)' }).click();
     await pulseRow.click();
     await dialog.getByLabel('Mapping display name').fill('Pulse separate root');
@@ -591,6 +696,24 @@ test('Discovery location list, US state selection, keyboard map navigation and c
     page,
 }) => {
     await page.goto('/discovery');
+    await page.getByRole('button', { name: 'Show location list' }).click();
+    await expect(page.locator('.location-list button').first()).toBeVisible();
+    const countryNames = await page
+        .locator('.location-list button')
+        .evaluateAll((buttons) =>
+            buttons.map((button) =>
+                [...button.childNodes]
+                    .filter((node) => node.nodeType === Node.TEXT_NODE)
+                    .map((node) => node.textContent)
+                    .join('')
+                    .trim()
+            )
+        );
+    expect(countryNames.length).toBeGreaterThan(1);
+    expect(countryNames).toEqual(
+        [...countryNames].sort((a, b) => a.localeCompare(b, 'en'))
+    );
+    await page.getByRole('button', { name: 'Show map' }).click();
     await page.getByLabel('Explore a region').selectOption('United States');
     await page.getByRole('button', { name: 'California', exact: true }).click();
     await expect(page.locator('.result-count')).toHaveText('11 channels');
@@ -681,9 +804,7 @@ test('Saved US state classifications drive map availability, filtering and reloa
         .getAttribute('value');
     await source.selectOption(id!);
     await expect(page.locator('.result-count')).toHaveText('2 channels');
-    await page
-        .getByRole('button', { name: 'Classifications', exact: true })
-        .click();
+    await openClassifications(page);
     const editor = page.locator('dialog[open]');
     await editor
         .getByRole('button', { name: 'Classify current streams' })
@@ -727,9 +848,7 @@ test('Saved US state classifications drive map availability, filtering and reloa
     await expect(
         page.locator('.location-list').getByRole('button', { name: /Florida/ })
     ).toHaveAttribute('aria-pressed', 'true');
-    await page
-        .getByRole('button', { name: 'Classifications', exact: true })
-        .click();
+    await openClassifications(page);
     await editor.getByRole('button', { name: 'All mappings (2)' }).click();
     await editor
         .locator('.mapping-row')
@@ -826,4 +945,154 @@ test('Discovery map framing fills the canvas without clipping across screen size
                 });
         }
     }
+});
+
+for (const theme of ['light', 'dark'] as const) {
+    test(`Discovery shows all filters and compact settings in ${theme} mode`, async ({
+        page,
+    }) => {
+        await page.emulateMedia({ colorScheme: theme });
+        await page.goto('/discovery');
+        await expect(page.locator('body')).toHaveClass(
+            new RegExp(`${theme}-theme`)
+        );
+        const search = page.getByRole('textbox', { name: 'Search channels' });
+        const clearSearch = page.getByRole('button', {
+            name: 'Clear channel search',
+            exact: true,
+        });
+        await expect(clearSearch).toBeHidden();
+        await page
+            .getByRole('button', { name: 'Discovery settings', exact: true })
+            .focus();
+        await page.keyboard.press('/');
+        await expect(search).toBeFocused();
+        await expect(search).toHaveValue('');
+        await page.getByRole('button', { name: 'Peru', exact: true }).click();
+        await page.getByRole('button', { name: /^Sports/ }).click();
+        await page
+            .getByRole('button', { name: 'Spanish', exact: true })
+            .click();
+        await page.getByRole('button', { name: 'HD', exact: true }).click();
+        await page
+            .getByRole('textbox', { name: 'Search channels' })
+            .fill('Synthetic search');
+        const summary = page.getByLabel('Active filters', { exact: true });
+        for (const label of [
+            'Peru',
+            'Sports',
+            'Spanish',
+            'HD quality',
+            'Search: “Synthetic search”',
+        ]) {
+            await expect(summary).toContainText(label);
+        }
+        await expect(page.locator('.filter-summary')).toContainText(
+            '5 filters active'
+        );
+        await clearSearch.click();
+        await expect(search).toHaveValue('');
+        await expect(search).toBeFocused();
+        await expect(clearSearch).toBeHidden();
+        await expect(page.locator('.filter-summary')).toContainText(
+            '4 filters active'
+        );
+        for (const label of ['Peru', 'Sports', 'Spanish', 'HD quality']) {
+            await expect(summary).toContainText(label);
+        }
+        await search.fill('Synthetic search');
+        const position = await page
+            .locator('.filter-summary')
+            .evaluate((el) => ({
+                left: el.getBoundingClientRect().left,
+                parentLeft: el.parentElement?.getBoundingClientRect().left,
+            }));
+        expect(position.left).toBeCloseTo(position.parentLeft, 0);
+        const qualityGap = await page
+            .locator('.quality')
+            .evaluate(
+                (el) =>
+                    el
+                        .getElementsByClassName('quality-options')[0]
+                        .getBoundingClientRect().top -
+                    el.getElementsByTagName('h2')[0].getBoundingClientRect()
+                        .bottom
+            );
+        expect(qualityGap).toBeGreaterThanOrEqual(12);
+        await page
+            .locator('.filter-summary')
+            .getByRole('button', { name: 'Clear filters', exact: true })
+            .click();
+        await expect(summary.locator('span')).toHaveCount(0);
+        await page
+            .getByRole('button', { name: 'Discovery settings', exact: true })
+            .click();
+        const settings = page.getByRole('dialog', {
+            name: 'Discovery settings',
+            exact: true,
+        });
+        await expect(settings.locator('.settings-actions > *')).toHaveCount(3);
+        await expect(
+            settings.getByRole('button', {
+                name: 'Classifications',
+                exact: true,
+            })
+        ).toBeDisabled();
+        await expect(
+            settings.getByRole('button', {
+                name: 'Refresh source',
+                exact: true,
+            })
+        ).toBeDisabled();
+        await expect(
+            settings.getByRole('link', { name: 'Return to main app' })
+        ).toBeVisible();
+        await page.screenshot({
+            path: `../../dist/discovery-settings-${theme}.png`,
+        });
+        await page.keyboard.press('Escape');
+        await expect(settings).not.toBeVisible();
+        await expect(
+            page.getByRole('button', {
+                name: 'Discovery settings',
+                exact: true,
+            })
+        ).toBeFocused();
+    });
+}
+
+test('Discovery ribbon scrolls while hovering and stops when the pointer leaves', async ({
+    page,
+}) => {
+    await page.goto('/discovery');
+    const viewport = page.locator('.channel-viewport');
+    const offset = () => viewport.evaluate((el) => el.scrollLeft);
+    await expect(viewport).toBeVisible();
+    await page
+        .getByRole('button', { name: 'Next channels', exact: true })
+        .hover();
+    await expect.poll(offset).toBeGreaterThan(60);
+    await page.getByRole('textbox', { name: 'Search channels' }).hover();
+    const stopped = await offset();
+    await viewport.evaluate(
+        () =>
+            new Promise<void>((resolve) => {
+                let frames = 0;
+                const frame = () =>
+                    ++frames >= 12 ? resolve() : requestAnimationFrame(frame);
+                requestAnimationFrame(frame);
+            })
+    );
+    expect(await offset()).toBe(stopped);
+    await page
+        .getByRole('button', { name: 'Previous channels', exact: true })
+        .hover();
+    await expect.poll(offset).toBeLessThan(stopped);
+    await page.getByRole('textbox', { name: 'Search channels' }).hover();
+    const beforeClick = await offset();
+    await page
+        .getByRole('button', { name: 'Next channels', exact: true })
+        .focus();
+    await page.keyboard.press('Enter');
+    await expect.poll(offset).toBeGreaterThan(beforeClick + 200);
 });

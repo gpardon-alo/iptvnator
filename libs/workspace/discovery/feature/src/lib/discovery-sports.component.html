@@ -1,0 +1,30 @@
+<div class="sports-grid" role="group" aria-label="Sports tournaments">
+    @for (league of leagues; track league.id) {
+        <button
+            type="button"
+            class="league-tile"
+            [attr.aria-label]="league.name"
+            [attr.aria-pressed]="selected() === league.id"
+            (click)="leagueToggle.emit(league.id)"
+            [title]="league.phrases.join(' / ')"
+        >
+            <div
+                class="league-logo"
+                [class.dark-logo]="darkLogos.includes(league.id)"
+            >
+                @if (!failedLogos().includes(league.id)) {
+                    <img
+                        [src]="'assets/discovery/leagues/' + league.id + '.png'"
+                        alt=""
+                        width="80"
+                        height="72"
+                        (error)="logoFailed(league.id)"
+                    />
+                } @else {
+                    <span aria-hidden="true">{{ league.name }}</span>
+                }
+            </div>
+            <span>{{ league.name }}</span>
+        </button>
+    }
+</div>

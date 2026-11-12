@@ -60,15 +60,16 @@ test('Electron imports a packaged baseline through file assets without replacing
             'no-drag'
         );
         if (process.platform === 'darwin') {
-            const brandWindowLeft = () =>
-                header
+            const brandWindowLeft = async () => {
+                const zoomFactor = await app.electronApp.evaluate(
+                    ({ BrowserWindow }) =>
+                        BrowserWindow.getAllWindows()[0].webContents.getZoomFactor()
+                );
+                const left = await header
                     .locator('.brand')
-                    .evaluate(
-                        (el) =>
-                            (el.getBoundingClientRect().left *
-                                window.outerWidth) /
-                            window.innerWidth
-                    );
+                    .evaluate((el) => el.getBoundingClientRect().left);
+                return left * zoomFactor;
+            };
             await expect.poll(brandWindowLeft).toBeGreaterThanOrEqual(84);
             const bounds = await app.electronApp.evaluate(
                 ({ BrowserWindow }) => {
@@ -158,6 +159,9 @@ test('Electron imports a packaged baseline through file assets without replacing
         await app.mainWindow
             .getByLabel('Discovery source')
             .selectOption(sourceId);
+        await app.mainWindow
+            .getByRole('textbox', { name: 'Search channels' })
+            .fill('Packaged synthetic root');
         await expect(
             app.mainWindow
                 .locator('app-content-card')
