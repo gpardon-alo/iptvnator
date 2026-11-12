@@ -402,6 +402,32 @@ Preserve the fork version, update source, packaging/publication guards and
 Discovery additions, and retain both upstream and fork changelog sections.
 Synchronizing source does not itself publish a new installer or release.
 
+#### Manual Ubuntu DEB updater
+
+`tools/release/update-iptvnator.py` updates an existing amd64 DEB installation
+on Xubuntu/Ubuntu using Python 3 and the standard `dpkg`, `apt`, and `pgrep`
+commands. Copy the script to the desktop machine and run it as your normal user:
+
+```bash
+python3 ~/Downloads/update-iptvnator.py --check
+python3 ~/Downloads/update-iptvnator.py
+```
+
+The script queries this fork's latest published stable release, skips versions
+that are not newer according to `dpkg`, and downloads only its matching amd64
+installer and `SHA256SUMS`. It verifies the checksum and Debian package name,
+version and architecture before invoking `sudo apt install` with apt's normal
+confirmation prompt. No scheduler or automatic app restart is added.
+
+Close IPTVnator before updating and keep it closed until installation finishes.
+The script checks for a running IPTVnator process before downloading the installer
+and again immediately before invoking apt; if found, it stops and asks you to
+close the app and rerun. It does not terminate the app or remove profile data.
+Downloads use a temporary directory that is cleaned up on exit. Offline regression
+checks run through `pnpm nx run release-tools:test-deb-updater` and the standard
+`release-tools:test` target; they mock downloads and package installation, so they
+do not change the host system.
+
 ### Upstream nightly publication
 
 Every push to `master` of `4gray/iptvnator` is also a nightly. The same

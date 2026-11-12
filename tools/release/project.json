@@ -4,6 +4,18 @@
     "projectType": "library",
     "sourceRoot": "tools/release",
     "targets": {
+        "test-deb-updater": {
+            "executor": "nx:run-commands",
+            "cache": true,
+            "inputs": [
+                "{workspaceRoot}/tools/release/update-iptvnator.py",
+                "{workspaceRoot}/tools/release/test_update_iptvnator.py"
+            ],
+            "options": {
+                "command": "python3 -B tools/release/test_update_iptvnator.py",
+                "cwd": "{workspaceRoot}"
+            }
+        },
         "test": {
             "executor": "nx:run-commands",
             "cache": true,
@@ -39,7 +51,8 @@
                 "cwd": "{workspaceRoot}"
             },
             "dependsOn": [
-                "test-cinematic"
+                "test-cinematic",
+                "test-deb-updater"
             ]
         },
         "lint": {
