@@ -3,13 +3,14 @@
     "journeys": {
         "launch": {
             "renderer.initialBytes": {
-                "value": 1196205,
+                "value": 1201673,
                 "unit": "bytes",
                 "slack": 4096,
-                "updatedAt": "2026-10-14",
-                "evidencePr": 1939,
-                "measuredWith": "pnpm nx build web && pnpm run perf:initial-bytes",
-                "note": "No Angular Material module is in the initial bundle since #1939: services created with the app open toasts through LazySnackBar and dialogs through LazyMatDialog, so a new eager MatSnackBar or MatDialog import brings back Material's button, ripple and the CDK a11y chunks (about 110 KB). The CDK overlay stays initial through the FullscreenOverlayContainer provider in app.config.ts. Self-hosted server storage (#1903) keeps only what must run before the first route on the startup path (the /v1/instance probe and remembered server, the connection status, the token bound to its instance, the playlist storage backend); the storage code itself loads by dynamic import in server mode only."
+                "updatedAt": "2026-11-11",
+                "evidencePr": 2,
+                "measuredWith": "pnpm nx build web --skip-nx-cache && pnpm run perf:initial-bytes:check (ubuntu-latest, PR #2 head 1d2b55247)",
+                "note": "No Angular Material module is in the initial bundle since #1939: services created with the app open toasts through LazySnackBar and dialogs through LazyMatDialog, so a new eager MatSnackBar or MatDialog import brings back Material's button, ripple and the CDK a11y chunks (about 110 KB). The CDK overlay stays initial through the FullscreenOverlayContainer provider in app.config.ts. Self-hosted server storage (#1903) keeps only what must run before the first route on the startup path (the /v1/instance probe and remembered server, the connection status, the token bound to its instance, the playlist storage backend); the storage code itself loads by dynamic import in server mode only. Fork PR #2 accepts the upstream sync startup growth with maintainer approval: 1,200,222 to 1,201,673 bytes (+1,451). The Linux runner measured 1,201,673; reset the value to that measurement and retain 4,096-byte slack. Incoming clipboard recovery, startup recovery styles and shared runtime code account for the growth.",
+                "evidenceRun": "https://github.com/gpardon-alo/iptvnator/actions/runs/43154234610"
             },
             "renderer.ipcCallsToFirstCard": {
                 "value": 15,
