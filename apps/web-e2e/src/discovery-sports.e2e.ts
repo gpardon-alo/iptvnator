@@ -58,12 +58,7 @@ for (const theme of ['light', 'dark'] as const) {
         await addXtreamPortal(page, { name: 'Synthetic tournament source' });
         await page.goto('/discovery');
         const source = page.getByLabel('Discovery source');
-        const id = await source
-            .locator('option')
-            .filter({ hasText: 'Synthetic tournament source' })
-            .getAttribute('value');
-        expect(id).toBeTruthy();
-        await source.selectOption(id ?? '');
+        await source.selectOption({ label: 'Synthetic tournament source' });
         await expect(page.locator('.result-count')).toHaveText('8 channels');
         const region = page.getByLabel('Explore a region');
         await region.selectOption('Sports');
