@@ -78,7 +78,7 @@ def installed_version():
 
 
 def require_closed():
-    result = subprocess.run(["pgrep", "-ix", "iptvnator"], capture_output=True, check=False)
+    result = subprocess.run(["pgrep", "-ix", r"iptvnator([.]bin)?"], capture_output=True, check=False)
     if result.returncode == 0:
         raise ValueError("Close IPTVnator completely, then run this script again.")
     if result.returncode != 1:

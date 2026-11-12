@@ -421,8 +421,9 @@ confirmation prompt. No scheduler or automatic app restart is added.
 
 Close IPTVnator before updating and keep it closed until installation finishes.
 The script checks for a running IPTVnator process before downloading the installer
-and again immediately before invoking apt; if found, it stops and asks you to
-close the app and rerun. It does not terminate the app or remove profile data.
+and again immediately before invoking apt, matching both `iptvnator` and the
+packaged `iptvnator.bin` process; if found, it stops and asks you to close the app
+and rerun. It does not terminate the app or remove profile data.
 Downloads use a temporary directory that is cleaned up on exit. Offline regression
 checks run through `pnpm nx run release-tools:test-deb-updater` and the standard
 `release-tools:test` target; they mock downloads and package installation, so they

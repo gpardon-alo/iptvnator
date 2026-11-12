@@ -5,6 +5,8 @@ import importlib.util
 import json
 from pathlib import Path
 import subprocess
+import shutil
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -69,6 +71,36 @@ class UpdateTests(unittest.TestCase):
             with patch.object(updater.subprocess, "run", return_value=subprocess.CompletedProcess([], status)):
                 with self.subTest(status=status), self.assertRaises(ValueError):
                     updater.require_closed()
+
+    @unittest.skipUnless(sys.platform == "linux" and shutil.which("pgrep"),
+                         "Requires Linux process names and pgrep")
+    def test_detects_real_launcher_and_packaged_process_names(self):
+        child_code = """
+import ctypes
+import sys
+import time
+if ctypes.CDLL(None).prctl(15, sys.argv[1].encode(), 0, 0, 0) != 0:
+    raise RuntimeError("Could not set fixture process name")
+print("ready", flush=True)
+time.sleep(30)
+"""
+        for name in ["iptvnator", "iptvnator.bin"]:
+            with self.subTest(name=name):
+                child = subprocess.Popen(
+                    [sys.executable, "-c", child_code, name],
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                )
+                try:
+                    self.assertEqual(child.stdout.readline().strip(), "ready")
+                    with self.assertRaisesRegex(ValueError, "Close IPTVnator"):
+                        updater.require_closed()
+                finally:
+                    child.terminate()
+                    try:
+                        child.communicate(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        child.kill()
+                        child.communicate()
 
     def simulate_update(self, *, comparison=0, check=False, running=False,
                         corrupt=False, apt_fails=False, user_id=0, opens_later=False):
