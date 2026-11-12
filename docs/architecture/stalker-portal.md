@@ -402,6 +402,22 @@ host connectivity guard before reloading the same page. Successful empty
 responses keep the ordinary no-matches state; failed appends retain loaded rows
 and their existing tail retry. New query/source identities clear obsolete errors.
 
+Electron's global search automatically searches configured Stalker portals
+when the applied query has at least two characters and Movies or Series is
+selected. It reuses the portal search request for page one and runs up to two
+catalog requests at a time. Local results can appear while Stalker is still
+searching. Series search covers both the `series` catalog and series originating
+in `vod`. Results share the workspace cards and grouping setting, and each card
+keeps its catalog origin for parental locks and detail navigation. Failed
+catalogs can be retried per portal. When a catalog may have more matches, its
+link opens the full search with the query and catalog preselected. Changing
+the query, filters or lock state replaces the previous Stalker results.
+Search submissions retain a full source identity/revision snapshot independently
+of sparse inventory metadata. Retained submissions, arriving pages and card
+activation re-read the full source; a device, mode or revision replacement retires
+old commands and refreshes the search. Activation also rechecks submission and
+lock ownership after its awaited read.
+
 Stalker store is now feature-composed:
 
 - Facade: `libs/portal/stalker/data-access/src/lib/stalker.store.ts`
@@ -2132,7 +2148,10 @@ epoch, typed reference and lock version. Native inventory omits payload-only dev
 identity and revision fields; lookups read the full source and recheck its complete
 identity/revision before publication.
 Relative artwork resolves against the portal URL; only normalized display info is
-cached and merged in memory. Commands, membership, history timestamps,
+cached and merged in memory. Late portal metadata fills the saved provider copy
+as well as the displayed item. TMDB applies its results over the latest provider
+copy, including when the portal responds while the TMDB lookup is in flight.
+Commands, membership, history timestamps,
 loaded seasons and playback ownership are unchanged, and no enriched provider
 payload is persisted or sent through synchronization.
 

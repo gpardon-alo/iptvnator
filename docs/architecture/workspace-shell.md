@@ -17,6 +17,9 @@ renders checking, no-update, error, download and install states. Router
 navigation preserves the unsaved-settings guard; checks use the saved update
 channel. Repeating the command on About checks again; a download in progress or
 ready to install is preserved and shown instead of starting another check.
+Route navigation and native close requests share the settings confirmation
+through the save or discard, so competing exits produce one dialog and one
+decision.
 macOS places commands in the application menu; Windows/Linux place
 Settings in Edit and update checking in Help. Their frameless title bar has an
 Open menu button beside the window controls that opens the native menu as a
@@ -527,7 +530,15 @@ Search is shell-owned and route-aware:
 6. Input changes are debounced before route/store updates are applied.
 7. Global search uses the header input as its primary input and writes the
    search phrase to the `q` query parameter, so history/back-forward behavior
-   matches the rest of the workspace.
+   matches the rest of the workspace. Applying the query after the debounce
+   or with Enter searches the local Xtream and M3U catalogs. A query of at
+   least two characters also searches configured Stalker portals for the
+   selected Movies and Series filters. Local results appear without waiting
+   for Stalker, and all results use the same cards and **Group results by
+   playlist** setting. An inline status shows pending searches, and a failed
+   portal offers Retry. Stalker contributes the first page from each catalog
+   and links to the full portal search when more results may be available.
+   Opening a result keeps the global query in its Back target.
 8. The URL is authoritative for the search box only when it carries search
    intent. `WorkspaceShellSearchSyncService` re-reads `q` on every
    `NavigationEnd`, but an **app-initiated** navigation that stays on the same
@@ -828,9 +839,11 @@ Startup window mode (`Settings.startupWindowMode`, issue #1455):
    the request with `setFullScreen(true)` right after `show()` wherever
    `isFullScreen()` is still false — never unconditionally, or the
    platforms that honoured the option would animate a second toggle. The
-   saved bounds stay spread into the options — they are the normal bounds
-   the window returns to, and the close handler keeps persisting
-   `getNormalBounds()`. `maximized` calls `maximize()` right before the
+   saved normal bounds are restored when the top edge is inside a connected
+   display's work area and the bounds overlap that area by at least 100 px in
+   each dimension. Otherwise the window starts centered on the primary display.
+   The close handler persists `getNormalBounds()`. `maximized` calls
+   `maximize()` right before the
    first `show()`, never earlier: `maximize()` on a hidden window shows it,
    and a blank window would flash. That first show happens at
    `ready-to-show` or the main frame's `did-finish-load`, whichever comes

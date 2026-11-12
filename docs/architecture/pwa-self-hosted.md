@@ -45,6 +45,15 @@ network. The code is stored in the server data directory with user-only file
 permissions where supported. A change to the selected network address requires
 selecting the new address and starting the server again.
 
+The utility process inherits the desktop environment, including operating-system
+variables such as Windows `SystemRoot`, `PATH` and temporary-directory settings.
+Hosted storage, data paths, access code, assets, LAN binding and port override
+any inherited values so the worker always uses its dedicated server profile.
+The desktop's `IPTVNATOR_SOURCE_PROFILE` is cleared in the worker environment,
+so switching desktop server connections does not change the hosted database.
+The worker also clears `IPTVNATOR_E2E_DATA_DIR`, which otherwise takes
+precedence over the hosted data directory during Electron tests.
+
 The desktop package includes `web-backend:build` and `web:build-hosted`. The
 latter emits a separate PWA bundle, so the Electron renderer and Docker
 deployment keep their own build outputs. The outer Nx graph builds shared
@@ -343,8 +352,17 @@ reconciliation cannot deadlock parental cleanup. The store's ready flag keeps
 rejecting incomplete inventory after a failed projection, preserving the loading
 error instead of exposing a false empty library. Server
 settings bypass the source-loading screen and remain reachable through the
-connection banner. A successful projection publishes its inventory change to
-refresh mounted views. Its collection revision advances only after the local
+connection banner. Once a local source inventory is ready, a connectivity
+notice can be hidden for the current app session without changing profiles or
+stopping background retries. Settings → Server can still check the connection
+and shows the result there. A missing inventory, rejected token, or server
+identity error keeps its recovery controls visible. The status panel uses a
+secondary connection check and an icon-only dismiss action for a cached
+outage. Blocking recovery gives retry the primary role and keeps the Server
+settings link available while the first connection is in progress. Disconnect
+in Server settings uses the destructive tint. A successful projection
+publishes its inventory change to refresh mounted views. Its collection
+revision advances only after the local
 initialization receipt is persisted, so a failed write retries the inventory
 instead of accepting HTTP 304 with an unreadable cache. Electron Xtream metadata
 paths in `DatabaseService` use the same wrapper.

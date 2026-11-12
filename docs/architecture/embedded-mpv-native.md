@@ -275,8 +275,14 @@ module's `isFrameCopyRuntimeUsable()` / `getFrameCopyRuntimeAvailability()`):
   `<canvas data-embedded-mpv-frame>` (BGRA swizzle in the shader). Frame
   copies whose post-copy seqlock check reports a writer race are discarded
   without advancing the consumed sequence, so the next rAF retries instead
-  of uploading partial pixels. Frame data never crosses the contextBridge;
-  the bridge only exposes
+  of uploading partial pixels. On a resize generation change, the pump keeps
+  the displayed canvas and texture unchanged until it copies a complete,
+  stable frame from the new ring. It then resizes the canvas, uploads that
+  frame and draws in the same animation tick, avoiding a cleared canvas while
+  the helper prepares its first resized frame. Detaching a session clears the
+  canvas so switching streams never retains the previous stream's image while
+  waiting for a new frame. Frame data never crosses the contextBridge; the
+  bridge only exposes
   `attachEmbeddedMpvFrameView`/`detachEmbeddedMpvFrameView`.
 - Renderer: `EmbeddedMpvPlayerComponent` renders the canvas when
   `support.engine === 'frame-copy'` and skips the compositor workarounds —
@@ -470,7 +476,11 @@ Trade-offs and constraints:
   Intel Macs keep the native-view engine. Official Linux frame-copy is x64 —
   headless EGL, works under native Wayland since nothing embeds into a
   window; local system builds need `libmpv-dev`, `libegl-dev`, `libgl-dev`,
-  and `libgbm-dev`. The helper links libmpv, which is legal
+  and `libgbm-dev`. Development runtime validation accepts frame-reader modes
+  `0644` and `0755`, including node-gyp's normal executable library output.
+  Packaged readers still require `0644`; helpers require `0755` in both
+  contracts. Symlinks, unreadable files and unexpected reader permission bits
+  remain rejected. The helper links libmpv, which is legal
   out-of-process; the in-process-libmpv ban still binds the addon and frame
   reader. The helper logs the chosen EGL display tier and the GL renderer
   string to stderr. If an early tier selects Mesa software rendering (for
@@ -519,6 +529,15 @@ Seeking has two IPC shapes. The timeline scrub commits one absolute target (`see
 Audio tracks are discovered from MPV's `track-list` property. The selected track is controlled through MPV's `aid` property. Switching tracks must not reload the stream.
 
 Subtitle tracks mirror the audio-track contract: same `track-list` source, same parsing pipeline, but selected through MPV's `sid` property. A `trackId` of `-1` from the renderer is interpreted as "disable subtitles" and translated to `sid=no` at the addon boundary. Playback speed is observed and set through MPV's `speed` property, clamped at the addon to `[0.25, 4.0]`. Aspect override uses MPV's `video-aspect-override` property as a passthrough string ("no", "16:9", "4:3", "21:9", "2.35:1"). All four properties (`sid`, `speed`, `video-aspect-override`, plus `aid`) are observed at session init so renderer state stays in sync with the native side without needing extra round-trips.
+
+During Live TV playback, the open player view remembers an explicit
+**Subtitles → Off** across channel changes and renderer retries. New sessions
+with subtitle controls append `sid=no` after the saved MPV options, before
+initialization. Picking a track clears the remembered Off; the track number
+only applies to the current stream. Loading an external subtitle file selects
+it for the current session and leaves the choice for the next channel intact.
+Closing the view discards the choice. The global caption setting and non-live
+playback are unaffected.
 
 File chapters come from MPV's `chapter-list` property, observed as a node next to `track-list` by the macOS and Windows addons and the frame-copy helper, and cleared on every `START_FILE` so a replacement file never shows the previous one's chapters. Each snapshot carries `chapters: [{ timeSeconds, title? }]` (the helper always emits the key, because the adapter merges snapshot events field by field); `EmbeddedMpvNativeService` validates it with `normalizeEmbeddedMpvChapters` into `EmbeddedMpvSession.chapters`, and an older binary without the field yields `[]`. The Linux `mpv --wid` poller does not read chapters. The renderer maps them to timeline segments — see "Timeline segments" in the [player controls contract](player-controls-contract.md).
 
@@ -685,11 +704,15 @@ The list never appears on a command line: an option such as
 local user through `ps` / `/proc/<pid>/cmdline`.
 
 `EMBEDDED_MPV_NETWORK_DEFAULT_OPTIONS` (`network-timeout=10`,
-`demuxer-lavf-o=reconnect=1,reconnect_streamed=1,reconnect_delay_max=5`) are
+`demuxer-lavf-o=reconnect=1,reconnect_delay_max=5`) are
 part of that list on purpose: a stalled IPTV connection then surfaces as an
 mpv error within seconds instead of libmpv's 60 s default, and ffmpeg
-re-requests a dropped HTTP stream on its own before the app-level reconnect
-has to. Options mpv rejects never fail session creation, and a rejection is
+re-requests a dropped seekable HTTP response on its own before the app-level
+reconnect has to. `reconnect_streamed` is deliberately not set (#1682): ffmpeg
+records a response without `Content-Length` as unknown-size, so with it every
+normal end of an HLS playlist or segment served without a length counts as
+premature and is requested again, which stalls live HLS or keeps it from
+starting. Dropped live connections are left to the app-level reconnect below. Options mpv rejects never fail session creation, and a rejection is
 reported without any trace flag, by key only (a value may carry credentials):
 the Windows and macOS native-view engines collect the refused keys into the
 snapshot's `rejectedOptionKeys`, which the service logs once per session as a

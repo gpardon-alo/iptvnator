@@ -159,6 +159,10 @@ palette in `apps/website/tailwind.config.mjs`.
 Screenshots come only from the capture script running against the mock servers.
 Never publish one taken from a real playlist or account — streams, logos and
 metadata are copyrighted, and credentials must never reach a published image.
+For the desktop-hosting shot, also build `web-backend:build` and
+`web:build-hosted` so Electron can show the server controls. The shot leaves
+the server stopped and shows no access code. The parental-lock shot leaves
+both PIN fields empty.
 
 For the release 0.25 dashboard and detail showcase, run
 `pnpm release:screenshots --cinematic --release v0-25` after the standard
@@ -212,6 +216,13 @@ reporting that as "internal-only" would hide the one ordering mistake the
 pipeline is built to prevent.
 
 ## Draft verification
+
+For a large release, add a compact GitHub summary with a link to the full
+changelog at the top of the generated version section, followed by a blank
+line, `<!-- end-github-summary -->`, and another blank line. Public extraction
+uses that summary, leaving room for GitHub's generated PR and contributor
+list. The complete authored notes stay in the committed changelog. Without
+the marker, the tag build uses the full public section as usual.
 
 The `v*` tag build creates a **draft** GitHub release.
 `pnpm run release:verify:draft` (`tools/release/verify-draft-release.mjs`) is
@@ -293,16 +304,14 @@ published from the reviewed dispatch commit with the amd64 DEB, its SHA-256
 checksum and the matching Linux runtime source-compliance archive. It does not
 use the upstream 27-asset verification or publish a website announcement.
 
-To include reviewed classifications without committing provider data, attach the
-validated `discovery-classification-baseline.json` to a private draft release in
-the fork, then dispatch with its tag in `baseline_tag`. The build downloads that
-single asset in an isolated job with draft-release read access. That job checks
-out no code and runs no dependency installs; build jobs keep read-only repository
-permissions and receive the file as a one-day workflow artifact. The `beforePack` hook checks
-the schema, source identities and credential-free fields before staging the asset
-into the packaged renderer. Local builds use `IPTVNATOR_DISCOVERY_BASELINE_FILE`.
-Do not publish the staging draft or attach credentials; the resulting installer
-contains the classifications. Baseline import behavior is documented in
+Public fork CI must leave `baseline_tag` empty and package the empty tracked
+classification baseline. A draft input release does not make the resulting
+installer or Actions artifacts private. Keep private dictionaries on the device
+and import them locally; do not send them through public fork packaging jobs.
+
+Private local builds may use `IPTVNATOR_DISCOVERY_BASELINE_FILE`. The `beforePack`
+hook validates schema, source identities and credential-free fields, but it does
+not determine whether classification metadata is private. Baseline import behavior is documented in
 [geographic discovery](geographic-discovery.md#packaged-classification-baselines).
 
 The Linux packaging dependency step replaces the runner's Ubuntu `mirror+file`
@@ -312,6 +321,13 @@ APT requests use a 30-second timeout and one retry. The update must succeed for
 every source (`--error-on=any`) before installation starts; update and install
 have independent five- and ten-minute process limits with a ten-second kill
 grace period. Packaging and test gates remain unchanged.
+
+Electron Builder uses the GitHub release asset API for its upstream packaging
+tool downloads in CI and keeps its normal archive checksums and cache. The
+public download is a fallback when the API is unavailable.
+The matrix fetches official Electron distributions through the asset
+API and verifies them using the checksums bundled with the installed Electron
+package. Electron Builder uses the same checksums when it reads the cache.
 
 ## AppImage external-manager metadata
 
@@ -380,6 +396,11 @@ comparing versions. Confirm the installed Debian version before choosing the
 first fork version, and inspect the generated DEB version before upgrading.
 The first fork build is `0.25.1`, upgrading the existing `0.24.0` installation;
 subsequent fork builds increment the numeric patch version.
+
+Upstream synchronizations use a separate PR into the protected fork `master`.
+Preserve the fork version, update source, packaging/publication guards and
+Discovery additions, and retain both upstream and fork changelog sections.
+Synchronizing source does not itself publish a new installer or release.
 
 ### Upstream nightly publication
 
@@ -494,7 +515,10 @@ button that submits the settings form
 (`SettingsAboutSectionComponent.saveAndCheckForAppUpdate` →
 `SettingsComponent.onSubmit()`). No renderer-side check follows: the saved
 channel reaches `persistAppUpdateChannel`, whose change listener calls
-`AppUpdateService.setChannel`, which already re-checks an idle updater. A
+`AppUpdateService.setChannel`, which checks the saved channel. If a check is
+already running, it finishes before the service checks the latest saved
+channel. The service skips superseded availability results. The main process
+also accepts one install request at a time and releases that guard on failure. A
 download in flight or finished belongs to the previous channel and is kept
 by `setChannel`, so in those states the plain check stays and only the hint
 is shown. Because that kept download outlives the channel it was found on,
