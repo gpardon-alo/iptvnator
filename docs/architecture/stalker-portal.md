@@ -412,6 +412,11 @@ keeps its catalog origin for parental locks and detail navigation. Failed
 catalogs can be retried per portal. When a catalog may have more matches, its
 link opens the full search with the query and catalog preselected. Changing
 the query, filters or lock state replaces the previous Stalker results.
+Search submissions retain a full source identity/revision snapshot independently
+of sparse inventory metadata. Retained submissions, arriving pages and card
+activation re-read the full source; a device, mode or revision replacement retires
+old commands and refreshes the search. Activation also rechecks submission and
+lock ownership after its awaited read.
 
 Stalker store is now feature-composed:
 

@@ -10,7 +10,6 @@ import {
     untracked,
 } from '@angular/core';
 import {
-    firstNonBlankStalkerIdText,
     isStalkerItemWithheld,
     loadStalkerSearchPage,
     resolveSearchWithheldCategoryIds,
@@ -18,8 +17,6 @@ import {
     type StalkerSearchContentType,
     type StalkerSearchPage,
     StalkerSessionService,
-    type StalkerVodSource,
-    withoutWithheldStalkerItems,
 } from '@iptvnator/portal/stalker/data-access';
 import {
     DataService,
@@ -31,38 +28,23 @@ import {
     GLOBAL_SEARCH_MIN_LENGTH,
     isFullStalkerPortalPlaylist,
     isStalkerAccountPlaylist,
-    isStalkerSeriesItem,
     type PlaylistMeta,
 } from '@iptvnator/shared/interfaces';
 import { stalkerSessionFingerprint } from '@iptvnator/shared/interfaces/stalker-session';
 import { firstValueFrom } from 'rxjs';
 
-export interface StalkerGlobalSearchContext {
-    term: string;
-    movies: boolean;
-    series: boolean;
-    sources: readonly PlaylistMeta[];
-    lockVersion: number;
-}
-
-export interface StalkerGlobalSearchItem {
-    readonly playlistId: string;
-    readonly origin: StalkerSearchContentType;
-    readonly id: string;
-    readonly displayType: 'movie' | 'series';
-    readonly item: StalkerVodSource;
-    readonly key: string;
-}
-
-export interface StalkerGlobalSearchGroup {
-    readonly playlistId: string;
-    readonly playlistName: string;
-    readonly origins: readonly StalkerSearchContentType[];
-    readonly more: readonly StalkerSearchContentType[];
-    readonly loading: boolean;
-    readonly hasError: boolean;
-    readonly items: readonly StalkerGlobalSearchItem[];
-}
+import type {
+    StalkerGlobalSearchContext,
+    StalkerGlobalSearchItem,
+    StalkerGlobalSearchGroup,
+} from './stalker-global-search.models';
+export type {
+    StalkerGlobalSearchContext,
+    StalkerGlobalSearchItem,
+    StalkerGlobalSearchGroup,
+} from './stalker-global-search.models';
+import { StalkerSearchSourceGuard } from './stalker-search-source-guard';
+import { appendStalkerSearchItems } from './stalker-global-search-items';
 
 type SearchCriteria = Omit<StalkerGlobalSearchContext, 'sources'>;
 
@@ -78,6 +60,7 @@ interface SearchPortal {
 interface SearchSubmission {
     generation: number;
     criteria: SearchCriteria;
+    sources: StalkerSearchSourceGuard;
     portals: ReadonlyMap<string, SearchPortal>;
 }
 
@@ -172,7 +155,9 @@ export class StalkerGlobalSearchService {
         });
     }
 
-    search(readContext: Signal<StalkerGlobalSearchContext>): void {
+    async search(
+        readContext: Signal<StalkerGlobalSearchContext>
+    ): Promise<void> {
         if (this.destroyRef.destroyed) {
             return;
         }
@@ -188,6 +173,9 @@ export class StalkerGlobalSearchService {
         }
         const current = this.submission();
         if (current?.portals.size === playlists.length) {
+            for (const id of await current.sources.invalidSources()) {
+                this.retireSource(current, id);
+            }
             return;
         }
 
@@ -198,6 +186,10 @@ export class StalkerGlobalSearchService {
         this.submission.set({
             generation,
             criteria,
+            sources: new StalkerSearchSourceGuard(
+                this.playlists,
+                this.requestDeps.portalRepair
+            ),
             portals: new Map(
                 playlists.map((playlist) => [
                     playlist._id,
@@ -257,7 +249,20 @@ export class StalkerGlobalSearchService {
         }
     }
 
-    canOpen(item: StalkerGlobalSearchItem): boolean {
+    async canOpen(item: StalkerGlobalSearchItem): Promise<boolean> {
+        const submitted = this.submission();
+        if (!submitted || !this.canOpenCurrent(item)) return false;
+        if (!(await submitted.sources.isCurrent(item.playlistId))) {
+            this.retireSource(submitted, item.playlistId);
+            return false;
+        }
+        return (
+            this.submission()?.generation === submitted.generation &&
+            this.canOpenCurrent(item)
+        );
+    }
+
+    private canOpenCurrent(item: StalkerGlobalSearchItem): boolean {
         const portal = this.submission()?.portals.get(item.playlistId);
         return (
             !!portal?.items.includes(item) &&
@@ -268,6 +273,19 @@ export class StalkerGlobalSearchService {
                 this.withheld(item.playlistId, item.origin)
             )
         );
+    }
+
+    private retireSource(submitted: SearchSubmission, id: string): void {
+        if (
+            this.submission()?.generation !== submitted.generation ||
+            !this.submission()?.portals.has(id)
+        )
+            return;
+        const portals = new Map(this.submission()?.portals);
+        portals.delete(id);
+        this.submission.set({ ...submitted, portals });
+        const context = this.readContext();
+        if (context) void this.search(context);
     }
 
     private isCurrentSource(
@@ -330,6 +348,10 @@ export class StalkerGlobalSearchService {
             ) {
                 throw new Error('Stalker source is unavailable');
             }
+            if (!current.submission.sources.capture(playlist)) {
+                this.retireSource(current.submission, job.playlistId);
+                return;
+            }
             const page = await loadStalkerSearchPage(
                 this.requestDeps,
                 playlist,
@@ -338,7 +360,11 @@ export class StalkerGlobalSearchService {
                 1,
                 { silent: true }
             );
-            this.settle(job, page);
+            if (await current.submission.sources.isCurrent(job.playlistId)) {
+                this.settle(job, page);
+            } else {
+                this.retireSource(current.submission, job.playlistId);
+            }
         } catch {
             this.settle(job);
         } finally {
@@ -364,7 +390,13 @@ export class StalkerGlobalSearchService {
             failed: rows ? portal.failed : [...portal.failed, job.origin],
             more: hasMore ? [...portal.more, job.origin] : portal.more,
             items: rows
-                ? this.appendItems(portal.items, job, submission.criteria, rows)
+                ? appendStalkerSearchItems(
+                      portal.items,
+                      job,
+                      submission.criteria,
+                      rows,
+                      this.withheld(job.playlistId, job.origin)
+                  )
                 : portal.items,
         });
     }
@@ -387,40 +419,5 @@ export class StalkerGlobalSearchService {
             playlistId,
             origin
         );
-    }
-
-    private appendItems(
-        existing: readonly StalkerGlobalSearchItem[],
-        job: SearchJob,
-        criteria: SearchCriteria,
-        rawItems: StalkerVodSource[]
-    ): StalkerGlobalSearchItem[] {
-        const { playlistId, origin } = job;
-        const withheld = this.withheld(playlistId, origin);
-        const items = [...existing];
-        const keys = new Set(items.map(({ key }) => key));
-        for (const item of withoutWithheldStalkerItems(
-            rawItems,
-            origin,
-            withheld
-        )) {
-            const series = origin === 'series' || isStalkerSeriesItem(item);
-            if (series ? !criteria.series : !criteria.movies) {
-                continue;
-            }
-            const displayType = series ? 'series' : 'movie';
-            const id = firstNonBlankStalkerIdText(
-                item.id,
-                item.stream_id,
-                item.movie_id,
-                item.series_id
-            );
-            const key = JSON.stringify([playlistId, origin, id]);
-            if (id && !keys.has(key)) {
-                keys.add(key);
-                items.push({ playlistId, origin, id, displayType, item, key });
-            }
-        }
-        return items;
     }
 }

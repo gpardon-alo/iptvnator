@@ -115,7 +115,7 @@ describe('StalkerGlobalSearchService', () => {
     }
 
     async function search(): Promise<void> {
-        preview.search(context);
+        await preview.search(context);
         await Promise.resolve();
     }
 
@@ -125,8 +125,8 @@ describe('StalkerGlobalSearchService', () => {
         totalItems = rawItems.length
     ): Promise<void> {
         requests[request].resolve({ rawItems, totalItems });
-        await Promise.resolve();
-        await Promise.resolve();
+        // Let hydration, identity revalidation and the next queued page settle.
+        await new Promise<void>((done) => setTimeout(done, 0));
     }
 
     function calls() {
@@ -157,6 +157,67 @@ describe('StalkerGlobalSearchService', () => {
             1,
             { silent: true }
         );
+    });
+
+    it.each([
+        { stalkerDeviceId1: 'fixture-replacement' },
+        { isFullStalkerPortal: false },
+        { sourceSyncRevision: 'fixture-revision-2' },
+    ])(
+        'rejects activation after a payload-only source replacement %o',
+        async (changes) => {
+            setContext({ sources: [portalA], series: false });
+            let persisted: Playlist = {
+                ...portalA,
+                lastUsage: '',
+                isFullStalkerPortal: true,
+                stalkerDeviceId1: 'fixture-original',
+                sourceSyncRevision: 'fixture-revision-1',
+            };
+            getPlaylistById.mockImplementation(() => of(persisted));
+            await search();
+            await resolve(0, [{ id: 42, cmd: 'synthetic-command' }]);
+            const previous = preview.groups()[0].items[0];
+            expect(await preview.canOpen(previous)).toBe(true);
+
+            // Native inventory has no payload identity or source revision to change.
+            persisted = { ...persisted, ...changes };
+            expect(await preview.canOpen(previous)).toBe(false);
+            expect(
+                preview.groups().flatMap(({ items }) => items)
+            ).not.toContain(previous);
+        }
+    );
+
+    it('rehydrates an unchanged native inventory before retaining a submitted search', async () => {
+        setContext({ sources: [portalA], series: false });
+        let persisted: Playlist = {
+            ...portalA,
+            lastUsage: '',
+            stalkerDeviceId1: 'fixture-original',
+        };
+        getPlaylistById.mockImplementation(() => of(persisted));
+        await search();
+        await resolve(0, [{ id: 42 }]);
+        persisted = { ...persisted, stalkerDeviceId1: 'fixture-replacement' };
+        setContext({ sources: [{ ...portalA }] });
+        await search();
+        expect(preview.groups().flatMap(({ items }) => items)).toEqual([]);
+        expect(loadPage).toHaveBeenCalledTimes(2);
+    });
+
+    it('discards a late response when only the saved device identity changes', async () => {
+        setContext({ sources: [portalA], series: false });
+        let persisted: Playlist = {
+            ...portalA,
+            lastUsage: '',
+            stalkerDeviceId1: 'fixture-original',
+        };
+        getPlaylistById.mockImplementation(() => of(persisted));
+        await search();
+        persisted = { ...persisted, stalkerDeviceId1: 'fixture-replacement' };
+        await resolve(0, [{ id: 42, cmd: 'synthetic-command' }]);
+        expect(preview.groups().flatMap(({ items }) => items)).toEqual([]);
     });
 
     it('skips dispatch if a source is reconfigured during playlist hydration', async () => {
@@ -462,7 +523,7 @@ describe('StalkerGlobalSearchService', () => {
         await resolve(0, [{ id: 42 }]);
         const [item] = preview.groups()[0].items;
         expect(item.id).toBe('42');
-        expect(preview.canOpen(item)).toBe(true);
+        expect(await preview.canOpen(item)).toBe(true);
     });
 
     it('filters by origin catalog and rechecks locks on activation', async () => {
@@ -476,11 +537,29 @@ describe('StalkerGlobalSearchService', () => {
         await resolve(1, [{ id: 42, category_id: '9' }]);
         const [{ items }] = preview.groups();
         expect(items).toMatchObject([{ origin: 'series', id: '42' }]);
-        expect(preview.canOpen(items[0])).toBe(true);
+        expect(await preview.canOpen(items[0])).toBe(true);
         withholdsEverything.set(true);
-        expect(preview.canOpen(items[0])).toBe(false);
+        expect(await preview.canOpen(items[0])).toBe(false);
         expect(preview.groups()[0].items).toEqual([]);
     });
+
+    it.each(['query', 'lock'])(
+        'rechecks %s changes while an activation read is pending',
+        async (change) => {
+            active.set(true);
+            setContext({ sources: [portalA], series: false });
+            await search();
+            await resolve(0, [{ id: 42 }]);
+            const item = preview.groups()[0].items[0];
+            const persisted = new Subject<Playlist>();
+            getPlaylistById.mockReturnValueOnce(persisted);
+            const opening = preview.canOpen(item);
+            if (change === 'query') setContext({ term: 'Fixture eclipse' });
+            else withholdsEverything.set(true);
+            persisted.next({ ...portalA, lastUsage: '' });
+            expect(await opening).toBe(false);
+        }
+    );
 
     it('withholds rows with and without a category when locks are unreadable', async () => {
         setContext({ sources: [portalA], series: false });
@@ -502,8 +581,8 @@ describe('StalkerGlobalSearchService', () => {
         setContext({ term: 'Fixture eclipse' });
         await search();
         await resolve(1, [{ id: 42 }]);
-        expect(preview.canOpen(previous)).toBe(false);
-        expect(preview.canOpen(preview.groups()[0].items[0])).toBe(true);
+        expect(await preview.canOpen(previous)).toBe(false);
+        expect(await preview.canOpen(preview.groups()[0].items[0])).toBe(true);
     });
 
     it('drops queued and pending work when destroyed', async () => {

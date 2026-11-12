@@ -111,8 +111,8 @@ export class GlobalSearchRouteComponent {
         this.preview.retry(playlistId, this.context);
     }
 
-    openStalkerItem(result: StalkerGlobalSearchItem): void {
-        if (!this.preview.canOpen(result)) {
+    async openStalkerItem(result: StalkerGlobalSearchItem): Promise<void> {
+        if (!(await this.preview.canOpen(result))) {
             return;
         }
         const { item, id, origin, playlistId } = result;

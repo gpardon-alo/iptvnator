@@ -73,7 +73,7 @@ describe('GlobalSearchRouteComponent', () => {
 
     it.each(['vod', 'series'] as const)(
         'opens a series through its original %s catalog and keeps the global return URL',
-        (origin) => {
+        async (origin) => {
             const result: StalkerGlobalSearchItem = {
                 key: `portal-a:${origin}:42`,
                 playlistId: 'portal-a',
@@ -83,11 +83,11 @@ describe('GlobalSearchRouteComponent', () => {
                 item: { movie_id: '42', category_id: '7', is_series: '1' },
             };
             preview.canOpen.mockReturnValue(false);
-            component.openStalkerItem(result);
+            await component.openStalkerItem(result);
             expect(navigate).not.toHaveBeenCalled();
 
             preview.canOpen.mockReturnValue(true);
-            component.openStalkerItem(result);
+            await component.openStalkerItem(result);
             expect(navigate).toHaveBeenCalledWith(
                 ['/workspace', 'stalker', 'portal-a', origin, '7'],
                 {
