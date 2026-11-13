@@ -3,37 +3,45 @@
     height: 100%;
     min-height: 0;
     overflow: auto;
-    // A deliberately scoped dark canvas for this isolated TV-first prototype.
-    --app-discovery-background: #0c1727;
+    --app-discovery-background: var(--app-content-bg);
+    --app-discovery-panel: var(--app-widget-bg);
+    --app-discovery-border: var(--app-separator);
+    --app-discovery-ocean: color-mix(
+        in srgb,
+        var(--app-content-bg) 85%,
+        var(--app-selection-color)
+    );
+    --app-discovery-land: color-mix(
+        in srgb,
+        var(--app-selection-color) 60%,
+        var(--app-widget-bg)
+    );
+    --app-discovery-land-muted: color-mix(
+        in srgb,
+        var(--app-on-surface) 16%,
+        var(--app-content-bg)
+    );
+    --app-discovery-land-focus: color-mix(
+        in srgb,
+        var(--app-selection-color) 80%,
+        var(--app-widget-bg)
+    );
+    // Artwork mattes stay neutral so white and dark brand logos remain legible.
     --app-discovery-logo-background: #fff;
-    --app-discovery-logo-text: #172033;
-    --app-discovery-panel: #14243a;
-    --app-discovery-border: #25374c;
-    --app-discovery-ocean: #162e47;
-    --app-discovery-land: #416e9e;
-    --app-discovery-land-muted: #233e59;
-    --app-discovery-land-focus: #6dacce;
-    --app-text-color: #f4f7fb;
-    --app-heading-color: #f4f7fb;
-    --app-muted-color: #a9bfd4;
-    --app-selection-color: #45b4e7;
-    --app-selection-on-color: #0c1727;
-    --app-selection-surface: #1d3e59;
-    --app-selection-text-color: #a9e4ff;
-    --app-selection-border: #45b4e7;
-    --app-focus-ring: #bbebff;
-    --app-success-color: #4ade80;
-    --app-danger-text: #ff8d9b;
-    --app-card-bg: #14243a;
+    --app-discovery-logo-text: #202124;
+    --app-discovery-logo-dark-background: #202124;
     --cover-aspect-ratio: 16/9;
     --cover-title-size: 17px;
     --cover-meta-size: 12px;
-    color: var(--app-text-color);
+    color: var(--app-on-surface);
     background: var(--app-discovery-background);
-    color-scheme: dark;
 }
 * {
     box-sizing: border-box;
+}
+h1,
+h2 {
+    color: var(--app-heading-color);
 }
 .discovery {
     height: 100dvh;
@@ -152,8 +160,8 @@ button:disabled {
     background: transparent;
 }
 .clear-search:hover {
-    color: var(--app-text-color);
-    background: var(--app-selection-surface);
+    color: var(--app-on-surface);
+    background: var(--app-card-hover-bg);
 }
 .clear-search mat-icon {
     width: 18px;
@@ -163,7 +171,7 @@ button:disabled {
 .search input {
     width: 200px;
     padding: 10px 34px 10px 0;
-    color: var(--app-text-color);
+    color: var(--app-on-surface);
     background: none;
     border: 0;
     font-size: 14px;
@@ -187,8 +195,8 @@ kbd {
     border: 1px solid var(--app-discovery-border);
     border-radius: 10px;
 }
-.icon-button:hover {
-    background: var(--app-selection-surface);
+.icon-button:hover:not([aria-pressed='true']) {
+    background: var(--app-card-hover-bg);
 }
 .discovery-body {
     display: grid;
@@ -218,7 +226,7 @@ h1 {
     display: flex;
     align-items: center;
     gap: 6px;
-    color: var(--app-text-color);
+    color: var(--app-on-surface);
     font-size: 12px;
 }
 .clear-button mat-icon {
@@ -287,9 +295,9 @@ button[aria-pressed='true'] {
     border-color: var(--app-selection-border);
     color: var(--app-selection-text-color);
 }
-.category:hover,
-.check-option:hover {
-    background: var(--app-selection-surface);
+.category:hover:not([aria-pressed='true']),
+.check-option:hover:not([aria-pressed='true']) {
+    background: var(--app-card-hover-bg);
 }
 .geography {
     min-width: 0;
@@ -415,7 +423,7 @@ app-content-card {
     align-items: center;
     gap: 4px;
     background: var(--app-discovery-background);
-    color: var(--app-text-color);
+    color: var(--app-on-surface);
     font-size: 11px;
 }
 .source-stack mat-icon {
@@ -493,7 +501,7 @@ footer > span {
     background: none;
     border: 0;
     padding: 8px 0;
-    color: var(--app-text-color);
+    color: var(--app-on-surface);
 }
 .preview-stage {
     flex: 1;
@@ -551,20 +559,20 @@ footer > span {
 .preview-info select {
     padding: 10px;
     background: var(--app-discovery-panel);
-    color: var(--app-text-color);
+    color: var(--app-on-surface);
     border: 1px solid var(--app-discovery-border);
     border-radius: 7px;
 }
 .discovery-dialog {
     width: min(430px, 90vw);
     padding: 24px;
-    color: var(--app-text-color);
+    color: var(--app-on-surface);
     background: var(--app-discovery-panel);
     border: 1px solid var(--app-discovery-border);
     border-radius: 16px;
 }
 .discovery-dialog::backdrop {
-    background: #0009;
+    background: var(--app-popover-backdrop);
 }
 .discovery-dialog header {
     display: flex;
@@ -587,7 +595,7 @@ footer > span {
     align-items: center;
     padding: 15px 12px;
     margin-top: 10px;
-    color: var(--app-text-color);
+    color: var(--app-on-surface);
     background: var(--app-discovery-background);
     border: 1px solid var(--app-discovery-border);
     border-radius: 10px;
@@ -860,7 +868,7 @@ footer > span {
     font: inherit;
     text-align: left;
     text-decoration: none;
-    color: var(--app-text-color);
+    color: var(--app-on-surface);
     background: var(--app-discovery-background);
     border: 1px solid var(--app-discovery-border);
     border-radius: 8px;
@@ -871,7 +879,7 @@ footer > span {
 }
 .settings-actions button:enabled:hover,
 .settings-actions a:hover {
-    background: var(--app-selection-surface);
+    background: var(--app-card-hover-bg);
 }
 .catalog-toolbar > span button {
     background: none;

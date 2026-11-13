@@ -1003,10 +1003,14 @@ for (const theme of ['light', 'dark'] as const) {
         await search.fill('Synthetic search');
         const position = await page
             .locator('.filter-summary')
-            .evaluate((el) => ({
-                left: el.getBoundingClientRect().left,
-                parentLeft: el.parentElement?.getBoundingClientRect().left,
-            }));
+            .evaluate((el) => {
+                const parent = el.parentElement;
+                if (!parent) throw new Error('Filter summary must have a parent');
+                return {
+                    left: el.getBoundingClientRect().left,
+                    parentLeft: parent.getBoundingClientRect().left,
+                };
+            });
         expect(position.left).toBeCloseTo(position.parentLeft, 0);
         const qualityGap = await page
             .locator('.quality')

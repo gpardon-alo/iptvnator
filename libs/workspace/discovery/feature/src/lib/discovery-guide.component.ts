@@ -22,14 +22,6 @@ import { DiscoveryGuideSession } from './discovery-guide-session';
                 display: block;
                 min-width: 0;
                 height: 260px;
-                // Discovery has its own dark canvas, independent of the app preset.
-                --app-content-bg: var(--app-discovery-background);
-                --app-widget-bg: var(--app-discovery-panel);
-                --app-widget-header-bg: var(--app-discovery-panel);
-                --app-widget-header-border: var(--app-discovery-border);
-                --app-separator: var(--app-discovery-border);
-                --app-on-surface: var(--app-text-color);
-                --app-card-hover-bg: var(--app-selection-surface);
             }
             :host(.collapsed) {
                 height: 64px;

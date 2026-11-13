@@ -20,8 +20,14 @@ Material icons, app typography and the existing focus conventions. Shared
 thumbnail styles accept `--cover-aspect-ratio`, defaulting to their original
 `2/3`; Discovery uses `16/9`. Card title and metadata sizes also accept scoped
 `--cover-title-size` and `--cover-meta-size` overrides with unchanged defaults. The default never changes for existing consumers.
-The dark navy/cyan palette is scoped to this route. Other app themes and the
-selected UI language are untouched. The rail shortcut is translated.
+Discovery inherits the resolved application palette from `body[data-app-theme]`,
+including Light, Dark, Cream, Mocha, Night Owl, Black OLED and System mode.
+Page/panel surfaces, text, selection, hover, focus, native controls, dialogs,
+classification results and the shared guide use the existing app theme tokens.
+Map ocean/land colors derive from the same surface and accent tokens; only the
+league artwork keeps neutral light/dark mattes for logo readability. Discovery
+does not override shared theme tokens or keep a separate theme setting.
+The selected UI language is untouched. The rail shortcut is translated.
 The map and side filters expand upward below a compact action row; removed
 promotional headings and source-review totals do not reserve empty layout space.
 The channel ribbon keeps its lower grid allocation and shows its channel count
@@ -218,6 +224,12 @@ Sources: [Natural Earth terms](https://www.naturalearthdata.com/about/terms-of-u
 ## Validation
 
 The Discovery project participates in Tier A unit source coverage.
+
+`discovery-theme.e2e.ts` saves all six app presets through Appearance settings
+and checks Discovery against the inherited palette with the OS in the opposite
+mode. It covers map selection, channel text, filter states, keyboard focus,
+settings/backdrops, Sports tiles, System changes while the route is open, and
+success/error classification feedback in both light and dark modes.
 
 `pnpm nx test workspace-discovery-feature` checks source loading, retained manual
 edits, storage failures, stale responses and multi-dimensional filtering.
