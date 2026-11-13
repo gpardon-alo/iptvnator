@@ -186,7 +186,7 @@ describe('edit-time Xtream catalog refresh', () => {
         TestBed.inject(SourceCatalogUpdatesService).liveUpdated$.subscribe(
             changed
         );
-        pending.applyAndConsume.mockResolvedValueOnce('consume-failed');
+        pending['applyAndConsume'].mockResolvedValueOnce('consume-failed');
         await expect(service.refresh(playlist, ['live'])).rejects.toThrow(
             'Could not finish source restore'
         );
