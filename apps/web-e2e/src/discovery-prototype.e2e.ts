@@ -78,6 +78,8 @@ test('Discovery explores Central America, Caribbean islands and the complete Sou
 test('Discovery classifies a cached source, reviews unknowns and retains mappings on refresh', async ({
     page,
 }) => {
+    // This journey includes source setup, dictionary imports and several full reloads.
+    test.setTimeout(90_000);
     await configureMockProviderBackend(page);
     await page.goto('/');
     await interceptXtreamRequests(page);
@@ -316,6 +318,7 @@ test('Discovery classifies a cached source, reviews unknowns and retains mapping
     );
     await page.screenshot({ path: '../../dist/discovery-classifications.png' });
     await page.goto('/workspace/discovery');
+    await expect(page.locator('.result-count')).toHaveText('4 channels');
     await page.reload();
     await expect(source).toContainText('Synthetic classification source');
     await expect(page.locator('.result-count')).toHaveText('4 channels');
@@ -465,6 +468,7 @@ test('Discovery classifies a cached source, reviews unknowns and retains mapping
         page.locator('app-discovery-classifications').getByRole('status')
     ).toHaveText('Mappings saved on this device.');
     await page.goto('/workspace/discovery');
+    await expect(page.locator('.result-count')).toHaveText('3 channels');
     await page.reload();
     await expect(page.locator('.result-count')).toHaveText('3 channels');
     await expect(page.locator('.ribbon-tools')).toContainText('4 streams');
