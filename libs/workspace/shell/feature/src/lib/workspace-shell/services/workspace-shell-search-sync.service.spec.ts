@@ -8,7 +8,7 @@ import { PlaylistContextFacade } from '@iptvnator/playlist/shared/util';
 import { StalkerStore } from '@iptvnator/portal/stalker/data-access';
 import { XtreamStore } from '@iptvnator/portal/xtream/data-access';
 import { RuntimeCapabilitiesService } from '@iptvnator/services';
-import { WorkspaceStartupPreferencesService } from '@iptvnator/workspace/shell/util';
+import { WorkspaceStartupPreferencesService, WORKSPACE_CLEAR_SEARCH } from '@iptvnator/workspace/shell/util';
 import { SettingsSearchService } from '@iptvnator/workspace/shell/util/settings-search';
 import { SEARCH_INPUT_DEBOUNCE_MS } from './helpers/workspace-shell-constants';
 import { WorkspaceShellRouteStateService } from './workspace-shell-route-state.service';
@@ -26,6 +26,15 @@ describe('WorkspaceShellSearchSyncService', () => {
     const stalkerCategoryId = signal<string | null>(null);
     let trigger: 'imperative' | 'popstate';
     let navigationInfo: unknown;
+    it('cancels queued Discovery typing when Clear filters clears an already-empty URL', () => {
+        navigateTo('/workspace/discovery');
+        service.onSearchInput('queued');
+        navigationInfo = WORKSPACE_CLEAR_SEARCH;
+        navigateTo('/workspace/discovery');
+        jest.advanceTimersByTime(SEARCH_INPUT_DEBOUNCE_MS);
+        expect(service.searchQuery()).toBe('');
+        expect(service.appliedSearchQuery()).toBe('');
+    });
     const currentNavigation = signal<{ extras: NavigationExtras } | null>(null);
     let router: {
         url: string;

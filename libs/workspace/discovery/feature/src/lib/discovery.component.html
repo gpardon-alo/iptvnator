@@ -1,514 +1,401 @@
-<div class="discovery" lang="en" [appTrafficLightsClearance]="runtime.isMacOS">
-    <header
-        class="topbar"
-        [class.custom-window-controls]="runtime.usesCustomWindowControls"
-    >
-        <a
-            routerLink="/workspace"
-            class="brand"
-            aria-label="Return to IPTVnator"
-            ><img
-                src="assets/icons/icon-64.png"
-                alt=""
-                width="32"
-                height="32"
-            /><span>IPTVnator</span></a
-        >
-        <span class="section-name"
-            >Discovery <span class="prototype-badge">PROTOTYPE</span></span
-        >
-        <select
-            class="catalog-source"
-            aria-label="Discovery source"
-            [ngModel]="catalog.sourceId()"
-            (ngModelChange)="selectSource($event)"
-            [disabled]="catalog.saving()"
-        >
-            <option value="">Demo catalog</option>
-            @for (source of catalog.sources(); track source._id) {
-                <option [value]="source._id">{{ source.title }}</option>
-            }
-        </select>
-        <div class="search" role="search">
-            <label for="discovery-channel-search"
-                ><mat-icon>search</mat-icon></label
-            >
-            <div class="search-field">
-                <input
-                    #channelSearch
-                    id="discovery-channel-search"
-                    aria-label="Search channels"
-                    aria-keyshortcuts="/"
-                    placeholder="Find your next channel"
-                    [value]="filters().query"
-                    (input)="search($any($event.target).value)"
-                    maxlength="100"
-                />
-                @if (filters().query) {
-                    <button
-                        type="button"
-                        class="clear-search"
-                        aria-label="Clear channel search"
-                        title="Clear search"
-                        (click)="search(''); channelSearch.focus()"
-                    >
-                        <mat-icon>close</mat-icon>
-                    </button>
-                } @else {
-                    <kbd title="Press / to focus search" aria-hidden="true"
-                        >/</kbd
-                    >
+<div class="discovery" lang="en">
+    @if (workspace.unsupportedSource()) {
+        <section class="unsupported-source" role="status">
+            <h1>Discovery</h1>
+            <p>
+                Choose an Xtream source with Live TV enabled using the source
+                selector above.
+            </p>
+            <a routerLink="/workspace/sources">Manage sources</a>
+        </section>
+    } @else {
+        <div class="discovery-body" [attr.inert]="watching() ? '' : null">
+            <div class="catalog-toolbar">
+                @if (catalog.sourceId() && catalog.loading()) {
+                    <span role="status">Loading cached source…</span>
                 }
-            </div>
-        </div>
-        <button
-            type="button"
-            class="icon-button"
-            aria-label="Discovery settings"
-            (click)="preferences.showModal()"
-        >
-            <mat-icon>settings</mat-icon>
-        </button>
-    </header>
-    <div class="discovery-body" [attr.inert]="watching() ? '' : null">
-        <div class="catalog-toolbar">
-            @if (catalog.sourceId() && catalog.loading()) {
-                <span role="status">Loading cached source…</span>
-            }
-            @if (catalog.error()) {
-                <span role="alert">
-                    {{ catalog.error() }}
-                    <button type="button" (click)="catalog.load()">
-                        Retry
-                    </button>
-                </span>
-            }
-            <div class="filter-summary">
-                <div class="filter-values" aria-label="Active filters">
-                    @for (label of filterSummary(); track $index) {
-                        <span>{{ label }}</span>
+                @if (catalog.error()) {
+                    <span role="alert">
+                        {{ catalog.error() }}
+                        <button type="button" (click)="catalog.load()">
+                            Retry
+                        </button>
+                    </span>
+                }
+                <div class="filter-summary">
+                    <div class="filter-values" aria-label="Active filters">
+                        @for (label of filterSummary(); track $index) {
+                            <span>{{ label }}</span>
+                        }
+                    </div>
+                    @if (activeCount()) {
+                        <span>{{ activeCount() }} filters active</span>
                     }
-                </div>
-                @if (activeCount()) {
-                    <span>{{ activeCount() }} filters active</span>
-                }
-                <button
-                    type="button"
-                    class="clear-button"
-                    (click)="clear()"
-                    [disabled]="!activeCount()"
-                >
-                    <mat-icon>restart_alt</mat-icon>Clear filters
-                </button>
-            </div>
-        </div>
-        <main class="explorer">
-            <aside class="categories" aria-label="Channel categories">
-                <h2>Categories</h2>
-                <div class="category-scroll">
                     <button
                         type="button"
-                        class="category"
-                        [attr.aria-pressed]="!filters().categories.length"
-                        (click)="clearCategories()"
+                        class="clear-button"
+                        (click)="clear()"
+                        [disabled]="!activeCount()"
                     >
-                        <mat-icon>apps</mat-icon><span>All channels</span
-                        ><small>{{ filterChannelsCount() }}</small>
+                        <mat-icon>restart_alt</mat-icon>Clear filters
                     </button>
-                    @for (category of categories; track category[0]) {
+                </div>
+            </div>
+            <main class="explorer">
+                <aside class="categories" aria-label="Channel categories">
+                    <h2>Categories</h2>
+                    <div class="category-scroll">
                         <button
                             type="button"
                             class="category"
-                            [attr.aria-pressed]="
-                                filters().categories.includes(category[0])
-                            "
-                            (click)="toggle('categories', category[0])"
+                            [attr.aria-pressed]="!filters().categories.length"
+                            (click)="clearCategories()"
                         >
-                            <mat-icon>{{ category[2] }}</mat-icon
-                            ><span>{{ category[1] }}</span
-                            ><small>{{
-                                categoryCounts().get(category[0])
-                            }}</small>
+                            <mat-icon>apps</mat-icon><span>All channels</span
+                            ><small>{{ filterChannelsCount() }}</small>
                         </button>
-                    }
-                    @if (catalog.sourceId()) {
-                        <button
-                            type="button"
-                            class="category"
-                            [attr.aria-pressed]="
-                                filters().categories.includes('unclassified')
-                            "
-                            (click)="showUnclassified()"
-                        >
-                            <mat-icon>help_outline</mat-icon
-                            ><span>Unclassified</span
-                            ><small>{{
-                                categoryCounts().get('unclassified')
-                            }}</small>
-                        </button>
-                    }
-                </div>
-            </aside>
-            <section class="geography" aria-label="Geographic discovery">
-                <app-discovery-map
-                    [locationIds]="availableLocations()"
-                    [selected]="filters().locations"
-                    [region]="region()"
-                    [selectedLeague]="filters().league ?? ''"
-                    (leagueToggle)="selectLeague($event)"
-                    (regionChange)="setRegion($event)"
-                    (locationToggle)="toggle('locations', $event)"
-                />
-            </section>
-            <aside
-                class="refinements"
-                aria-label="Language and quality filters"
-            >
-                <div class="refinement-scroll">
-                    <section>
-                        <h2>Language <span>ANY</span></h2>
-                        <div class="filter-options">
-                            @for (language of languages; track language) {
-                                <button
-                                    type="button"
-                                    class="check-option"
-                                    [attr.aria-label]="
-                                        language === 'Unknown'
-                                            ? 'Unknown language'
-                                            : language
-                                    "
-                                    [attr.aria-pressed]="
-                                        filters().languages.includes(language)
-                                    "
-                                    (click)="toggle('languages', language)"
-                                >
-                                    <span>{{ language }}</span
-                                    ><mat-icon>{{
-                                        filters().languages.includes(language)
-                                            ? 'check_box'
-                                            : 'check_box_outline_blank'
-                                    }}</mat-icon>
-                                </button>
-                            }
-                        </div>
-                    </section>
-                    <section class="quality">
-                        <h2>Picture quality <span>ANY</span></h2>
-                        <div class="quality-options">
-                            @for (quality of qualities; track quality) {
-                                <button
-                                    type="button"
-                                    [attr.aria-pressed]="
-                                        filters().qualities.includes(quality)
-                                    "
-                                    (click)="toggle('qualities', quality)"
-                                >
-                                    {{ quality }}
-                                </button>
-                            }
-                        </div>
-                        <p>Quality follows the selected stream.</p>
-                    </section>
-                </div>
-            </aside>
-        </main>
-        <section class="channels" aria-label="Filtered channels">
-            <header class="channels-header">
-                <h2 class="result-count" role="status" aria-live="polite">
-                    {{ channels().length }}
-                    {{ channels().length === 1 ? 'channel' : 'channels' }}
-                </h2>
-                <div class="ribbon-tools">
-                    <span>{{ sourceCount() }} streams</span
-                    ><button
-                        type="button"
-                        class="icon-button"
-                        aria-label="Previous channels"
-                        title="Hover to scroll; click to skip a page"
-                        [discoveryHoverScroll]="-1"
-                        [scrollViewport]="viewport()"
-                        (click)="scroll(-1)"
-                    >
-                        <mat-icon>chevron_left</mat-icon></button
-                    ><button
-                        type="button"
-                        class="icon-button"
-                        aria-label="Next channels"
-                        title="Hover to scroll; click to skip a page"
-                        [discoveryHoverScroll]="1"
-                        [scrollViewport]="viewport()"
-                        (click)="scroll(1)"
-                    >
-                        <mat-icon>chevron_right</mat-icon>
-                    </button>
-                </div>
-            </header>
-            @if (channels().length) {
-                <cdk-virtual-scroll-viewport
-                    orientation="horizontal"
-                    [itemSize]="240"
-                    [minBufferPx]="240"
-                    [maxBufferPx]="720"
-                    class="channel-viewport"
-                    aria-label="Matching channels"
-                >
-                    <div class="channel-row">
-                        <article
-                            *cdkVirtualFor="
-                                let match of channels();
-                                trackBy: trackChannel
-                            "
-                            class="channel-tile"
-                            [class.stacked]="match.sources.length > 1"
-                            [class.selected]="
-                                selected()?.channel.id === match.channel.id
-                            "
-                            [attr.aria-label]="
-                                match.channel.name +
-                                ', ' +
-                                match.channel.location
-                            "
-                        >
-                            <app-content-card
-                                [title]="match.channel.name"
-                                [posterUrl]="match.channel.logo"
-                                type="live"
-                                [showTypeBadge]="false"
-                                [statusLabel]="channelLabel(match.channel)"
-                                (cardClick)="pick(match)"
-                            />
+                        @for (category of categories; track category[0]) {
                             <button
                                 type="button"
-                                class="source-stack"
+                                class="category"
+                                [attr.aria-pressed]="
+                                    filters().categories.includes(category[0])
+                                "
+                                (click)="toggle('categories', category[0])"
+                            >
+                                <mat-icon>{{ category[2] }}</mat-icon
+                                ><span>{{ category[1] }}</span
+                                ><small>{{
+                                    categoryCounts().get(category[0])
+                                }}</small>
+                            </button>
+                        }
+                        @if (catalog.sourceId()) {
+                            <button
+                                type="button"
+                                class="category"
+                                [attr.aria-pressed]="
+                                    filters().categories.includes(
+                                        'unclassified'
+                                    )
+                                "
+                                (click)="showUnclassified()"
+                            >
+                                <mat-icon>help_outline</mat-icon
+                                ><span>Unclassified</span
+                                ><small>{{
+                                    categoryCounts().get('unclassified')
+                                }}</small>
+                            </button>
+                        }
+                    </div>
+                </aside>
+                <section class="geography" aria-label="Geographic discovery">
+                    <app-discovery-map
+                        [locationIds]="availableLocations()"
+                        [selected]="filters().locations"
+                        [region]="region()"
+                        [selectedLeague]="filters().league ?? ''"
+                        (leagueToggle)="selectLeague($event)"
+                        (regionChange)="setRegion($event)"
+                        (locationToggle)="toggle('locations', $event)"
+                    />
+                </section>
+                <aside
+                    class="refinements"
+                    aria-label="Language and quality filters"
+                >
+                    <div class="refinement-scroll">
+                        <section>
+                            <h2>Language <span>ANY</span></h2>
+                            <div class="filter-options">
+                                @for (language of languages; track language) {
+                                    <button
+                                        type="button"
+                                        class="check-option"
+                                        [attr.aria-label]="
+                                            language === 'Unknown'
+                                                ? 'Unknown language'
+                                                : language
+                                        "
+                                        [attr.aria-pressed]="
+                                            filters().languages.includes(
+                                                language
+                                            )
+                                        "
+                                        (click)="toggle('languages', language)"
+                                    >
+                                        <span>{{ language }}</span
+                                        ><mat-icon>{{
+                                            filters().languages.includes(
+                                                language
+                                            )
+                                                ? 'check_box'
+                                                : 'check_box_outline_blank'
+                                        }}</mat-icon>
+                                    </button>
+                                }
+                            </div>
+                        </section>
+                        <section class="quality">
+                            <h2>Picture quality <span>ANY</span></h2>
+                            <div class="quality-options">
+                                @for (quality of qualities; track quality) {
+                                    <button
+                                        type="button"
+                                        [attr.aria-pressed]="
+                                            filters().qualities.includes(
+                                                quality
+                                            )
+                                        "
+                                        (click)="toggle('qualities', quality)"
+                                    >
+                                        {{ quality }}
+                                    </button>
+                                }
+                            </div>
+                            <p>Quality follows the selected stream.</p>
+                        </section>
+                    </div>
+                </aside>
+            </main>
+            <section class="channels" aria-label="Filtered channels">
+                <header class="channels-header">
+                    <h2 class="result-count" role="status" aria-live="polite">
+                        {{ channels().length }}
+                        {{ channels().length === 1 ? 'channel' : 'channels' }}
+                    </h2>
+                    <div class="ribbon-tools">
+                        <span>{{ sourceCount() }} streams</span
+                        ><button
+                            type="button"
+                            class="icon-button"
+                            aria-label="Previous channels"
+                            title="Hover to scroll; click to skip a page"
+                            [discoveryHoverScroll]="-1"
+                            [scrollViewport]="viewport()"
+                            (click)="scroll(-1)"
+                        >
+                            <mat-icon>chevron_left</mat-icon></button
+                        ><button
+                            type="button"
+                            class="icon-button"
+                            aria-label="Next channels"
+                            title="Hover to scroll; click to skip a page"
+                            [discoveryHoverScroll]="1"
+                            [scrollViewport]="viewport()"
+                            (click)="scroll(1)"
+                        >
+                            <mat-icon>chevron_right</mat-icon>
+                        </button>
+                    </div>
+                </header>
+                @if (channels().length) {
+                    <cdk-virtual-scroll-viewport
+                        orientation="horizontal"
+                        [itemSize]="240"
+                        [minBufferPx]="240"
+                        [maxBufferPx]="720"
+                        class="channel-viewport"
+                        aria-label="Matching channels"
+                    >
+                        <div class="channel-row">
+                            <article
+                                *cdkVirtualFor="
+                                    let match of channels();
+                                    trackBy: trackChannel
+                                "
+                                class="channel-tile"
+                                [class.stacked]="match.sources.length > 1"
+                                [class.selected]="
+                                    selected()?.channel.id === match.channel.id
+                                "
                                 [attr.aria-label]="
-                                    'Choose source for ' +
                                     match.channel.name +
                                     ', ' +
                                     match.channel.location
                                 "
-                                (click)="showSources(match)"
                             >
-                                <mat-icon>{{
-                                    match.sources.length > 1
-                                        ? 'layers'
-                                        : 'high_quality'
-                                }}</mat-icon
-                                >{{
-                                    match.sources.length > 1
-                                        ? '×' + match.sources.length
-                                        : match.sources[0].quality === 'Unknown'
-                                          ? 'Unknown quality'
-                                          : match.sources[0].quality
-                                }}
-                            </button>
-                        </article>
+                                <app-content-card
+                                    [title]="match.channel.name"
+                                    [posterUrl]="match.channel.logo"
+                                    type="live"
+                                    [showTypeBadge]="false"
+                                    [statusLabel]="channelLabel(match.channel)"
+                                    (cardClick)="pick(match)"
+                                />
+                                <button
+                                    type="button"
+                                    class="source-stack"
+                                    [attr.aria-label]="
+                                        'Choose source for ' +
+                                        match.channel.name +
+                                        ', ' +
+                                        match.channel.location
+                                    "
+                                    (click)="showSources(match)"
+                                >
+                                    <mat-icon>{{
+                                        match.sources.length > 1
+                                            ? 'layers'
+                                            : 'high_quality'
+                                    }}</mat-icon
+                                    >{{
+                                        match.sources.length > 1
+                                            ? '×' + match.sources.length
+                                            : match.sources[0].quality ===
+                                                'Unknown'
+                                              ? 'Unknown quality'
+                                              : match.sources[0].quality
+                                    }}
+                                </button>
+                            </article>
+                        </div>
+                    </cdk-virtual-scroll-viewport>
+                } @else {
+                    <div class="empty-state">
+                        <mat-icon>travel_explore</mat-icon>
+                        <div>
+                            <h3>No channels on this route.</h3>
+                            <p>Try another location or loosen a filter.</p>
+                        </div>
+                        <button type="button" (click)="clear()">
+                            Clear filters
+                        </button>
                     </div>
-                </cdk-virtual-scroll-viewport>
-            } @else {
-                <div class="empty-state">
-                    <mat-icon>travel_explore</mat-icon>
-                    <div>
-                        <h3>No channels on this route.</h3>
-                        <p>Try another location or loosen a filter.</p>
-                    </div>
-                    <button type="button" (click)="clear()">
-                        Clear filters
-                    </button>
-                </div>
-            }
-        </section>
-        <footer>
-            <span
-                ><span class="live-dot"></span
-                >{{
-                    catalog.sourceId()
-                        ? 'Local stream classifications · Live playback'
-                        : 'Synthetic demo catalog · ' +
-                          countries.length +
-                          ' countries'
-                }}</span
-            ><span
-                ><kbd>↑ ↓ ← →</kbd> Explore <kbd>Enter</kbd> Select
-                <kbd>Esc</kbd> Back</span
-            >
-        </footer>
-    </div>
-    @if (watching()) {
-        @if (selected(); as match) {
-            <section
-                class="preview"
-                role="dialog"
-                aria-modal="true"
-                aria-label="Channel playback preview"
-                cdkTrapFocus
-                [cdkTrapFocusAutoCapture]="true"
-            >
-                <header>
-                    <button
-                        type="button"
-                        class="back-button"
-                        (click)="watching.set(false)"
-                    >
-                        <mat-icon>arrow_back</mat-icon>Back to discovery</button
-                    ><span class="prototype-badge">{{
-                        catalog.sourceId() ? 'LIVE TV' : 'DEMO PREVIEW'
-                    }}</span>
-                </header>
-                <div class="preview-stage">
-                    <app-discovery-player
-                        [row]="playbackRow()"
-                        [logo]="
-                            currentSource()?.facets?.logo ?? match.channel.logo
-                        "
-                    />
-                </div>
-                <div class="preview-info">
-                    <div>
-                        <h1>{{ match.channel.name }}</h1>
-                        <p>
-                            {{
-                                currentSource()?.facets?.location ??
-                                    match.channel.location
-                            }}
-                            ·
-                            {{
-                                currentSource()?.facets?.language ??
-                                    match.channel.language
-                            }}
-                            ·
-                            {{ currentSource()?.quality }}
-                        </p>
-                    </div>
-                    @if (playbackRow()) {
-                        <app-discovery-guide
+                }
+            </section>
+            <footer>
+                <span
+                    ><span class="live-dot"></span
+                    >{{
+                        catalog.sourceId()
+                            ? 'Local stream classifications · Live playback'
+                            : 'Synthetic demo catalog · ' +
+                              countries.length +
+                              ' countries'
+                    }}</span
+                ><span
+                    ><kbd>↑ ↓ ← →</kbd> Explore <kbd>Enter</kbd> Select
+                    <kbd>Esc</kbd> Back</span
+                >
+            </footer>
+        </div>
+        @if (watching()) {
+            @if (selected(); as match) {
+                <section
+                    class="preview"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Channel playback preview"
+                    cdkTrapFocus
+                    [cdkTrapFocusAutoCapture]="true"
+                >
+                    <header>
+                        <button
+                            type="button"
+                            class="back-button"
+                            (click)="watching.set(false)"
+                        >
+                            <mat-icon>arrow_back</mat-icon>Back to discovery</button
+                        ><span class="prototype-badge">{{
+                            catalog.sourceId() ? 'LIVE TV' : 'DEMO PREVIEW'
+                        }}</span>
+                    </header>
+                    <div class="preview-stage">
+                        <app-discovery-player
                             [row]="playbackRow()"
-                            [epgChannelId]="
-                                catalog
-                                    .epgChannelIds()
-                                    .get(
-                                        playbackRow()?.provider?.stream_id ?? 0
-                                    ) ?? ''
-                            "
                             [logo]="
                                 currentSource()?.facets?.logo ??
                                 match.channel.logo
                             "
                         />
-                    }
-                    <label
-                        >Stream source<select
-                            aria-label="Stream source"
-                            [ngModel]="sourceId()"
-                            (ngModelChange)="sourceId.set($event)"
+                    </div>
+                    <div class="preview-info">
+                        <div>
+                            <h1>{{ match.channel.name }}</h1>
+                            <p>
+                                {{
+                                    currentSource()?.facets?.location ??
+                                        match.channel.location
+                                }}
+                                ·
+                                {{
+                                    currentSource()?.facets?.language ??
+                                        match.channel.language
+                                }}
+                                ·
+                                {{ currentSource()?.quality }}
+                            </p>
+                        </div>
+                        @if (playbackRow()) {
+                            <app-discovery-guide
+                                [row]="playbackRow()"
+                                [epgChannelId]="
+                                    catalog
+                                        .epgChannelIds()
+                                        .get(
+                                            playbackRow()?.provider
+                                                ?.stream_id ?? 0
+                                        ) ?? ''
+                                "
+                                [logo]="
+                                    currentSource()?.facets?.logo ??
+                                    match.channel.logo
+                                "
+                            />
+                        }
+                        <label
+                            >Stream source<select
+                                aria-label="Stream source"
+                                [ngModel]="sourceId()"
+                                (ngModelChange)="sourceId.set($event)"
+                            >
+                                @for (
+                                    source of match.sources;
+                                    track source.id
+                                ) {
+                                    <option [value]="source.id">
+                                        {{ source.label }} ·
+                                        {{ source.quality }}
+                                    </option>
+                                }
+                            </select></label
                         >
-                            @for (source of match.sources; track source.id) {
-                                <option [value]="source.id">
-                                    {{ source.label }} · {{ source.quality }}
-                                </option>
-                            }
-                        </select></label
-                    >
-                </div>
-            </section>
+                    </div>
+                </section>
+            }
         }
-    }
-    <dialog
-        #sourceDialog
-        class="discovery-dialog"
-        (click)="$event.target === sourceDialog && sourceDialog.close()"
-    >
-        <header>
-            <h2>Choose a stream</h2>
-            <button
-                type="button"
-                class="icon-button"
-                aria-label="Close source selection"
-                (click)="sourceDialog.close()"
-            >
-                <mat-icon>close</mat-icon>
-            </button>
-        </header>
-        @if (stack(); as match) {
-            <p>{{ match.channel.name }} · {{ match.channel.location }}</p>
-            @for (source of match.sources; track source.id) {
+        <dialog
+            #sourceDialog
+            class="discovery-dialog"
+            (click)="$event.target === sourceDialog && sourceDialog.close()"
+        >
+            <header>
+                <h2>Choose a stream</h2>
                 <button
                     type="button"
-                    class="source-option"
-                    (click)="pickSource(match, source.id)"
+                    class="icon-button"
+                    aria-label="Close source selection"
+                    (click)="sourceDialog.close()"
                 >
-                    <mat-icon>play_circle</mat-icon
-                    ><span>{{ source.label }}</span
-                    ><strong>{{ source.quality }}</strong>
+                    <mat-icon>close</mat-icon>
                 </button>
+            </header>
+            @if (stack(); as match) {
+                <p>{{ match.channel.name }} · {{ match.channel.location }}</p>
+                @for (source of match.sources; track source.id) {
+                    <button
+                        type="button"
+                        class="source-option"
+                        (click)="pickSource(match, source.id)"
+                    >
+                        <mat-icon>play_circle</mat-icon
+                        ><span>{{ source.label }}</span
+                        ><strong>{{ source.quality }}</strong>
+                    </button>
+                }
             }
-        }
-    </dialog>
-    <dialog
-        #preferences
-        class="discovery-dialog"
-        aria-label="Discovery settings"
-    >
-        <header>
-            <h2>Discovery settings</h2>
-            <button
-                type="button"
-                class="icon-button"
-                aria-label="Close discovery settings"
-                (click)="preferences.close()"
-            >
-                <mat-icon>close</mat-icon>
-            </button>
-        </header>
-        <div class="settings-actions">
-            <button
-                type="button"
-                (click)="preferences.close(); mappings.showModal()"
-                [disabled]="
-                    !catalog.sourceId() ||
-                    catalog.loading() ||
-                    catalog.saving() ||
-                    !!catalog.error()
-                "
-            >
-                <mat-icon>label</mat-icon>Classifications
-            </button>
-            <button
-                type="button"
-                (click)="preferences.close(); refreshSource()"
-                [disabled]="
-                    !catalog.sourceId() ||
-                    catalog.loading() ||
-                    catalog.saving() ||
-                    !refreshAction.canRefresh(currentPlaylist())
-                "
-            >
-                <mat-icon>refresh</mat-icon>Refresh source
-            </button>
-            <a routerLink="/workspace"
-                ><mat-icon>arrow_back</mat-icon>Return to main app</a
-            >
-        </div>
-    </dialog>
-    <dialog
-        #mappings
-        class="discovery-dialog mapping-dialog"
-        aria-label="Stream classifications"
-    >
-        <header>
-            <h2>Stream classifications</h2>
-            <button
-                type="button"
-                class="icon-button"
-                aria-label="Close classifications"
-                (click)="mappings.close()"
-            >
-                <mat-icon>close</mat-icon>
-            </button>
-        </header>
-        <div class="mapping-dialog-body">
-            @if (mappings.open && catalog.sourceId()) {
-                <app-discovery-classifications />
-            }
-        </div>
-    </dialog>
+        </dialog>
+    }
 </div>

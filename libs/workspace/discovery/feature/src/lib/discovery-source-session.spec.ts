@@ -1,5 +1,8 @@
 import { signal } from '@angular/core';
-import { ParentalLockService } from '@iptvnator/services';
+import {
+    ParentalLockService,
+    SourceCatalogUpdatesService,
+} from '@iptvnator/services';
 import { TestBed } from '@angular/core/testing';
 import { provideMockStore } from '@ngrx/store/testing';
 import { selectAllPlaylistsMeta } from '@iptvnator/m3u-state';
@@ -25,6 +28,12 @@ describe('Discovery source classification session', () => {
     };
     const lockVersion = signal(0);
     let session: DiscoverySourceSession;
+    const flushRefresh = async () => {
+        for (let i = 0; i < 20; i++) {
+            TestBed.flushEffects();
+            await Promise.resolve();
+        }
+    };
     beforeEach(() => {
         lockVersion.set(0);
         localStorage.clear();
@@ -70,6 +79,86 @@ describe('Discovery source classification session', () => {
         });
         session = TestBed.inject(DiscoverySourceSession);
         session.select('synthetic');
+    });
+    it('reloads the selected source after catalog completion, coalescing duplicate notices', async () => {
+        await session.load();
+        const load = jest.spyOn(session, 'load');
+        data.getContent.mockResolvedValue([
+            { xtream_id: 20, category_id: '1', title: 'Synthetic replacement' },
+        ]);
+        const updates = TestBed.inject(SourceCatalogUpdatesService);
+        updates.liveUpdated('other');
+        await flushRefresh();
+        expect(load).not.toHaveBeenCalled();
+        updates.liveUpdated('synthetic');
+        updates.liveUpdated('synthetic');
+        await flushRefresh();
+        expect(load).toHaveBeenCalledTimes(1);
+        expect(session.rows().map((row) => row.provider.stream_id)).toEqual([
+            20,
+        ]);
+    });
+    it('queues completion during an in-flight load and reads the finished catalog afterwards', async () => {
+        let resolve!: (items: unknown[]) => void;
+        data.getContent.mockImplementationOnce(
+            () =>
+                new Promise((r) => {
+                    resolve = r;
+                })
+        );
+        const initial = session.load();
+        await flushRefresh();
+        TestBed.inject(SourceCatalogUpdatesService).liveUpdated('synthetic');
+        await flushRefresh();
+        expect(data.getContent).toHaveBeenCalledTimes(1);
+        resolve([]);
+        await initial;
+        await flushRefresh();
+        expect(data.getContent).toHaveBeenCalledTimes(2);
+        expect(session.rows()).toHaveLength(1);
+    });
+    it('waits for an in-flight edit before reloading', async () => {
+        await session.load();
+        let finish!: () => void;
+        storage.write.mockImplementationOnce(
+            () =>
+                new Promise<void>((r) => {
+                    finish = r;
+                })
+        );
+        const edit = session.edit({
+            ...session.rows()[0],
+            name: 'Synthetic edit',
+        });
+        const load = jest.spyOn(session, 'load');
+        TestBed.inject(SourceCatalogUpdatesService).liveUpdated('synthetic');
+        await flushRefresh();
+        expect(load).not.toHaveBeenCalled();
+        storage.read.mockResolvedValue([
+            { ...session.rows()[0], name: 'Synthetic edit', origin: 'manual' },
+        ]);
+        finish();
+        await edit;
+        await flushRefresh();
+        expect(load).toHaveBeenCalledTimes(1);
+        expect(session.rows()[0].name).toBe('Synthetic edit');
+    });
+    it('does not reload a switched source for an earlier pending completion', async () => {
+        await session.load();
+        const load = jest.spyOn(session, 'load');
+        TestBed.inject(SourceCatalogUpdatesService).liveUpdated('synthetic');
+        session.select('other');
+        await flushRefresh();
+        expect(load).not.toHaveBeenCalled();
+    });
+    it('unsubscribes when Discovery is destroyed', async () => {
+        await session.load();
+        const updates = TestBed.inject(SourceCatalogUpdatesService);
+        const load = jest.spyOn(session, 'load');
+        TestBed.resetTestingModule();
+        updates.liveUpdated('synthetic');
+        await Promise.resolve();
+        expect(load).not.toHaveBeenCalled();
     });
     it('loads through the shared cache data source and classifies only on explicit action', async () => {
         await session.load();

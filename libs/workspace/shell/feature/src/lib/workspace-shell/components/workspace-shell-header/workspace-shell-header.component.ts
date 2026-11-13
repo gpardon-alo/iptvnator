@@ -78,6 +78,7 @@ export class WorkspaceShellHeaderComponent {
      * isSettingsRoute computed.
      */
     readonly isSettingsRoute = input(false);
+    readonly showSearchWhenEmpty = input(false);
     /**
      * Parental lock indicator: `off` hides the button, `locked` offers the
      * PIN prompt, `unlocked` offers "Lock now".
@@ -173,6 +174,16 @@ export class WorkspaceShellHeaderComponent {
     onSearchInput(event: Event): void {
         const target = event.target as HTMLInputElement | null;
         this.searchChanged.emit(target?.value ?? '');
+    }
+    clearSearch(): void {
+        this.resetSearchInput();
+        this.searchChanged.emit('');
+        this.searchSubmitted.emit('');
+        this.focusSearchInput();
+    }
+    resetSearchInput(): void {
+        const input = this.searchInput()?.nativeElement;
+        if (input) input.value = '';
     }
 
     onSearchEnter(event: Event): void {

@@ -3,6 +3,7 @@ import { DataService } from './data.service';
 import { DatabaseService } from './database-electron.service';
 import { ParentalLockService } from './parental-lock';
 import { SourceActivityService } from './source-activity.service';
+import { SourceCatalogUpdatesService } from './source-catalog-updates.service';
 import {
     XtreamPendingRestoreService,
     XtreamPendingRestoreSnapshot,
@@ -160,6 +161,36 @@ describe('edit-time Xtream catalog refresh', () => {
             ],
         });
         service = TestBed.inject(XtreamSelectedCatalogRefreshService);
+    });
+
+    it('announces only a successfully completed live refresh after restore', async () => {
+        const changed = jest.fn();
+        TestBed.inject(SourceCatalogUpdatesService).liveUpdated$.subscribe(
+            changed
+        );
+        await service.refresh(playlist, ['movie']);
+        expect(changed).not.toHaveBeenCalled();
+        await service.refresh(playlist, ['live']);
+        expect(changed).toHaveBeenCalledWith('p');
+        expect(changed).toHaveBeenCalledTimes(1);
+        changed.mockClear();
+        data.sendIpcEvent.mockRejectedValueOnce(new Error('Synthetic failure'));
+        await expect(service.refresh(playlist, ['live'])).rejects.toThrow(
+            'Synthetic failure'
+        );
+        expect(changed).not.toHaveBeenCalled();
+    });
+
+    it('does not announce a live refresh if restore fails', async () => {
+        const changed = jest.fn();
+        TestBed.inject(SourceCatalogUpdatesService).liveUpdated$.subscribe(
+            changed
+        );
+        pending.applyAndConsume.mockResolvedValueOnce('consume-failed');
+        await expect(service.refresh(playlist, ['live'])).rejects.toThrow(
+            'Could not finish source restore'
+        );
+        expect(changed).not.toHaveBeenCalled();
     });
 
     it('immediately refreshes Movies only and restores history including other types', async () => {

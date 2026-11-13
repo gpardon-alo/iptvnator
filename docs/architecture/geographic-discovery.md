@@ -1,16 +1,19 @@
-# Geographic Discovery prototype
+# Geographic Discovery
 
-The separate `/discovery` route is owned by `workspace-discovery-feature` under
-`libs/workspace/discovery/feature`. A labelled Discovery prototype shortcut in
-the workspace rail opens it. The normal dashboard and provider routes retain
-their existing behavior.
+The `/workspace/discovery` child route is owned by `workspace-discovery-feature`
+under `libs/workspace/discovery/feature` and uses the normal workspace header and
+navigation rail. Legacy `/discovery` links redirect here, retaining query search.
 
-This is an English-language design prototype with a synthetic demo catalog and
-an explicit saved-Xtream-source selector. Selecting a source reads its live
+This English-language view uses the shared header source selector. Selecting a
+live-enabled Xtream source reads its live
 catalog through `XTREAM_DATA_SOURCE`, respecting runtime selection, parental
 locks and the existing browser catalog cache. Opening a saved-source channel plays its selected provider alternate through the
 shared player. EPG is loaded only for the selected channel.
 The selected-channel schedule is shown only after a saved-source channel is selected.
+With no sources, the synthetic demo remains available. An unsupported selected
+source shows a prompt to choose a live-enabled Xtream source rather than another
+source's channels. Switching the header selection stays on Discovery and closes
+any preview from the previous source.
 
 ## Reuse and scope
 
@@ -35,10 +38,9 @@ The selected UI language is untouched. The rail shortcut is translated.
 The map and side filters expand upward below a compact action row; removed
 promotional headings and source-review totals do not reserve empty layout space.
 The channel ribbon keeps its lower grid allocation and shows its channel count
-without a promotional heading. Classification and source refresh remain semantic
-buttons, styled as text links, with keyboard focus and disabled states. Review
-totals remain available inside the classification dialog; loading/errors retain
-their status/alert feedback.
+without a promotional heading. Dictionary actions and the source-menu refresh
+retain keyboard focus and disabled states. Review totals remain available on
+the Dictionary page; loading/errors retain their status/alert feedback.
 
 The new screen-specific pieces are map exploration, local classifications,
 filters and the explicit playback/source preview. The demo catalog lives in
@@ -63,13 +65,18 @@ country/territory inventory lives separately in `discovery-locations.ts`.
   filters, selected channel, region and ribbon scroll position. Escape or Back
   returns focus to discovery; source switching remains inside the preview.
 - Filters persist in the prototype's own
-  `iptvnator-discovery-prototype:v1` localStorage key. Existing sources, cached
+  `iptvnator-discovery-prototype:v1` localStorage key. Search is authoritative in
+  the shared header's `q` URL parameter, including reload and history changes.
+  Clear filters also cancels queued shell typing with `WORKSPACE_CLEAR_SEARCH`.
+  Preferences flush when the component is destroyed and on browser page hide,
+  so immediately navigating to Dictionary or reloading retains the latest filters.
+  Existing sources, cached
   catalogs, favorites, history and app settings are not modified by classification.
 
 ## Current-stream classifications
 
-The source selector retains the demo as a separate choice. A real source starts
-with pending, unclassified live streams. **Classifications → Classify current
+The Dictionary page offers live-enabled Xtream sources. A real source starts
+with pending, unclassified live streams. **Dictionary → Classify current
 streams** runs a one-time local rules pass and saves the result. Neither opening
 the screen nor refreshing the catalog runs classification automatically. New
 stream IDs remain pending until the next explicit pass.
@@ -179,11 +186,38 @@ version and report retry guidance. Retained mappings for absent streams survive
 so that returning streams can regain their custom fields. A refreshed provider
 name updates the evidence without replacing custom metadata.
 
-Discovery's **Refresh source** button reuses `PlaylistRefreshActionService` and
-its runtime-specific behavior. The source menu's existing Refresh action remains
-available. Browser refresh clears only the chosen source's provider cache and
+The shared header source menu's Refresh action uses `PlaylistRefreshActionService`
+and its runtime-specific behavior. Browser refresh clears only the chosen source's provider cache and
 reloads; classifications survive. Mapping actions use cached catalog data and
 make no classification-service or AI requests.
+
+`SourceCatalogUpdatesService` publishes renderer-local live-catalog completion
+notifications. PWA cache misses (including renewal after the 24-hour TTL) publish
+after the fetch and cache acceptance succeed; cache hits and invalidation alone
+do not publish. Desktop initialization publishes after remote live work and
+successful restore, and edit-time live scans publish after consuming restore
+state. Failed, cancelled and superseded work does not publish.
+An open Discovery session reloads only for its selected source, coalescing
+notifications and waiting for active loads or edits. Switching sources discards
+queued work; destroying the session removes its subscription. Closed Discovery
+sessions read the latest catalog when opened. This adds no polling timer: PWA
+TTL renewal still happens on the next catalog access.
+
+## Dictionary in Settings
+
+`/workspace/settings/dictionary` places the editor under Settings → Library.
+The settings section defers loading `DiscoveryDictionaryComponent`, whose own
+`DiscoverySourceSession` uses the same source-scoped storage and remembered
+selection as Discovery. It renders only after the source library is ready and
+offers live-enabled Xtream sources, an empty state and load-error retry.
+Switching sources recreates the editor so drafts cannot cross source boundaries.
+The former Discovery classification modal and settings gear are removed.
+
+The Dictionary card is indexed by Settings search, including classification,
+mapping, import and export keywords. Editor controls are standalone from the
+parent Settings form: dictionary actions save immediately and do not enable the
+Settings Save/Discard bar. Shared editor styles use app surface/separator tokens
+so the page inherits the app theme without a Discovery host.
 
 ## Static map assets
 
@@ -232,7 +266,7 @@ The Discovery project participates in Tier A unit source coverage.
 `discovery-theme.e2e.ts` saves all six app presets through Appearance settings
 and checks Discovery against the inherited palette with the OS in the opposite
 mode. It covers map selection, channel text, filter states, keyboard focus,
-settings/backdrops, Sports tiles, System changes while the route is open, and
+the shared header search, Sports tiles, System changes while the route is open, and
 success/error classification feedback in both light and dark modes.
 
 `pnpm nx test workspace-discovery-feature` checks source loading, retained manual
@@ -249,6 +283,8 @@ known-category/unknown-language filtering, category counts against ribbon result
 independent missing-field review and switching out of Unclassified.
 Regional checks cover Central America, Caribbean polygons and island markers,
 the South American additions, map/list parity and persistence of new location IDs.
+`discovery-shell.e2e.ts` covers legacy redirects, URL/history search, cancelling
+queued typing, source switching without navigation, reload and unsupported sources.
 
 ## Live playback
 
@@ -348,8 +384,8 @@ explicit recovery action.
 The shared traffic-light clearance remeasures 100 ms after resize settles because
 Electron can update viewport and native window widths in separate steps. Pending
 measurements are cancelled when disabled or destroyed.
-The standalone desktop header reuses the shared zoom-aware traffic-light clearance
-directive and provides a drag region with no-drag controls. Provider XMLTV channel
+The main workspace header owns the desktop traffic-light clearance, drag region
+and no-drag controls. Provider XMLTV channel
 IDs stay in runtime metadata and are passed to the shared EPG resolver, outside
 the portable classification records.
 
@@ -365,10 +401,11 @@ by the selected region, independently of other filters. Country lists sort
 alphabetically by their English display names within the selected region,
 without changing the shared location inventory.
 
-The settings gear opens three actions: Classifications, Refresh source and Return
-to main app. Source actions retain their loading, saving and capability guards.
-The classification dialog keeps its header outside the scrolling body; operation
-feedback carries an explicit success/error state with semantic colors and text.
+Dictionary actions live in Settings → Library; refresh lives in the shared source
+menu. Source actions retain their loading, saving and capability guards.
+Operation feedback carries an explicit success/error state with semantic colors
+and text. The shared search retains an accessible clear button; `/` focuses it
+on Discovery, and desktop Find stays on Discovery rather than opening global search.
 Hovering a ribbon arrow scrolls continuously for mouse pointers; clicks and
 keyboard activation still skip a page. Pointer exit, cancellation, window blur,
 visibility changes and destruction cancel the animation frame.

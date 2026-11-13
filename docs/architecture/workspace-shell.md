@@ -628,8 +628,22 @@ Command palette behavior is shell-owned but view-extensible:
 
 ### Settings search
 
+Discovery is a workspace child at `/workspace/discovery` with no context drawer.
+It inherits the header's active source and uses local-filter search through `q`.
+The shared source selector stays on this route when switched; unsupported sources
+show an explicit prompt. Search stays enabled for the empty-library demo, `/`
+focuses it, and desktop Find stays on the page. The route is startup-restorable.
+`WORKSPACE_CLEAR_SEARCH` is transient navigation intent for an explicit clear:
+the search synchronizer cancels pending typing even if `q` was already empty.
+
 Settings rows are searchable from the header search on `/workspace/settings`
 and from the command palette. Both use the same index and ranking.
+
+Library includes Dictionary at `/workspace/settings/dictionary`. Its deferred
+editor selects a live-enabled Xtream source and saves classifications directly,
+independently of the Settings form. The `dictionary` card is its search anchor;
+the editor and source-session contract live in
+[Geographic Discovery](geographic-discovery.md#dictionary-in-settings).
 
 1. The index is `SETTINGS_SEARCH_ENTRIES` in
    `libs/workspace/shell/util/src/lib/settings-search/`, published through the

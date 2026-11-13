@@ -3,7 +3,8 @@ import type {
     XtreamContentItem,
     XtreamOperationOptions,
 } from './xtream-data-source.interface';
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
+import { SourceCatalogUpdatesService } from '@iptvnator/services';
 import { loadStalkerProtocolHash } from '@iptvnator/shared/interfaces';
 import { sourceProfileName } from '@iptvnator/services/source-sync/connection';
 import type { XtreamCredentials } from '../services/xtream-api.service';
@@ -19,6 +20,7 @@ interface Entry {
 /** Optional, disposable catalog persistence. A storage failure never blocks playback. */
 @Injectable({ providedIn: 'root' })
 export class PwaCatalogCache {
+    private readonly updates = inject(SourceCatalogUpdatesService);
     private readonly storage = catalogStorage(sourceProfileName());
     private readonly entries = new Map<string, Entry>();
     private readonly generations = new Map<string, number>();
@@ -121,6 +123,7 @@ export class PwaCatalogCache {
             }
             signal?.throwIfAborted();
             this.assertCurrent(playlistId, generation);
+            if (slot === 'live-content') this.updates.liveUpdated(playlistId);
             return rows;
         };
         if (signal) return operation();

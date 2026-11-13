@@ -392,6 +392,13 @@
         "NAV_ABOUT": "About",
         "NAV_GROUP_APP": "App",
         "NAV_GROUP_LIBRARY": "Library",
+        "NAV_DICTIONARY": "Dictionary",
+        "DICTIONARY_DESCRIPTION": "Review channel classifications and import or export a source dictionary.",
+        "DICTIONARY_SOURCE": "Source",
+        "DICTIONARY_CHOOSE_SOURCE": "Choose a source",
+        "DICTIONARY_NO_SOURCES": "Add an Xtream source with Live TV enabled to manage its dictionary.",
+        "DICTIONARY_OPEN_SOURCES": "Open Sources",
+        "DICTIONARY_LOADING": "Loading dictionary…",
         "NAV_GROUP_DEVICES": "Devices",
         "CARD_APPEARANCE": "Appearance",
         "APPEARANCE_SUBTITLE": "Theme, cover size and cover titles.",
@@ -1918,7 +1925,8 @@
             "HERO_PLAY": "Play slideshow"
         },
         "SHELL": {
-            "DISCOVERY_PROTOTYPE": "Discovery prototype",
+            "DISCOVERY_PROTOTYPE": "Discovery",
+            "SEARCH_DISCOVERY_PLACEHOLDER": "Search channels…",
             "RAIL_DASHBOARD": "Dashboard",
             "RAIL_SOURCES": "Sources",
             "RAIL_GLOBAL_FAVORITES": "Favorites",

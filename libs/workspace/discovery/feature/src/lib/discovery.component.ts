@@ -1,6 +1,4 @@
 import { DISCOVERY_LEAGUES } from './discovery-leagues';
-import { TrafficLightsClearanceDirective } from '@iptvnator/ui/components';
-import { RuntimeCapabilitiesService } from '@iptvnator/services';
 import { discoveryLocationIds } from '@iptvnator/portal/shared/util';
 import { A11yModule } from '@angular/cdk/a11y';
 import {
@@ -11,6 +9,7 @@ import {
     ChangeDetectionStrategy,
     Component,
     computed,
+    DestroyRef,
     effect,
     ElementRef,
     inject,
@@ -21,9 +20,8 @@ import { MatIcon } from '@angular/material/icon';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ContentCardComponent } from '@iptvnator/portal/shared/ui';
-import { PlaylistRefreshActionService } from '@iptvnator/playlist/shared/ui';
 import { DiscoverySourceSession } from './discovery-source-session';
-import { DiscoveryClassificationsComponent } from './discovery-classifications.component';
+import { DiscoveryWorkspaceSession } from './discovery-workspace-session';
 import {
     CATEGORIES,
     COUNTRIES,
@@ -85,7 +83,6 @@ function initialFilters(): DiscoveryFilters {
     selector: 'app-discovery',
     standalone: true,
     imports: [
-        TrafficLightsClearanceDirective,
         FormsModule,
         MatIcon,
         RouterLink,
@@ -96,24 +93,19 @@ function initialFilters(): DiscoveryFilters {
         DiscoveryHoverScrollDirective,
         DiscoveryPlayerComponent,
         DiscoveryGuideComponent,
-        DiscoveryClassificationsComponent,
     ],
-    providers: [DiscoverySourceSession],
+    providers: [DiscoverySourceSession, DiscoveryWorkspaceSession],
     templateUrl: './discovery.component.html',
     styleUrl: './discovery.component.scss',
     changeDetection: ChangeDetectionStrategy.OnPush,
-    host: { '(keydown)': 'navigate($event)' },
+    host: {
+        '(keydown)': 'navigate($event)',
+        '(window:pagehide)': 'savePreferences()',
+    },
 })
 export class DiscoveryComponent {
-    readonly runtime = inject(RuntimeCapabilitiesService);
     readonly catalog = inject(DiscoverySourceSession);
-    readonly refreshAction = inject(PlaylistRefreshActionService);
-    readonly currentPlaylist = computed(
-        () =>
-            this.catalog
-                .sources()
-                .find((s) => s._id === this.catalog.sourceId()) ?? null
-    );
+    readonly workspace = inject(DiscoveryWorkspaceSession);
     readonly availableLocations = computed(() =>
         discoveryLocationIds(
             this.catalog.sourceId()
@@ -213,30 +205,30 @@ export class DiscoveryComponent {
     );
 
     constructor() {
+        effect(() => this.search(this.workspace.query()));
         effect(() => {
-            try {
-                localStorage.setItem(
-                    PREFERENCES_KEY,
-                    JSON.stringify(this.filters())
-                );
-            } catch {
-                /* optional */
-            }
+            this.catalog.sourceId();
+            this.selected.set(null);
+            this.watching.set(false);
+            this.stack.set(null);
         });
+        effect(() => this.savePreferences());
+        inject(DestroyRef).onDestroy(() => this.savePreferences());
     }
 
-    selectSource(id: string): void {
-        this.catalog.select(id);
-        this.clear();
-        this.selected.set(null);
-        this.watching.set(false);
+    savePreferences(): void {
+        try {
+            localStorage.setItem(
+                PREFERENCES_KEY,
+                JSON.stringify(this.filters())
+            );
+        } catch {
+            /* optional */
+        }
     }
+
     showUnclassified(): void {
         this.toggle('categories', 'unclassified');
-    }
-    refreshSource(): void {
-        const playlist = this.currentPlaylist();
-        if (playlist) this.refreshAction.refresh(playlist);
     }
 
     toggle(
@@ -271,6 +263,7 @@ export class DiscoveryComponent {
         this.viewport()?.scrollToOffset(0);
     }
     clear(): void {
+        this.workspace.clearSearch();
         this.filters.set({
             locations: [],
             categories: [],
@@ -325,16 +318,6 @@ export class DiscoveryComponent {
                 ))
         )
             return;
-        if (
-            event.key === '/' &&
-            (event.target as HTMLElement).tagName !== 'INPUT'
-        ) {
-            event.preventDefault();
-            this.host.nativeElement
-                .querySelector<HTMLInputElement>('input')
-                ?.focus();
-            return;
-        }
         if (event.key === 'Escape' && this.watching()) {
             event.preventDefault();
             this.watching.set(false);

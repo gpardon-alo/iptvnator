@@ -122,6 +122,7 @@ export class WorkspaceShellRouteStateService {
 
         const currentRoute = this.currentRoute();
         if (
+            currentRoute.kind !== 'discovery' &&
             currentRoute.kind !== 'dashboard' &&
             currentRoute.kind !== 'sources' &&
             currentRoute.kind !== 'settings' &&

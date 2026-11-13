@@ -65,6 +65,12 @@ export const SETTINGS_SECTION_DEFINITIONS: readonly SettingsSectionDefinition[] 
             group: 'library',
         },
         {
+            id: 'dictionary',
+            navLabelKey: 'SETTINGS.NAV_DICTIONARY',
+            icon: 'menu_book',
+            group: 'library',
+        },
+        {
             id: 'remote-control',
             navLabelKey: 'SETTINGS.NAV_REMOTE',
             icon: 'smartphone',

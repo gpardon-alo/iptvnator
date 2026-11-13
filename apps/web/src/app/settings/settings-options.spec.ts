@@ -99,6 +99,7 @@ describe('buildSettingsSectionNavItems', () => {
             'dashboard',
             'tmdb',
             'parental',
+            'dictionary',
             'remote-control',
             'server',
             'backup',
@@ -118,6 +119,7 @@ describe('buildSettingsSectionNavItems', () => {
         expect(groupOf('general')).toBe('app');
         expect(groupOf('appearance')).toBe('app');
         expect(groupOf('tmdb')).toBe('library');
+        expect(groupOf('dictionary')).toBe('library');
         expect(groupOf('remote-control')).toBe('devices');
         expect(groupOf('server')).toBe('data');
         expect(groupOf('backup')).toBe('data');

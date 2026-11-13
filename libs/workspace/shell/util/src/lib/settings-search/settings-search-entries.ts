@@ -284,6 +284,21 @@ export const SETTINGS_SEARCH_ENTRIES: readonly SettingsSearchEntry[] = [
         fallbackId: 'parental-lock-enable',
     },
     {
+        id: 'dictionary',
+        section: 'dictionary',
+        labelKey: 'SETTINGS.NAV_DICTIONARY',
+        descriptionKey: 'SETTINGS.DICTIONARY_DESCRIPTION',
+        keywords: [
+            'classification',
+            'classifications',
+            'dictionary',
+            'mapping',
+            'import',
+            'export',
+            'channels',
+        ],
+    },
+    {
         id: 'import-export-data',
         section: 'backup',
         labelKey: 'SETTINGS.IMPORT_EXPORT_DATA',

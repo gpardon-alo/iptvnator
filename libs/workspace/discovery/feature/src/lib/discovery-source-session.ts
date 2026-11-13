@@ -1,11 +1,13 @@
 import {
     computed,
+    DestroyRef,
     effect,
     inject,
     Injectable,
     signal,
     untracked,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Store } from '@ngrx/store';
 import { selectAllPlaylistsMeta } from '@iptvnator/m3u-state';
 import {
@@ -24,7 +26,10 @@ import {
     XTREAM_DATA_SOURCE,
     type XtreamContentItem,
 } from '@iptvnator/portal/xtream/data-access';
-import { ParentalLockService } from '@iptvnator/services';
+import {
+    ParentalLockService,
+    SourceCatalogUpdatesService,
+} from '@iptvnator/services';
 import { sourceProfileName } from '@iptvnator/services/source-sync/connection';
 import {
     COUNTRIES,
@@ -86,8 +91,20 @@ export class DiscoverySourceSession {
     private readonly logos = signal(new Map<number, string>());
     private generation = 0;
     private activeSource = '';
+    private readonly refreshPending = signal(false);
 
     constructor() {
+        inject(SourceCatalogUpdatesService)
+            .liveUpdated$.pipe(takeUntilDestroyed(inject(DestroyRef)))
+            .subscribe((id) => {
+                if (id === this.sourceId()) this.refreshPending.set(true);
+            });
+        effect(() => {
+            if (this.refreshPending() && !this.loading() && !this.saving()) {
+                this.refreshPending.set(false);
+                untracked(() => void this.load());
+            }
+        });
         let lockVersion = this.parentalLock.version();
         effect(() => {
             const version = this.parentalLock.version();
@@ -115,6 +132,7 @@ export class DiscoverySourceSession {
     }
     select(id: string): void {
         if (this.saving()) return;
+        this.refreshPending.set(false);
         this.generation++;
         this.activeSource = '';
         this.rows.set([]);

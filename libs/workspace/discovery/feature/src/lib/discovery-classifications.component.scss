@@ -11,8 +11,8 @@ input,
 select {
     font: inherit;
     color: inherit;
-    background: var(--app-discovery-panel);
-    border: 1px solid var(--app-discovery-border);
+    background: var(--app-widget-bg);
+    border: 1px solid var(--app-separator);
     padding: 10px;
     app-region: no-drag;
 }

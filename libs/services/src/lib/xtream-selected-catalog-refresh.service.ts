@@ -12,6 +12,7 @@ import { DataService } from './data.service';
 import { DatabaseService } from './database-electron.service';
 import { ParentalLockService } from './parental-lock';
 import { SourceActivityService } from './source-activity.service';
+import { SourceCatalogUpdatesService } from './source-catalog-updates.service';
 import {
     sameXtreamCatalogConnection,
     XtreamCatalogCommitService,
@@ -58,6 +59,7 @@ export class XtreamSelectedCatalogRefreshService {
     private readonly pending = inject(XtreamPendingRestoreService);
     private readonly deferred = inject(XtreamDeferredCatalogRestoreService);
     private readonly activity = inject(SourceActivityService);
+    private readonly updates = inject(SourceCatalogUpdatesService);
     private readonly commit = inject(XtreamCatalogCommitService);
     private readonly progressState =
         signal<XtreamSelectedCatalogProgress | null>(null);
@@ -252,6 +254,8 @@ export class XtreamSelectedCatalogRefreshService {
             );
             if (result === 'consume-failed')
                 throw new Error('Could not finish source restore.');
+            if (result === 'consumed' && types.includes('live'))
+                this.updates.liveUpdated(playlist._id);
         } catch (error) {
             let rollbackSucceeded = false;
             if (

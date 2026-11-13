@@ -87,6 +87,7 @@
         <select
             aria-label="Missing classification field"
             [ngModel]="missingDimension()"
+            [ngModelOptions]="{ standalone: true }"
             (ngModelChange)="missingDimension.set($event); page.set(0)"
         >
             <option value="any">Any missing field</option>
@@ -106,6 +107,7 @@
         aria-label="Search mappings"
         placeholder="Search mappings"
         [ngModel]="query()"
+        [ngModelOptions]="{ standalone: true }"
         (ngModelChange)="query.set($event); page.set(0)"
     />
 </div>
@@ -165,12 +167,14 @@
                     aria-label="Mapping display name"
                     maxlength="200"
                     [ngModel]="row.name"
+                    [ngModelOptions]="{ standalone: true }"
                     (ngModelChange)="change('name', $event)"
             /></label>
             <label
                 >Country<select
                     aria-label="Mapping country"
                     [ngModel]="row.country"
+                    [ngModelOptions]="{ standalone: true }"
                     (ngModelChange)="change('country', $event)"
                 >
                     <option value="">Unknown</option>
@@ -193,6 +197,7 @@
                     >State / district (optional)<select
                         aria-label="Mapping state"
                         [ngModel]="row.state ?? ''"
+                        [ngModelOptions]="{ standalone: true }"
                         (ngModelChange)="change('state', $event)"
                     >
                         <option value="">Nationwide / not specified</option>
@@ -206,6 +211,7 @@
                 >Category<select
                     aria-label="Mapping category"
                     [ngModel]="row.category"
+                    [ngModelOptions]="{ standalone: true }"
                     (ngModelChange)="change('category', $event)"
                 >
                     <option value="">Unknown</option>
@@ -218,6 +224,7 @@
                 >Language<select
                     aria-label="Mapping language"
                     [ngModel]="row.language"
+                    [ngModelOptions]="{ standalone: true }"
                     (ngModelChange)="change('language', $event)"
                 >
                     <option value="">Unknown</option>

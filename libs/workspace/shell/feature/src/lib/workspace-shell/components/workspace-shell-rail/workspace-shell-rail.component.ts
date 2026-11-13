@@ -7,7 +7,7 @@ import {
 } from '@angular/core';
 import { MatIcon } from '@angular/material/icon';
 import { MatTooltip } from '@angular/material/tooltip';
-import { RouterLink } from '@angular/router';
+import { RouterLink, RouterLinkActive } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import {
     PortalRailLink,
@@ -25,6 +25,7 @@ import { WorkspaceShellRailLinksComponent } from '../workspace-shell-rail-links/
         MatIcon,
         MatTooltip,
         RouterLink,
+        RouterLinkActive,
         TranslatePipe,
         WorkspaceShellRailLinksComponent,
     ],

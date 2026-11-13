@@ -53,24 +53,24 @@ test('Electron imports a packaged baseline through file assets without replacing
         await app.mainWindow
             .getByLabel('Explore a region')
             .selectOption('World');
-        const header = app.mainWindow.locator('.topbar');
+        const header = app.mainWindow.locator('app-workspace-shell-header .workspace-header');
         await expect(header).toHaveCSS('-webkit-app-region', 'drag');
-        await expect(header.locator('.brand')).toHaveCSS(
+        await expect(header.locator('.playlist-switcher')).toHaveCSS(
             '-webkit-app-region',
             'no-drag'
         );
         if (process.platform === 'darwin') {
-            const brandWindowLeft = async () => {
+            const sourceWindowLeft = async () => {
                 const zoomFactor = await app.electronApp.evaluate(
                     ({ BrowserWindow }) =>
                         BrowserWindow.getAllWindows()[0].webContents.getZoomFactor()
                 );
                 const left = await header
-                    .locator('.brand')
+                    .locator('.playlist-switcher')
                     .evaluate((el) => el.getBoundingClientRect().left);
                 return left * zoomFactor;
             };
-            await expect.poll(brandWindowLeft).toBeGreaterThanOrEqual(84);
+            await expect.poll(sourceWindowLeft).toBeGreaterThanOrEqual(84);
             const bounds = await app.electronApp.evaluate(
                 ({ BrowserWindow }) => {
                     const window = BrowserWindow.getAllWindows()[0];
@@ -79,7 +79,7 @@ test('Electron imports a packaged baseline through file assets without replacing
                     return previous;
                 }
             );
-            await expect.poll(brandWindowLeft).toBeGreaterThanOrEqual(83);
+            await expect.poll(sourceWindowLeft).toBeGreaterThanOrEqual(83);
             await app.electronApp.evaluate(
                 ({ BrowserWindow }, previous) =>
                     BrowserWindow.getAllWindows()[0].setBounds(previous),
@@ -90,17 +90,14 @@ test('Electron imports a packaged baseline through file assets without replacing
                     window.electron.adjustZoomLevel('out')
                 );
             }
-            await expect.poll(brandWindowLeft).toBeGreaterThanOrEqual(83);
+            await expect.poll(sourceWindowLeft).toBeGreaterThanOrEqual(83);
             await app.mainWindow.evaluate(() =>
                 window.electron.adjustZoomLevel('reset')
             );
         }
-        const selector = app.mainWindow.getByLabel('Discovery source');
-        const sourceId =
-            (await selector
-                .locator('option')
-                .filter({ hasText: 'Synthetic baseline source' })
-                .getAttribute('value')) ?? '';
+        const sourceId = await app.mainWindow.evaluate(async () =>
+            (await window.electron.dbGetAppPlaylists()).find((s) => s.title === 'Synthetic baseline source')?._id ?? ''
+        );
         expect(sourceId).not.toBe('');
         const connection = () =>
             app.mainWindow.evaluate(async (id) => {
@@ -156,11 +153,10 @@ test('Electron imports a packaged baseline through file assets without replacing
         stageBaseline(input);
         app = await restartElectronApp(app, dataDir);
         await app.mainWindow.getByTestId('rail-discovery-prototype').click();
+        await expect(app.mainWindow.getByTestId('playlist-switcher-trigger')).toContainText('Synthetic baseline source');
+        await expect(app.mainWindow.locator('.result-count')).toContainText('channels');
         await app.mainWindow
-            .getByLabel('Discovery source')
-            .selectOption(sourceId);
-        await app.mainWindow
-            .getByRole('textbox', { name: 'Search channels' })
+            .locator('#workspace-shell-search-input')
             .fill('Packaged synthetic root');
         await expect(
             app.mainWindow
@@ -170,6 +166,9 @@ test('Electron imports a packaged baseline through file assets without replacing
         expect(await connection()).toEqual(before);
         app = await restartElectronApp(app, dataDir);
         await app.mainWindow.getByTestId('rail-discovery-prototype').click();
+        await expect(app.mainWindow.locator('.result-count')).toContainText('channels');
+        await app.mainWindow.locator('#workspace-shell-search-input').fill('Packaged synthetic root');
+
         await expect(
             app.mainWindow
                 .locator('app-content-card')

@@ -9,7 +9,10 @@ import {
     viewChild,
     ChangeDetectionStrategy,
 } from '@angular/core';
-import { Router, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs';
+import { WORKSPACE_CLEAR_SEARCH } from '@iptvnator/workspace/shell/util';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ExternalPlaybackDockComponent } from '@iptvnator/ui/components';
 // File-level entry: the @iptvnator/ui/playback barrel would put the web players on the first route.
@@ -94,7 +97,15 @@ export class WorkspaceShellComponent {
     constructor() {
         // The web players are not on the first route: load them once it has
         // rendered, so the first list or portal opens without waiting for them.
-        warmPlayerChunk(inject(Router));
+        const router = inject(Router);
+        warmPlayerChunk(router);
+        router.events.pipe(
+            filter((event) => event instanceof NavigationEnd),
+            takeUntilDestroyed()
+        ).subscribe(() => {
+            if (router.lastSuccessfulNavigation()?.extras.info === WORKSPACE_CLEAR_SEARCH)
+                this.header()?.resetSearchInput();
+        });
 
         // Focus restoration is the closing half of the drawer's focus
         // contract: CdkTrapFocus captures focus into the drawer on open, but
@@ -161,6 +172,22 @@ export class WorkspaceShellComponent {
     @HostListener('document:keydown', ['$event'])
     onDocumentKeydown(event: KeyboardEvent): void {
         if (
+            !event.defaultPrevented &&
+            this.facade.currentRoute().kind === 'discovery' &&
+            event.key === '/' &&
+            !event.ctrlKey &&
+            !event.metaKey &&
+            !event.altKey &&
+            !isEditableTarget(event.target) &&
+            !this.contextDrawer.isOpen() &&
+            !document.querySelector('dialog[open], .cdk-overlay-backdrop')
+        ) {
+            event.preventDefault();
+            this.header()?.focusSearchInput();
+            return;
+        }
+
+        if (
             event.defaultPrevented ||
             !this.facade.isElectron ||
             !isFindShortcut(event) ||
@@ -181,7 +208,10 @@ export class WorkspaceShellComponent {
         event.preventDefault();
         // On settings the header search already searches the settings, so
         // find stays on the page instead of leaving for global search.
-        if (!this.facade.isSettingsRoute()) {
+        if (
+            !this.facade.isSettingsRoute() &&
+            this.facade.currentRoute().kind !== 'discovery'
+        ) {
             this.facade.openGlobalSearch(this.facade.searchQuery());
         }
         setTimeout(() => header?.focusSearchInput({ select: true }));
@@ -208,6 +238,7 @@ function isEditableTarget(target: EventTarget | null): boolean {
 }
 
 interface WorkspaceShellHeaderShortcutTarget {
+    resetSearchInput(): void;
     containsSearchInput(target: EventTarget | null): boolean;
     focusSearchInput(options?: { select?: boolean }): void;
     focusContextDrawerToggle(): boolean;

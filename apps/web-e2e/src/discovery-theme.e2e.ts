@@ -54,9 +54,10 @@ async function expectPalette(page: Page, mode: 'light' | 'dark') {
         await token(page, '--app-on-surface')
     );
     await expect(discovery).toHaveCSS('color-scheme', mode);
-    await expect(
-        page.getByRole('textbox', { name: 'Search channels' })
-    ).toHaveCSS('color', await token(page, '--app-on-surface'));
+    await expect(page.locator('#workspace-shell-search-input')).toHaveCSS(
+        'color',
+        await token(page, '--mat-sys-on-surface')
+    );
 }
 
 async function expectSurface(page: Page, element: Locator) {
@@ -117,15 +118,9 @@ for (const preset of presets) {
             await token(page, '--app-selection-surface')
         );
 
-        const gear = page.getByRole('button', {
-            name: 'Discovery settings',
-            exact: true,
-        });
-        await gear.hover();
-        await page.getByRole('textbox', { name: 'Search channels' }).focus();
         await page.keyboard.press('Tab');
-        await expect(gear).toBeFocused();
-        await expect(gear).toHaveCSS(
+        await category.focus();
+        await expect(category).toHaveCSS(
             'outline-color',
             await token(page, '--app-focus-ring')
         );
@@ -133,21 +128,13 @@ for (const preset of presets) {
             'fill',
             await token(page, '--app-selection-color')
         );
+        await expect(page.locator('app-workspace-shell-header')).toBeVisible();
+        await expect(
+            page.getByRole('button', { name: 'Discovery settings' })
+        ).toHaveCount(0);
         await page.screenshot({
             path: testInfo.outputPath(`discovery-${preset}.png`),
         });
-        await gear.click();
-        const settings = page.getByRole('dialog', {
-            name: 'Discovery settings',
-            exact: true,
-        });
-        await expectSurface(page, settings);
-        const backdrop = await settings.evaluate(
-            (el) => getComputedStyle(el, '::backdrop').backgroundColor
-        );
-        expect(backdrop).toBe(await token(page, '--app-popover-backdrop'));
-        await page.keyboard.press('Escape');
-
         await page.getByLabel('Explore a region').selectOption('Sports');
         const league = page.getByRole('button', {
             name: 'LaLiga (Spain)',
@@ -250,23 +237,19 @@ for (const preset of ['light', 'dark'] as const) {
             /\/vod(?:\/.*)?$/,
             '/recently-added'
         );
-        await page.goto('/discovery');
+        await page.goto('/workspace/settings/dictionary');
         await page
-            .getByLabel('Discovery source')
+            .getByLabel('Dictionary source')
             .selectOption({ label: 'Synthetic palette source' });
-        await expect(page.locator('.channel-tile').first()).toBeVisible();
-        await page
-            .getByRole('button', { name: 'Discovery settings', exact: true })
-            .click();
-        await page
-            .getByRole('dialog', { name: 'Discovery settings', exact: true })
-            .getByRole('button', { name: 'Classifications', exact: true })
-            .click();
-        const dialog = page.getByRole('dialog', {
-            name: 'Stream classifications',
-            exact: true,
-        });
-        await expectSurface(page, dialog);
+        const dialog = page.locator('app-discovery-classifications');
+        await expect(page.locator('[data-setting-id="dictionary"]')).toHaveCSS(
+            'background-color',
+            await token(page, '--app-widget-bg')
+        );
+        await expect(dialog).toHaveCSS(
+            'color',
+            await token(page, '--app-on-surface')
+        );
         await dialog
             .getByRole('button', {
                 name: 'Classify current streams',

@@ -11,6 +11,16 @@ this marker — see `.changes/README.md`.
 
 <!-- next-release -->
 
+# [0.25.4](https://github.com/gpardon-alo/iptvnator/compare/v0.25.3...v0.25.4) (2026-11-12)
+
+- **discovery** — Discovery opens inside the main app with its navigation, source selector and channel search. Its separate header and gear are removed; classifications live under Settings → Library → Dictionary. Existing Discovery links redirect to the integrated page.
+
+- **discovery** — Settings → Library now includes Dictionary. Choose a live TV source to review classifications, edit mappings, or import and export its dictionary without leaving the main app.
+
+- **discovery** — Discovery reloads its selected source after a successful live catalog refresh, including automatic cache renewal. Updates for other sources are ignored, and reloads wait for active loads or edits to finish.
+
+- **discovery** — Discovery follows the main app’s selected color palette, including light and System modes. Maps, filters, channel cards, settings, classification results and the guide share the app’s surface, text and accent colors, while league logos retain readable backings.
+
 # [0.25.3](https://github.com/gpardon-alo/iptvnator/compare/v0.25.2...v0.25.3) (2026-11-11)
 
 ### Features

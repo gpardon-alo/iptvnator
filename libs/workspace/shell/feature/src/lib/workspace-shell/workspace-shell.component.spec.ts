@@ -55,9 +55,11 @@ class MockWorkspaceShellRailComponent {
     standalone: true,
 })
 class MockWorkspaceShellHeaderComponent {
+    readonly resetSearchInput = jest.fn();
     readonly backTarget = input<unknown>(null);
     readonly playlistTitle = input('');
     readonly playlistSubtitle = input('');
+    readonly showSearchWhenEmpty = input(false);
     readonly searchQuery = input('');
     readonly canUseSearch = input(false);
     readonly searchPlaceholder = input('');
@@ -158,6 +160,7 @@ class MockWorkspaceShellFacade {
     readonly secondaryContextLinks = signal([]);
     readonly currentSection = signal<string | null>(null);
     readonly railProviderClass = signal('rail-context-region');
+    readonly currentRoute = signal({ kind: 'portal' });
     readonly isSettingsRoute = signal(false);
     readonly playlistTitle = signal('Playlist A');
     readonly playlistSubtitle = signal('Subtitle');

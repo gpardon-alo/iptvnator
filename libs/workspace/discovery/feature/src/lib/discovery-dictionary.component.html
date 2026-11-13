@@ -1,0 +1,39 @@
+<label class="source-picker">
+    {{ 'SETTINGS.DICTIONARY_SOURCE' | translate }}
+    <select
+        aria-label="Dictionary source"
+        [ngModel]="session.sourceId()"
+        [ngModelOptions]="{ standalone: true }"
+        (ngModelChange)="session.select($event)"
+        [disabled]="session.saving() || !session.sources().length"
+    >
+        <option value="">
+            {{ 'SETTINGS.DICTIONARY_CHOOSE_SOURCE' | translate }}
+        </option>
+        @for (source of session.sources(); track source._id) {
+            <option [value]="source._id">{{ source.title }}</option>
+        }
+    </select>
+</label>
+@if (!session.sources().length) {
+    <p role="status">{{ 'SETTINGS.DICTIONARY_NO_SOURCES' | translate }}</p>
+    <a routerLink="/workspace/sources">{{
+        'SETTINGS.DICTIONARY_OPEN_SOURCES' | translate
+    }}</a>
+} @else if (!session.sourceId()) {
+    <p>{{ 'SETTINGS.DICTIONARY_CHOOSE_SOURCE' | translate }}</p>
+}
+@for (source of selectedSources(); track source._id) {
+    @if (session.loading()) {
+        <p role="status">{{ 'SETTINGS.DICTIONARY_LOADING' | translate }}</p>
+    }
+    @if (session.error()) {
+        <div role="alert">
+            <p>{{ session.error() }}</p>
+            <button type="button" (click)="session.load()">
+                {{ 'RETRY' | translate }}
+            </button>
+        </div>
+    }
+    <app-discovery-classifications />
+}
