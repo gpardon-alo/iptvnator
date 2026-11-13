@@ -188,6 +188,7 @@
     .date-info {
         margin: 4px 0 0;
         font-size: var(--cover-meta-size, 0.7rem);
-        opacity: 0.6;
+        color: var(--cover-meta-color, inherit);
+        opacity: var(--cover-meta-opacity, 0.6);
     }
 }

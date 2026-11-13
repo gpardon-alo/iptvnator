@@ -19,13 +19,17 @@ activation, Angular CDK horizontal virtual scrolling and focus trapping,
 Material icons, app typography and the existing focus conventions. Shared
 thumbnail styles accept `--cover-aspect-ratio`, defaulting to their original
 `2/3`; Discovery uses `16/9`. Card title and metadata sizes also accept scoped
-`--cover-title-size` and `--cover-meta-size` overrides with unchanged defaults. The default never changes for existing consumers.
+`--cover-title-size` and `--cover-meta-size` overrides with unchanged defaults.
+Optional `--cover-meta-color` and `--cover-meta-opacity` overrides let Discovery
+use opaque app-muted text for readable metadata in every palette; other consumers
+retain inherited text and 0.6 opacity.
 Discovery inherits the resolved application palette from `body[data-app-theme]`,
 including Light, Dark, Cream, Mocha, Night Owl, Black OLED and System mode.
 Page/panel surfaces, text, selection, hover, focus, native controls, dialogs,
 classification results and the shared guide use the existing app theme tokens.
 Map ocean/land colors derive from the same surface and accent tokens; only the
-league artwork keeps neutral light/dark mattes for logo readability. Discovery
+league artwork keeps neutral light/dark mattes with contrasting fallback text
+for logo readability. Discovery
 does not override shared theme tokens or keep a separate theme setting.
 The selected UI language is untouched. The rail shortcut is translated.
 The map and side filters expand upward below a compact action row; removed

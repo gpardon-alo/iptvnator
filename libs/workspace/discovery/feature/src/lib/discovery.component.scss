@@ -33,6 +33,8 @@
     --cover-aspect-ratio: 16/9;
     --cover-title-size: 17px;
     --cover-meta-size: 12px;
+    --cover-meta-color: var(--app-muted-color);
+    --cover-meta-opacity: 1;
     color: var(--app-on-surface);
     background: var(--app-discovery-background);
 }

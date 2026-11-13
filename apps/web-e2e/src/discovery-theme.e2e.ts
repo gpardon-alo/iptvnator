@@ -1,5 +1,6 @@
 import type { Locator, Page } from '@playwright/test';
 import { expect, test } from './fixtures';
+import { rasterTextContrast } from './ui-consistency.fixture';
 import { configureMockProviderBackend } from './provider-target-route';
 import {
     addXtreamPortal,
@@ -91,6 +92,9 @@ for (const preset of presets) {
             'color',
             await token(page, '--app-on-surface')
         );
+
+        const metadata = page.locator('.card-info .date-info').first();
+        expect(await rasterTextContrast(metadata)).toBeGreaterThanOrEqual(4.5);
 
         const country = page.getByRole('button', { name: 'Peru', exact: true });
         await country.click();
@@ -202,7 +206,10 @@ for (const preset of ['light', 'dark'] as const) {
             const action = new URL(route.request().url()).searchParams.get(
                 'action'
             );
-            if (action === 'get_live_categories') {
+            if (
+                action === 'get_live_categories' ||
+                action === 'get_vod_categories'
+            ) {
                 await route.fulfill({
                     json: {
                         payload: [
@@ -214,7 +221,10 @@ for (const preset of ['light', 'dark'] as const) {
                         ],
                     },
                 });
-            } else if (action === 'get_live_streams') {
+            } else if (
+                action === 'get_live_streams' ||
+                action === 'get_vod_streams'
+            ) {
                 await route.fulfill({
                     json: {
                         payload: [
@@ -222,8 +232,12 @@ for (const preset of ['light', 'dark'] as const) {
                                 stream_id: 99001,
                                 name: 'Synthetic palette channel',
                                 category_id: 'palette',
-                                stream_type: 'live',
+                                stream_type:
+                                    action === 'get_live_streams'
+                                        ? 'live'
+                                        : 'movie',
                                 stream_icon: '',
+                                added: String(Math.floor(Date.now() / 1000)),
                             },
                         ],
                     },
@@ -232,6 +246,10 @@ for (const preset of ['light', 'dark'] as const) {
         });
         await page.goto('/');
         await addXtreamPortal(page, { name: 'Synthetic palette source' });
+        const recentPath = new URL(page.url()).pathname.replace(
+            /\/vod(?:\/.*)?$/,
+            '/recently-added'
+        );
         await page.goto('/discovery');
         await page
             .getByLabel('Discovery source')
@@ -277,5 +295,28 @@ for (const preset of ['light', 'dark'] as const) {
             'color',
             await token(page, '--app-danger-text')
         );
+        await page.goto(recentPath);
+        await expect(
+            page.locator('app-recently-added .card-info .date-info').first()
+        ).toHaveCSS('opacity', '0.6');
+    });
+}
+
+for (const preset of ['light', 'dark'] as const) {
+    test(`League logo fallback remains readable in ${preset}`, async ({
+        page,
+    }) => {
+        await page.route(
+            '**/assets/discovery/leagues/champions-league.png',
+            (route) => route.abort()
+        );
+        await saveTheme(page, preset);
+        await page.goto('/discovery');
+        await page.getByLabel('Explore a region').selectOption('Sports');
+        const fallback = page
+            .getByRole('button', { name: 'UEFA Champions League', exact: true })
+            .locator('.league-logo span');
+        await expect(fallback).toBeVisible();
+        expect(await rasterTextContrast(fallback)).toBeGreaterThanOrEqual(4.5);
     });
 }
