@@ -106,6 +106,14 @@ const CHANNEL_NAME_ORDER = new Intl.Collator('en', {
     sensitivity: 'base',
 });
 
+function channelSortKey(name: string) {
+    const prefix = /^\s*24\s*\/\s*7\b\s*/;
+    return {
+        rank: Number(prefix.test(name)),
+        name: name.replace(prefix, '').trim(),
+    };
+}
+
 export function filterChannels(
     channels: DemoChannel[],
     filters: DiscoveryFilters
@@ -154,9 +162,14 @@ export function filterChannels(
                 });
             return matches;
         }, [])
-        .sort((a, b) =>
-            CHANNEL_NAME_ORDER.compare(a.channel.name, b.channel.name)
-        );
+        .sort((a, b) => {
+            const first = channelSortKey(a.channel.name);
+            const second = channelSortKey(b.channel.name);
+            return (
+                first.rank - second.rank ||
+                CHANNEL_NAME_ORDER.compare(first.name, second.name)
+            );
+        });
 }
 
 export function toggleSelection(values: string[], value: string): string[] {

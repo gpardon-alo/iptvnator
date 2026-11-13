@@ -15,6 +15,40 @@ const empty: DiscoveryFilters = {
 };
 
 describe('Discovery prototype filtering', () => {
+    it('places 24/7 prefixes last and sorts their remaining names naturally', () => {
+        const names = [
+            '24/7 Zeta',
+            'Zulu',
+            '24/7 Alpha 10',
+            ' 24 / 7 alpha 2',
+            'Alpha',
+            'Studio 24/7',
+            '24/70 Regular',
+        ];
+        const channels = names.map((name) => ({
+            ...DEMO_CHANNELS[0],
+            id: name,
+            name,
+        }));
+        expect(
+            filterChannels(channels, empty).map(({ channel }) => channel.name)
+        ).toEqual([
+            '24/70 Regular',
+            'Alpha',
+            'Studio 24/7',
+            'Zulu',
+            ' 24 / 7 alpha 2',
+            '24/7 Alpha 10',
+            '24/7 Zeta',
+        ]);
+        expect(
+            filterChannels(channels, { ...empty, query: 'alpha' }).map(
+                ({ channel }) => channel.name
+            )
+        ).toEqual(['Alpha', ' 24 / 7 alpha 2', '24/7 Alpha 10']);
+        expect(channels.map(({ name }) => name)).toEqual(names);
+    });
+
     it('sorts matching cards by name naturally without changing source ranking or input order', () => {
         const base = DEMO_CHANNELS[0];
         const sources = [

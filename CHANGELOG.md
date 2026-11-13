@@ -11,6 +11,12 @@ this marker — see `.changes/README.md`.
 
 <!-- next-release -->
 
+# [0.25.5](https://github.com/gpardon-alo/iptvnator/compare/v0.25.4...v0.25.5) (2026-11-13)
+
+### Fixes
+
+- **discovery** — Discovery places channels whose names start with 24/7 after regular channels. These channels sort alphabetically and numerically by the name after the prefix, while their displayed and saved names stay unchanged.
+
 # [0.25.4](https://github.com/gpardon-alo/iptvnator/compare/v0.25.3...v0.25.4) (2026-11-12)
 
 - **discovery** — Discovery opens inside the main app with its navigation, source selector and channel search. Its separate header and gear are removed; classifications live under Settings → Library → Dictionary. Existing Discovery links redirect to the integrated page.
