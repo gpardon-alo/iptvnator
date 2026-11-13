@@ -1,6 +1,6 @@
 :host {
     display: block;
-    color: var(--app-text-color);
+    color: var(--app-on-surface);
 }
 p {
     color: var(--app-muted-color);
@@ -11,8 +11,8 @@ input,
 select {
     font: inherit;
     color: inherit;
-    background: var(--app-discovery-panel);
-    border: 1px solid var(--app-discovery-border);
+    background: var(--app-widget-bg);
+    border: 1px solid var(--app-separator);
     padding: 10px;
     app-region: no-drag;
 }
@@ -24,6 +24,7 @@ button:disabled {
     cursor: default;
 }
 button[aria-pressed='true'] {
+    color: var(--app-selection-text-color);
     border-color: var(--app-selection-color);
     background: var(--app-selection-surface);
 }
@@ -98,8 +99,8 @@ details {
     overflow-wrap: anywhere;
 }
 .notice-success {
-    color: var(--app-success-color, #81c784);
+    color: var(--app-success-color);
 }
 .notice-error {
-    color: var(--app-danger-text, #ffb4ab);
+    color: var(--app-danger-text);
 }

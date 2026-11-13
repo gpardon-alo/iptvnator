@@ -68,6 +68,7 @@ export function resolveSearchPlaceholderKey(
     context: WorkspacePortalContext | null,
     section: PortalRailSection | null
 ): string {
+    if (kind === 'discovery') return 'WORKSPACE.SHELL.SEARCH_DISCOVERY_PLACEHOLDER';
     if (kind === 'sources') {
         return SEARCH_SOURCES_PLACEHOLDER;
     }

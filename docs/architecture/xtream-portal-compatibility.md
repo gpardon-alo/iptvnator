@@ -72,7 +72,15 @@ are reused only for the exact validated catalog entry; cancellation during
 persistence cannot attach an earlier session catalog to a refreshed cache entry. Switching sources clears only session
 state; deletion removes the source's persistent cache. The browser Refresh action
 clears that cache and reloads the app, preserving favorites/history/positions.
-No catalog payload is uploaded to server storage. Tests load PWA
+No catalog payload is uploaded to server storage.
+Successful fresh live catalogs notify `SourceCatalogUpdatesService` after cache
+acceptance; warm reads, failed requests and cancelled generations do not notify.
+Desktop imports notify after successful initialization/restore, and selected
+live scans notify after consuming their restore state. Discovery uses these
+notifications to reload an open session for the same source; this does not add
+a periodic refresh timer.
+
+Tests load PWA
 catalogs through those same API-backed readers instead of seeding a second
 public write path.
 

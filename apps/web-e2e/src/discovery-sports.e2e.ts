@@ -57,8 +57,6 @@ for (const theme of ['light', 'dark'] as const) {
         });
         await addXtreamPortal(page, { name: 'Synthetic tournament source' });
         await page.goto('/discovery');
-        const source = page.getByLabel('Discovery source');
-        await source.selectOption({ label: 'Synthetic tournament source' });
         await expect(page.locator('.result-count')).toHaveText('8 channels');
         const region = page.getByLabel('Explore a region');
         await region.selectOption('Sports');
@@ -126,10 +124,10 @@ for (const theme of ['light', 'dark'] as const) {
             sports.getByRole('button', { name: 'Liga 1 (Peru)', exact: true })
         ).toHaveAttribute('aria-pressed', 'true');
         await expect(page.locator('.result-count')).toHaveText('1 channel');
-        await page.getByLabel('Search channels').fill('unrelated');
+        await page.locator('#workspace-shell-search-input').fill('unrelated');
         await expect(page.locator('.result-count')).toHaveText('0 channels');
         await page
-            .getByRole('button', { name: 'Clear channel search', exact: true })
+            .getByRole('button', { name: 'Clear search', exact: true })
             .click();
         await expect(page.locator('.result-count')).toHaveText('1 channel');
         await page

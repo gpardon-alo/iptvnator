@@ -77,6 +77,8 @@ export class WorkspaceStartupPreferencesService {
         const route = parseWorkspaceShellRoute(url);
 
         switch (route.kind) {
+            case 'discovery':
+                return '/workspace/discovery';
             case 'dashboard':
                 return '/workspace/dashboard';
             case 'downloads':

@@ -38,6 +38,16 @@ describe('WorkspaceShellHeaderComponent', () => {
     let fixture: ComponentFixture<WorkspaceShellHeaderComponent>;
     let component: WorkspaceShellHeaderComponent;
 
+    it('clears search immediately and returns focus to the shared input', () => {
+        const cleared = jest.spyOn(component.searchCleared, 'emit');
+        const submitted = jest.spyOn(component.searchSubmitted, 'emit');
+        const focus = jest.spyOn(component, 'focusSearchInput');
+        component.clearSearch();
+        expect(cleared).toHaveBeenCalled();
+        expect(submitted).not.toHaveBeenCalled();
+        expect(focus).toHaveBeenCalled();
+    });
+
     beforeEach(async () => {
         await TestBed.configureTestingModule({
             imports: [WorkspaceShellHeaderComponent, NoopAnimationsModule],

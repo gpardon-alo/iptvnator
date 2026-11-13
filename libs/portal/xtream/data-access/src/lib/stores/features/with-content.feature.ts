@@ -26,6 +26,7 @@ import {
     isDbAbortError,
     resetHostConnectivityGuard,
     SourceActivityService,
+    SourceCatalogUpdatesService,
     RuntimeCapabilitiesService,
     XtreamPendingRestoreService,
     XtreamImportStatus,
@@ -271,6 +272,7 @@ export function withContent() {
             const databaseService = inject(DatabaseService);
             const pendingRestoreService = inject(XtreamPendingRestoreService);
             const sourceActivity = inject(SourceActivityService);
+            const catalogUpdates = inject(SourceCatalogUpdatesService);
             const xtreamApiService = inject(XtreamApiService);
             const importTypes: ContentType[] = ['live', 'vod', 'series'];
             let activeInitializationPromise: Promise<void> | null = null;
@@ -1076,6 +1078,8 @@ export function withContent() {
                     // A lock change during the hydration withheld the rows
                     // it published; read them again under the current lock.
                     await runDeferredReload();
+                    if (usesSqlite && sessionRemoteWorkTypes.has('live'))
+                        catalogUpdates.liveUpdated(ctx.playlistId);
                 } catch (error) {
                     if (store.isImporting() && usesSqlite) {
                         const { finalizePendingImportTypes } =

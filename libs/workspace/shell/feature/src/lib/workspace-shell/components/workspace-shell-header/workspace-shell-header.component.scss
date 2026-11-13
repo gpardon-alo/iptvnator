@@ -1,5 +1,9 @@
 @use '../../../../../../../../ui/styles/focus-ring';
 
+.search-field input::-webkit-search-cancel-button {
+    appearance: none;
+}
+
 :host {
     display: block;
     min-width: 0;

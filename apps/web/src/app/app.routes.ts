@@ -76,11 +76,8 @@ const recordingsCapabilityGuard = () => {
 export const routes: Routes = [
     {
         path: 'discovery',
-        resolve: { settingsReady: settingsReadyResolver },
-        loadComponent: () =>
-            import('@iptvnator/workspace/discovery/feature').then(
-                (c) => c.DiscoveryComponent
-            ),
+        pathMatch: 'full',
+        redirectTo: 'workspace/discovery',
     },
     {
         path: '',
@@ -98,6 +95,13 @@ export const routes: Routes = [
                 (c) => c.WorkspaceShellComponent
             ),
         children: [
+            {
+                path: 'discovery',
+                loadComponent: () =>
+                    import('@iptvnator/workspace/discovery/feature').then(
+                        (c) => c.DiscoveryComponent
+                    ),
+            },
             {
                 path: '',
                 pathMatch: 'full',

@@ -206,6 +206,10 @@ export class WorkspaceShellFacade {
         this.search.onSearchInput(value);
     }
 
+    clearSearch(): void {
+        this.search.clearSearch();
+    }
+
     onSearchEnter(value: string): void {
         this.search.onSearchEnter(value);
     }

@@ -4,7 +4,7 @@ import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs';
 import { StalkerStore } from '@iptvnator/portal/stalker/data-access';
 import { XtreamStore } from '@iptvnator/portal/xtream/data-access';
-import { parseWorkspaceShellRoute } from '@iptvnator/workspace/shell/util';
+import { parseWorkspaceShellRoute, WORKSPACE_CLEAR_SEARCH } from '@iptvnator/workspace/shell/util';
 import { SettingsSearchService } from '@iptvnator/workspace/shell/util/settings-search';
 import {
     CATEGORY_SCOPE_CLEAR_NAVIGATION,
@@ -183,6 +183,10 @@ export class WorkspaceShellSearchSyncService {
         // still carrying a not-yet-rewritten untrimmed `q` adopts to exactly
         // the applied state, so syncing could only cancel a pending debounce.
         const navigation = this.router.lastSuccessfulNavigation();
+        if (navigation?.extras.info === WORKSPACE_CLEAR_SEARCH) {
+            this.setSearchState('');
+            return;
+        }
         // Scope clearing carries the raw input's normalized term, even before
         // its debounce applies. The transient intent never survives history.
         const clearingScope =

@@ -5,6 +5,10 @@ import {
 
 describe('workspace-shell-route.utils', () => {
     it('parses top-level workspace pages', () => {
+        expect(parseWorkspaceShellRoute('/workspace/discovery?q=synthetic')).toEqual(
+            expect.objectContaining({ kind: 'discovery', context: null,
+                contextPanel: 'none', searchMode: 'local-filter', usesQuerySearch: true })
+        );
         expect(parseWorkspaceShellRoute('/workspace')).toEqual(
             expect.objectContaining({
                 kind: 'dashboard',

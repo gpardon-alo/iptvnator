@@ -1,5 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { SourceActivityService } from '@iptvnator/services';
+import {
+    SourceActivityService,
+    SourceCatalogUpdatesService,
+} from '@iptvnator/services';
 import type { XtreamOperationOptions } from '../../data-sources/xtream-data-source.interface';
 import {
     createContentTestProviders,
@@ -49,6 +52,58 @@ describe('Xtream import session lifecycle', () => {
     });
 
     afterEach(() => localStorage.clear());
+
+    it('announces a successful live import after the catalog is initialized', async () => {
+        const changed = jest.fn(() =>
+            expect(store.isContentInitialized()).toBe(true)
+        );
+        TestBed.inject(SourceCatalogUpdatesService).liveUpdated$.subscribe(
+            changed
+        );
+        dataSource.getContent.mockImplementation(
+            async (
+                _id,
+                _credentials,
+                type,
+                _progress,
+                _total,
+                options: XtreamOperationOptions
+            ) => {
+                options.onPhaseChange?.(
+                    type === 'live' ? 'loading-live' : 'loading-movies'
+                );
+                return [];
+            }
+        );
+        await store.initializeContent();
+        expect(changed).toHaveBeenCalledWith('playlist-1');
+        expect(changed).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not announce a failed import or a warm catalog read', async () => {
+        const changed = jest.fn();
+        TestBed.inject(SourceCatalogUpdatesService).liveUpdated$.subscribe(
+            changed
+        );
+        dataSource.getContent.mockImplementationOnce(
+            async (
+                _id,
+                _credentials,
+                _type,
+                _progress,
+                _total,
+                options: XtreamOperationOptions
+            ) => {
+                options.onPhaseChange?.('loading-live');
+                throw new Error('Synthetic provider unavailable');
+            }
+        );
+        await store.initializeContent();
+        expect(changed).not.toHaveBeenCalled();
+        dataSource.getContent.mockResolvedValue([]);
+        await store.initializeContent();
+        expect(changed).not.toHaveBeenCalled();
+    });
 
     it('starts all category reads in parallel and publishes each result to its own type', async () => {
         const live = createDeferred<{ category_id: string }[]>();

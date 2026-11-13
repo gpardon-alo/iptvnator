@@ -81,13 +81,7 @@ test('Baseline imports atomically into historical v1 storage and preserves later
             })
     );
     await addXtreamPortal(page, { name: 'Synthetic desktop source' });
-    await page.goto('/discovery');
-    const selector = page.getByLabel('Discovery source');
-    sourceId =
-        (await selector
-            .locator('option')
-            .filter({ hasText: 'Synthetic desktop source' })
-            .getAttribute('value')) ?? '';
+    sourceId = new URL(page.url()).pathname.split('/')[3];
     expect(sourceId).not.toBe('');
     const desktop = {
         ...mapping(10, 'Desktop correction'),
@@ -122,7 +116,7 @@ test('Baseline imports atomically into historical v1 storage and preserves later
         },
         { sourceId, desktop }
     );
-    await selector.selectOption(sourceId);
+    await page.goto('/discovery');
     await expect(page.locator('.result-count')).toHaveText('2 channels');
     await expect(
         page

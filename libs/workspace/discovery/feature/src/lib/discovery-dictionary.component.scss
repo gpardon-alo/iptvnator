@@ -1,0 +1,37 @@
+:host {
+    display: block;
+    min-width: 0;
+    padding: 16px;
+    color: var(--app-on-surface);
+}
+.source-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+select,
+button {
+    font: inherit;
+    color: var(--app-on-surface);
+    background: var(--app-widget-bg);
+    border: 1px solid var(--app-separator);
+    padding: 10px;
+    app-region: no-drag;
+}
+select {
+    width: min(100%, 420px);
+}
+p {
+    color: var(--app-muted-color);
+}
+a {
+    color: var(--app-selection-text-color);
+    app-region: no-drag;
+}
+button:focus-visible,
+select:focus-visible,
+a:focus-visible {
+    outline: 2px solid var(--app-focus-ring);
+    outline-offset: 2px;
+}

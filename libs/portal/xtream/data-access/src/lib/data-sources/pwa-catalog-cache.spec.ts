@@ -1,3 +1,5 @@
+import { TestBed } from '@angular/core/testing';
+import { SourceCatalogUpdatesService } from '@iptvnator/services';
 import { PwaCatalogCache, PWA_CATALOG_TTL } from './pwa-catalog-cache';
 import { catalogStorage } from './pwa-catalog-storage';
 
@@ -31,17 +33,74 @@ describe('persistent PWA catalog cache', () => {
     });
     afterEach(() => jest.restoreAllMocks());
 
+    it('publishes fresh live catalogs after manual invalidation and automatic TTL expiry, not cache hits', async () => {
+        const changed = jest.fn();
+        TestBed.inject(SourceCatalogUpdatesService).liveUpdated$.subscribe(
+            changed
+        );
+        const cache = TestBed.runInInjectionContext(
+            () => new PwaCatalogCache()
+        );
+        const fetch = jest.fn().mockResolvedValue([]);
+        await cache.load('source', 'live-content', credentials, fetch);
+        expect(changed).toHaveBeenCalledTimes(1);
+        await cache.load('source', 'live-content', credentials, fetch);
+        await cache.load('source', 'movie-content', credentials, fetch);
+        expect(changed).toHaveBeenCalledTimes(1);
+        await cache.clear('source');
+        expect(changed).toHaveBeenCalledTimes(1);
+        await cache.load('source', 'live-content', credentials, fetch);
+        now += PWA_CATALOG_TTL;
+        await cache.load('source', 'live-content', credentials, fetch);
+        expect(changed.mock.calls).toEqual([
+            ['source'],
+            ['source'],
+            ['source'],
+        ]);
+    });
+
+    it('does not publish failed or cancelled live fetches', async () => {
+        const changed = jest.fn();
+        TestBed.inject(SourceCatalogUpdatesService).liveUpdated$.subscribe(
+            changed
+        );
+        const cache = TestBed.runInInjectionContext(
+            () => new PwaCatalogCache()
+        );
+        await expect(
+            cache.load('source', 'live-content', credentials, async () => {
+                throw new Error('offline');
+            })
+        ).rejects.toThrow('offline');
+        const controller = new AbortController();
+        storage.write.mockImplementationOnce(async () => controller.abort());
+        await expect(
+            cache.load(
+                'source',
+                'live-content',
+                credentials,
+                async () => [],
+                controller.signal
+            )
+        ).rejects.toMatchObject({ name: 'AbortError' });
+        expect(changed).not.toHaveBeenCalled();
+    });
+
     it('reuses categories and content after reload, including successful empty lists, until exactly 24 hours', async () => {
         const fetch = jest
             .fn()
             .mockResolvedValue([
                 { category_id: '1', category_name: 'Synthetic' },
             ]);
-        const cache = new PwaCatalogCache();
+        const cache = TestBed.runInInjectionContext(
+            () => new PwaCatalogCache()
+        );
         await cache.load('source', 'live-categories', credentials, fetch);
         await cache.load('source', 'live-content', credentials, async () => []);
         now += PWA_CATALOG_TTL - 1;
-        const reload = new PwaCatalogCache();
+        const reload = TestBed.runInInjectionContext(
+            () => new PwaCatalogCache()
+        );
         await reload.load('source', 'live-categories', credentials, fetch);
         await expect(
             reload.load('source', 'live-content', credentials, () => {
@@ -55,7 +114,9 @@ describe('persistent PWA catalog cache', () => {
     });
 
     it('isolates sources, types and edited connections without persisting credentials', async () => {
-        const cache = new PwaCatalogCache();
+        const cache = TestBed.runInInjectionContext(
+            () => new PwaCatalogCache()
+        );
         const fetch = jest.fn().mockResolvedValue([]);
         await cache.load('source', 'live-content', credentials, fetch);
         await cache.load('other', 'live-content', credentials, fetch);
@@ -72,7 +133,9 @@ describe('persistent PWA catalog cache', () => {
     });
 
     it('validates session enrichments against the fetched entry after an aborted persistence wait', async () => {
-        const cache = new PwaCatalogCache();
+        const cache = TestBed.runInInjectionContext(
+            () => new PwaCatalogCache()
+        );
         const old = [{ name: 'old' }];
         await cache.load(
             'source',
@@ -110,12 +173,16 @@ describe('persistent PWA catalog cache', () => {
     });
 
     it('forces refresh only for the selected source', async () => {
-        const cache = new PwaCatalogCache();
+        const cache = TestBed.runInInjectionContext(
+            () => new PwaCatalogCache()
+        );
         const fetch = jest.fn().mockResolvedValue([]);
         await cache.load('source', 'live-content', credentials, fetch);
         await cache.load('source-extra', 'live-content', credentials, fetch);
         await cache.clear('source');
-        const reload = new PwaCatalogCache();
+        const reload = TestBed.runInInjectionContext(
+            () => new PwaCatalogCache()
+        );
         await reload.load('source-extra', 'live-content', credentials, fetch);
         await reload.load('source', 'live-content', credentials, fetch);
         expect(fetch).toHaveBeenCalledTimes(3);
@@ -124,7 +191,9 @@ describe('persistent PWA catalog cache', () => {
     it('keeps API reads usable when IndexedDB is denied or full, and never caches failures', async () => {
         storage.read.mockRejectedValue(new Error('denied'));
         storage.write.mockRejectedValue(new Error('quota'));
-        const cache = new PwaCatalogCache();
+        const cache = TestBed.runInInjectionContext(
+            () => new PwaCatalogCache()
+        );
         const fetch = jest
             .fn()
             .mockRejectedValueOnce(new Error('provider'))
@@ -138,7 +207,13 @@ describe('persistent PWA catalog cache', () => {
     });
 
     it('does not let an old request repopulate the cache after explicit refresh', async () => {
-        const cache = new PwaCatalogCache();
+        const changed = jest.fn();
+        TestBed.inject(SourceCatalogUpdatesService).liveUpdated$.subscribe(
+            changed
+        );
+        const cache = TestBed.runInInjectionContext(
+            () => new PwaCatalogCache()
+        );
         let finish!: (rows: unknown[]) => void;
         let started!: () => void;
         const ready = new Promise<void>((resolve) => {
@@ -160,5 +235,6 @@ describe('persistent PWA catalog cache', () => {
         finish([]);
         await expect(request).rejects.toMatchObject({ name: 'AbortError' });
         expect(saved.size).toBe(0);
+        expect(changed).not.toHaveBeenCalled();
     });
 });

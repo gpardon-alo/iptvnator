@@ -1,0 +1,13 @@
+<section class="settings-group" id="dictionary">
+    <header class="settings-group__header">
+        <h2>{{ 'SETTINGS.NAV_DICTIONARY' | translate }}</h2>
+        <p>{{ 'SETTINGS.DICTIONARY_DESCRIPTION' | translate }}</p>
+    </header>
+    <div class="settings-card" data-setting-id="dictionary">
+        @if (editor | async; as component) {
+            <ng-container *ngComponentOutlet="component" />
+        } @else {
+            <p role="status">{{ 'SETTINGS.DICTIONARY_LOADING' | translate }}</p>
+        }
+    </div>
+</section>

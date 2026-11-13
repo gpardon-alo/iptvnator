@@ -24,7 +24,7 @@
 button,
 select {
     font: inherit;
-    color: var(--app-text-color);
+    color: var(--app-on-surface);
     background: var(--app-discovery-panel);
     border: 1px solid var(--app-discovery-border);
     border-radius: 8px;
@@ -93,7 +93,7 @@ path.selected {
     stroke-width: 1.3px;
 }
 text {
-    fill: var(--app-text-color);
+    fill: var(--app-on-surface);
     text-anchor: middle;
     font-weight: 600;
     paint-order: stroke;

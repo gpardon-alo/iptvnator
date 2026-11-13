@@ -76,6 +76,7 @@ import { SettingsServerSectionComponent } from './settings-server-section.compon
 import { SettingsSearchFacade } from './settings-search.facade';
 import { SettingsSearchResultsComponent } from './settings-search-results.component';
 import { SettingsTmdbSectionComponent } from './settings-tmdb-section.component';
+import { SettingsDictionarySectionComponent } from './settings-dictionary-section.component';
 import {
     SettingsUnsavedChangesChoice,
     SettingsUnsavedChangesDialogComponent,
@@ -122,6 +123,7 @@ import { SettingsSnackbarService } from './settings-snackbar.service';
         SettingsSearchResultsComponent,
         SettingsServerSectionComponent,
         SettingsTmdbSectionComponent,
+        SettingsDictionarySectionComponent,
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     providers: [
@@ -258,9 +260,7 @@ export class SettingsComponent
         supportsServerStorage: this.supportsServerStorage,
     });
 
-    get sectionNav(): SettingsSection[] {
-        return this.sectionNavItems.filter((section) => section.visible);
-    }
+    readonly sectionNav = this.sectionNavItems.filter((item) => item.visible);
 
     private readonly sectionParam = toSignal(
         this.route.paramMap.pipe(map((params) => params.get('section'))),

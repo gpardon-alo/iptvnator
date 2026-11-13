@@ -87,6 +87,7 @@ describe('WorkspaceStartupPreferencesService', () => {
     });
 
     it('ignores non-restorable routes', () => {
+        expect(service.getRestorablePath('/workspace/discovery?q=synthetic')).toBe('/workspace/discovery');
         expect(service.getRestorablePath('/workspace/settings')).toBeNull();
         expect(service.getRestorablePath('/workspace')).toBeNull();
         expect(service.getRestorablePath('/unknown')).toBeNull();

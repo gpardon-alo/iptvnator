@@ -68,7 +68,7 @@
 
     <!-- Settings search works without any playlist, so a fresh user can
          find settings before importing a first source. -->
-    @if (!hasNoPlaylists() || isSettingsRoute()) {
+    @if (!hasNoPlaylists() || isSettingsRoute() || showSearchWhenEmpty()) {
         <label class="search-field" for="workspace-shell-search-input">
             <mat-icon>search</mat-icon>
             @if (searchScopeLabel()) {
@@ -117,6 +117,15 @@
                 <span class="search-chip search-chip--status">
                     {{ searchStatusLabel() }}
                 </span>
+            }
+            @if (searchQuery()) {
+                <button
+                    type="button"
+                    mat-icon-button
+                    class="header-shortcut"
+                    [attr.aria-label]="'CLEAR_SEARCH' | translate"
+                    (click)="clearSearch()"
+                ><mat-icon>close</mat-icon></button>
             }
             <button
                 type="button"
