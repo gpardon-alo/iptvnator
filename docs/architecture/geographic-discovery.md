@@ -411,9 +411,12 @@ keyboard activation still skip a page. Pointer exit, cancellation, window blur,
 visibility changes and destruction cancel the animation frame.
 
 Channel cards sort by the editable display name, case-insensitively with numeric
-ordering (Channel 2 before Channel 10). Sorting affects the filtered presentation
-only: source order and saved mappings stay intact. Grouping still uses channel
-identity/name, and alternate streams retain their quality ranking.
+ordering (Channel 2 before Channel 10). Names prefixed with `24/7` (including
+spaces around the slash) appear last, ordered by the name after that prefix.
+The prefix is ignored only in the temporary sort key. Sorting affects the
+filtered presentation only: source order and saved mappings stay intact.
+Grouping still uses channel identity/name, and alternate streams retain their
+quality ranking.
 
 The channel search field shows a slash shortcut hint while empty. Pressing `/`
 from outside a text input focuses search. When text is present, an accessible
