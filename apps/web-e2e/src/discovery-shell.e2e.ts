@@ -119,7 +119,7 @@ test('Discovery explains an unsupported selection instead of showing another sou
 }) => {
     await importPlaylist(page);
     await page.goto('/workspace/discovery');
-    await expect(page.getByRole('status')).toContainText(
+    await expect(page.locator('.discovery').getByRole('status')).toContainText(
         'Choose an Xtream source with Live TV enabled'
     );
     await expect(page.locator('.channel-tile')).toHaveCount(0);

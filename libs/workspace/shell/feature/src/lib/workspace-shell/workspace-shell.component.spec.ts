@@ -81,6 +81,7 @@ class MockWorkspaceShellHeaderComponent {
     readonly backRequested = output<void>();
     readonly searchChanged = output<string>();
     readonly searchSubmitted = output<string>();
+    readonly searchCleared = output<void>();
     readonly commandPaletteRequested = output<void>();
     readonly shortcutsRequested = output<void>();
     readonly addPlaylistRequested = output<void>();
@@ -222,6 +223,7 @@ class MockWorkspaceShellFacade {
 
     onSearchInput = jest.fn();
     onSearchEnter = jest.fn();
+    clearSearch = jest.fn();
     openCommandPalette = jest.fn();
     openGlobalSearch = jest.fn();
     openAddPlaylistDialog = jest.fn();

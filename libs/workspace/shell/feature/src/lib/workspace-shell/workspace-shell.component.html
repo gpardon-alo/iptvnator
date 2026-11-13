@@ -57,6 +57,7 @@
         (clearCategoryScopeRequested)="facade.clearCategoryScope()"
         (searchChanged)="facade.onSearchInput($event)"
         (searchSubmitted)="facade.onSearchEnter($event)"
+        (searchCleared)="facade.clearSearch()"
         (commandPaletteRequested)="facade.openCommandPalette()"
         (shortcutsRequested)="keyboardShortcuts.openShortcutsDialog()"
         (addPlaylistRequested)="facade.openAddPlaylistDialog()"

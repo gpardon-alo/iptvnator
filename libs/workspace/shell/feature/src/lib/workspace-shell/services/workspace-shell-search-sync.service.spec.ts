@@ -35,6 +35,17 @@ describe('WorkspaceShellSearchSyncService', () => {
         expect(service.searchQuery()).toBe('');
         expect(service.appliedSearchQuery()).toBe('');
     });
+    it('clears dashboard typing immediately without submitting an advanced search', () => {
+        navigateTo('/workspace/dashboard');
+        searchService.onSearchInput('queued');
+        searchService.clearSearch();
+        expect(service.searchQuery()).toBe('');
+        expect(service.appliedSearchQuery()).toBe('');
+        jest.advanceTimersByTime(SEARCH_INPUT_DEBOUNCE_MS);
+        expect(service.appliedSearchQuery()).toBe('');
+        expect(router.navigate).not.toHaveBeenCalled();
+        expect(router.navigateByUrl).not.toHaveBeenCalled();
+    });
     const currentNavigation = signal<{ extras: NavigationExtras } | null>(null);
     let router: {
         url: string;

@@ -136,6 +136,7 @@ export class WorkspaceShellHeaderComponent {
     readonly backRequested = output<void>();
     readonly searchChanged = output<string>();
     readonly searchSubmitted = output<string>();
+    readonly searchCleared = output<void>();
     readonly commandPaletteRequested = output<void>();
     readonly shortcutsRequested = output<void>();
     readonly addPlaylistRequested = output<void>();
@@ -177,8 +178,7 @@ export class WorkspaceShellHeaderComponent {
     }
     clearSearch(): void {
         this.resetSearchInput();
-        this.searchChanged.emit('');
-        this.searchSubmitted.emit('');
+        this.searchCleared.emit();
         this.focusSearchInput();
     }
     resetSearchInput(): void {

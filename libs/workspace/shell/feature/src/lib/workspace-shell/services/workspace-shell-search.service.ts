@@ -261,6 +261,10 @@ export class WorkspaceShellSearchService {
         this.searchSync.onSearchInput(value);
     }
 
+    clearSearch(): void {
+        this.searchSync.setSearchState('');
+    }
+
     onSearchEnter(value: string): void {
         const trimmedValue = value.trim();
         this.searchQuery.set(trimmedValue);
