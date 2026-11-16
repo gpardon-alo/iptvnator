@@ -87,6 +87,31 @@ const lookup = run({ action: 'lookup', refs: [ref], now: 123000 }) as {
 }[];
 assert.equal(lookup[0].hash, 'a'.repeat(64));
 assert.equal(run({ action: 'claim', now: 123000, lease: 'not-due' }), null);
+if (process.argv[2] === 'refresh' || process.argv[2] === 'artwork') {
+    if (process.argv[2] === 'refresh') {
+        // A provider refresh replaces physical rows but keeps stream identity.
+        db.prepare('UPDATE content SET id=10 WHERE id=1').run();
+    } else {
+        db.prepare(
+            "UPDATE content SET poster_url='https://example.com/refreshed.png' WHERE id=1"
+        ).run();
+    }
+    audit();
+    const retained = run({ action: 'lookup', refs: [ref], now: 123001 }) as {
+        hash: string;
+    }[];
+    assert.equal(
+        retained[0]?.hash,
+        'a'.repeat(64),
+        'unchanged channel identity retains its cached repair'
+    );
+    assert.equal(
+        run({ action: 'claim', now: 123001, lease: 'no-redownload' }),
+        null
+    );
+    if (process.argv[2] === 'refresh')
+        db.prepare('UPDATE content SET id=1 WHERE id=10').run();
+}
 // Duplicate category appearances share one job and one stable canonical row.
 db.prepare(
     "INSERT INTO categories(id,playlist_id,name,type,xtream_id) VALUES(2,'fixture-source','Fixture duplicate','live',2)"

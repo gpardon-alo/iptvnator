@@ -73,6 +73,9 @@ Maintenance is disabled by default. Once enabled:
 - Unresolved identities retry weekly; repaired images become due after 30 days.
 - Metadata changes invalidate the prior binding. Completion checks the current
   revision and lease, so late work cannot attach to replacement/deleted content.
+- Revision checks use stable source/stream identity and matching metadata, not
+  physical SQLite row IDs or provider artwork URLs. Routine catalog replacement
+  and refreshed provider image links retain valid cached repairs.
 - Audits retain previously supplied Discovery country evidence when they have
   no new country hint. Explicit updated evidence replaces the old value.
 - Disable aborts network work and hides renderer fallbacks, retaining the cache

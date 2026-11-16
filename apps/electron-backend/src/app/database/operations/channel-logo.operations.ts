@@ -64,11 +64,11 @@ function revision(row: SourceRow): string {
     return createHash('sha256')
         .update(
             JSON.stringify([
-                row.id,
+                row.sourceId,
+                row.streamId,
                 row.created,
                 row.title,
                 row.epgId,
-                row.poster,
                 row.server,
                 row.username,
                 row.password,
