@@ -4,7 +4,7 @@ import { By } from '@angular/platform-browser';
 import { MatTooltip } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 import { MockPipe } from 'ng-mocks';
-import { SettingsStore, ChannelLogoService } from '@iptvnator/services';
+import { SettingsStore } from '@iptvnator/services';
 import {
     formatGridRating,
     GridListComponent,
@@ -57,18 +57,10 @@ describe('grid list rating helpers', () => {
 
 describe('GridListComponent', () => {
     let fixture: ComponentFixture<GridListComponent>;
-    let logoWatch: jest.Mock;
 
     beforeEach(async () => {
-        logoWatch = jest.fn((_ref: unknown, notify: (url: string) => void) => {
-            notify('data:image/png;base64,c3ludGhldGlj');
-            return () => undefined;
-        });
         await TestBed.configureTestingModule({
             imports: [GridListComponent],
-            providers: [
-                { provide: ChannelLogoService, useValue: { watch: logoWatch } },
-            ],
         })
             .overrideComponent(GridListComponent, {
                 remove: { imports: [TranslatePipe] },
@@ -84,43 +76,6 @@ describe('GridListComponent', () => {
             .compileComponents();
 
         fixture = TestBed.createComponent(GridListComponent);
-    });
-
-    it('renders repaired live artwork using a source-scoped stream reference', () => {
-        fixture.componentRef.setInput('type', 'live');
-        fixture.componentRef.setInput('logoSourceId', 'fixture-source');
-        fixture.componentRef.setInput('items', [
-            { xtream_id: 101, name: 'Example News', stream_icon: '' },
-        ]);
-        fixture.detectChanges();
-        TestBed.tick();
-        fixture.detectChanges();
-        expect(logoWatch).toHaveBeenCalledWith(
-            { sourceId: 'fixture-source', streamId: 101 },
-            expect.any(Function)
-        );
-        expect(
-            fixture.nativeElement.querySelector('img')?.getAttribute('src')
-        ).toBe('data:image/png;base64,c3ludGhldGlj');
-    });
-
-    it('keeps a working provider logo ahead of a replacement', () => {
-        fixture.componentRef.setInput('type', 'live');
-        fixture.componentRef.setInput('logoSourceId', 'fixture-source');
-        fixture.componentRef.setInput('items', [
-            {
-                xtream_id: 101,
-                name: 'Example News',
-                stream_icon: 'https://example.com/provider.png',
-            },
-        ]);
-        fixture.detectChanges();
-        TestBed.tick();
-        fixture.detectChanges();
-        expect(logoWatch).not.toHaveBeenCalled();
-        expect(
-            fixture.nativeElement.querySelector('img')?.getAttribute('src')
-        ).toBe('https://example.com/provider.png');
     });
 
     it('renders optional live programme metadata and keeps it hidden when EPG is off', () => {

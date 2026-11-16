@@ -1,14 +1,4 @@
 {
-    "CHANNEL_LOGOS": {
-        "TITLE": "频道标志",
-        "DESCRIPTION": "通过公共频道目录修复缺失或无法加载的 Xtream 频道标志。在桌面应用打开时运行；不会应用不确定的匹配。",
-        "ENABLE": "自动查找替代标志",
-        "RUN": "立即运行",
-        "COUNTS": "已修复：{{repaired}} · 待处理：{{pending}} · 未匹配：{{unresolved}} · 失败：{{failed}}",
-        "RUNNING": "正在处理…",
-        "RETRY": "部分资源不可用，稍后将自动重试。",
-        "ERROR": "无法更新标志维护设置，请重试。"
-    },
     "TMDB_MATCH": {
         "SEARCH_TV": "搜索剧集",
         "SEARCH_MOVIE": "搜索电影",

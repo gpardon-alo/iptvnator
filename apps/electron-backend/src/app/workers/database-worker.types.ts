@@ -2,7 +2,6 @@ import type { WorkerPerformanceCaptureResult } from './worker-performance-captur
 import type { DbWorkerSqlStatementsMessage } from './database-worker-sql-statement-count';
 
 export const DB_WORKER_OPERATIONS = [
-    'DB_CHANNEL_LOGOS',
     'DB_ACTIVITY_LOCAL',
     'DB_FAVORITES_LOCAL',
     'DB_HISTORY_LOCAL',
@@ -81,12 +80,6 @@ export const DB_WORKER_OPERATIONS = [
 ] as const;
 
 export type DbWorkerOperation = (typeof DB_WORKER_OPERATIONS)[number];
-
-/** Logo persistence is main-process-only; the renderer gets two narrow repair APIs. */
-export const DB_RENDERER_WORKER_OPERATIONS: readonly DbWorkerOperation[] =
-    DB_WORKER_OPERATIONS.filter(
-        (operation) => operation !== 'DB_CHANNEL_LOGOS'
-    );
 
 export const DB_OPERATION_NAMES = {
     SAVE_CONTENT: 'save-content',

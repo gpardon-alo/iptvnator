@@ -1,5 +1,3 @@
-import { channelLogoOperation } from '../database/operations/channel-logo.operations';
-import type { LogoStorageRequest } from '@iptvnator/shared/channel-enrichment';
 import { historyLocalOperation } from '../database/operations/history-local.operations';
 import type { HistoryLocalRequest } from '@iptvnator/shared/interfaces/history-sync';
 import type { FavoriteLocalRequest } from '@iptvnator/shared/interfaces/favorites-sync';
@@ -441,11 +439,6 @@ async function executeRequest(
     const db = await getWorkerDatabase();
 
     switch (message.operation) {
-        case 'DB_CHANNEL_LOGOS':
-            return channelLogoOperation(
-                getWorkerSqlite(),
-                message.payload as LogoStorageRequest
-            );
         case 'DB_HISTORY_LOCAL':
             return historyLocalOperation(
                 getWorkerSqlite(),

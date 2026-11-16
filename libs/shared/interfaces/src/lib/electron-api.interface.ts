@@ -1,7 +1,4 @@
-import type {
-    HostedServerCommand,
-    HostedServerStatus,
-} from './hosted-server.interface';
+import type { HostedServerCommand, HostedServerStatus } from './hosted-server.interface';
 export type ElectronBridgeAppMenuAction = 'settings' | 'check-for-updates';
 import type { AppUpdateChannel } from './app-update-channel.util';
 import type { SourceProbeContext, SourceHealthResult } from './source-health';
@@ -752,12 +749,6 @@ export interface ElectronRecordingItem {
 }
 
 export interface ElectronBridgeApi {
-    channelLogoControl?: (
-        request: import('./channel-enrichment.interface').LogoControl
-    ) => Promise<import('./channel-enrichment.interface').LogoRepairStatus>;
-    channelLogoLookup?: (
-        refs: import('./channel-enrichment.interface').LogoLookup[]
-    ) => Promise<import('./channel-enrichment.interface').LogoResult[]>;
     onAppMenuAction: (
         callback: (action: ElectronBridgeAppMenuAction) => void
     ) => () => void;
@@ -784,9 +775,7 @@ export interface ElectronBridgeApi {
             tokenPersisted: boolean;
         }
     >;
-    hostedServerControl?: (
-        command: HostedServerCommand
-    ) => Promise<HostedServerStatus>;
+    hostedServerControl?: (command: HostedServerCommand) => Promise<HostedServerStatus>;
     hostedServerAccessCode?: () => Promise<string>;
     sourceSyncDisconnect?: () => Promise<void>;
     sourceSyncLocalSources?: () => Promise<Playlist[]>;

@@ -9,11 +9,5 @@ export class SourceCatalogUpdatesService {
 
     liveUpdated(playlistId: string): void {
         this.completed.next(playlistId);
-        // Wake desktop maintenance after successful refresh; its persistent audit
-        // also catches refreshes missed while no renderer was listening.
-        if (typeof window !== 'undefined')
-            void window.electron
-                ?.channelLogoControl?.({ action: 'run' })
-                .catch(() => undefined);
     }
 }

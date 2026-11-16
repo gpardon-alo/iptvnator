@@ -1,14 +1,4 @@
 {
-    "CHANNEL_LOGOS": {
-        "TITLE": "Logótipos dos canais",
-        "DESCRIPTION": "Corrige logótipos de canais Xtream em falta ou que não carregam através de um catálogo público. Funciona enquanto a aplicação de computador está aberta; as correspondências ambíguas não são aplicadas.",
-        "ENABLE": "Procurar logótipos alternativos automaticamente",
-        "RUN": "Executar agora",
-        "COUNTS": "Corrigidos: {{repaired}} · Pendentes: {{pending}} · Sem correspondência: {{unresolved}} · Falhas: {{failed}}",
-        "RUNNING": "A processar…",
-        "RETRY": "Alguns recursos estão indisponíveis. A tentativa será repetida automaticamente.",
-        "ERROR": "Não foi possível atualizar a manutenção dos logótipos. Tente novamente."
-    },
     "TMDB_MATCH": {
         "SEARCH_TV": "Pesquisar séries",
         "SEARCH_MOVIE": "Pesquisar filmes",

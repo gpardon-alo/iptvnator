@@ -12,11 +12,7 @@ import { MatIconButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
 import { MatTooltip } from '@angular/material/tooltip';
 import { normalizeDateLocale } from '@iptvnator/pipes';
-import {
-    injectTranslationTick,
-    injectChannelLogoFallback,
-} from '@iptvnator/services';
-import type { LogoLookup } from '@iptvnator/shared/channel-enrichment';
+import { injectTranslationTick } from '@iptvnator/services';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { CoverTitlesService } from '../../cover-titles/cover-titles.service';
 
@@ -39,25 +35,6 @@ export class ContentCardComponent {
 
     /** URL of the poster image */
     readonly posterUrl = input<string>();
-    readonly logoRef = input<LogoLookup>();
-    private readonly repairedLogo = injectChannelLogoFallback(
-        this.logoRef,
-        () =>
-            this.type() === 'live' &&
-            (!this.posterUrl() ||
-                this.posterUrl() === 'assets/icons/icon-64.png' ||
-                this.artworkFailed())
-    );
-    readonly effectivePoster = computed(
-        () =>
-            (this.type() === 'live' && this.logoRef()
-                ? this.repairedLogo()
-                : '') || this.posterUrl()
-    );
-    private readonly repairedFailed = linkedSignal({
-        source: this.repairedLogo,
-        computation: () => false,
-    });
 
     /** Title to display */
     readonly title = input.required<string>();
@@ -101,10 +78,7 @@ export class ContentCardComponent {
         computation: () => false,
     });
     protected readonly artworkMissing = computed(
-        () =>
-            !this.effectivePoster() ||
-            this.repairedFailed() ||
-            (this.artworkFailed() && !this.repairedLogo())
+        () => !this.posterUrl() || this.artworkFailed()
     );
     protected readonly postersOnly = computed(
         () =>
@@ -153,7 +127,6 @@ export class ContentCardComponent {
     }
 
     onImageError(): void {
-        if (this.repairedLogo()) this.repairedFailed.set(true);
-        else this.artworkFailed.set(true);
+        this.artworkFailed.set(true);
     }
 }

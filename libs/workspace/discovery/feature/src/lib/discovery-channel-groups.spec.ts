@@ -108,11 +108,6 @@ describe('Discovery user-controlled channel groups', () => {
             category: 'sports',
             language: 'English',
             location: 'United States',
-            logoRef: {
-                sourceId: second.provider.source_id,
-                streamId: second.provider.stream_id,
-                country: 'US',
-            },
         });
         expect(
             filterChannels(groups, {

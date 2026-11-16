@@ -31,10 +31,6 @@
                 "
                 [name]="item.title || item.name || ''"
                 [logo]="item.stream_icon ?? item.poster_url"
-                [logoRef]="{
-                    sourceId: xtreamStore.currentPlaylist()?.id ?? '',
-                    streamId: item.xtream_id,
-                }"
                 [selected]="
                     xtreamStore.selectedItem()?.xtream_id === item.xtream_id
                 "

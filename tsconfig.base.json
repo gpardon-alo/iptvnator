@@ -17,12 +17,6 @@
         "skipDefaultLibCheck": true,
         "baseUrl": ".",
         "paths": {
-            "@iptvnator/shared/interfaces/channel-enrichment": [
-                "libs/shared/interfaces/src/lib/channel-enrichment.interface.ts"
-            ],
-            "@iptvnator/shared/channel-enrichment": [
-                "libs/shared/channel-enrichment/src/index.ts"
-            ],
             "@iptvnator/shared/interfaces/history-sync": [
                 "libs/shared/interfaces/src/history-sync.ts"
             ],

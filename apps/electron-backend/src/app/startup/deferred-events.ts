@@ -13,10 +13,6 @@
  * renderer `invoke` finds a missing handler depends on it.
  */
 import { app } from 'electron';
-import {
-    registerChannelLogoEvents,
-    stopChannelLogoJobs,
-} from '../events/channel-logo.events';
 import { autoUpdater } from 'electron-updater';
 import { registerM3uSourceProbe } from '../events/m3u-source-probe';
 import { registerSourceProbeCancellation } from '../events/source-probe-control';
@@ -107,7 +103,6 @@ export function bootstrapDeferredEvents(
         shutdownDeferredServices();
     });
     DatabaseEvents.bootstrapDatabaseEvents();
-    registerChannelLogoEvents();
     EpgEvents.bootstrapEpgEvents();
     RemoteControlEvents.bootstrapRemoteControlEvents();
 
@@ -142,7 +137,6 @@ export async function finishStartupAfterFirstLoad(): Promise<void> {
 
 /** Tears down sessions and the DB worker; safe when nothing was started. */
 export function shutdownDeferredServices(): void {
-    stopChannelLogoJobs();
     shutdownEmbeddedMpv();
     shutdownMpvSession();
     shutdownVlcSession();

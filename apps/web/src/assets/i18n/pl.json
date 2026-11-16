@@ -1,14 +1,4 @@
 {
-    "CHANNEL_LOGOS": {
-        "TITLE": "Logotypy kanałów",
-        "DESCRIPTION": "Naprawia brakujące lub niedziałające logotypy kanałów Xtream przy użyciu publicznego katalogu. Działa, gdy aplikacja komputerowa jest otwarta; niejednoznaczne dopasowania nie są stosowane.",
-        "ENABLE": "Automatycznie wyszukuj zastępcze logotypy",
-        "RUN": "Uruchom teraz",
-        "COUNTS": "Naprawione: {{repaired}} · Oczekujące: {{pending}} · Bez dopasowania: {{unresolved}} · Błędy: {{failed}}",
-        "RUNNING": "Przetwarzanie…",
-        "RETRY": "Niektóre zasoby są niedostępne. Próba zostanie automatycznie ponowiona.",
-        "ERROR": "Nie udało się zaktualizować obsługi logotypów. Spróbuj ponownie."
-    },
     "TMDB_MATCH": {
         "SEARCH_TV": "Szukaj seriali",
         "SEARCH_MOVIE": "Szukaj filmów",

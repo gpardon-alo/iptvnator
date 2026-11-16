@@ -1,14 +1,4 @@
 {
-    "CHANNEL_LOGOS": {
-        "TITLE": "Zenderlogo’s",
-        "DESCRIPTION": "Herstel ontbrekende of defecte Xtream-zenderlogo’s via een openbare zendercatalogus. Werkt zolang de desktop-app open is; onduidelijke overeenkomsten blijven ongewijzigd.",
-        "ENABLE": "Automatisch vervangende logo’s zoeken",
-        "RUN": "Nu uitvoeren",
-        "COUNTS": "Hersteld: {{repaired}} · In wachtrij: {{pending}} · Onopgelost: {{unresolved}} · Mislukt: {{failed}}",
-        "RUNNING": "Bezig…",
-        "RETRY": "Sommige bronnen zijn niet beschikbaar. Er wordt automatisch opnieuw geprobeerd.",
-        "ERROR": "Het logo-onderhoud kon niet worden bijgewerkt. Probeer het opnieuw."
-    },
     "TMDB_MATCH": {
         "SEARCH_TV": "Series zoeken",
         "SEARCH_MOVIE": "Films zoeken",

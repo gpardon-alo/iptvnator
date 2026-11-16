@@ -1,14 +1,4 @@
 {
-    "CHANNEL_LOGOS": {
-        "TITLE": "Senderlogos",
-        "DESCRIPTION": "Fehlende oder defekte Logos von Xtream-Sendern mithilfe eines öffentlichen Senderkatalogs ersetzen. Läuft bei geöffneter Desktop-App; mehrdeutige Zuordnungen bleiben unverändert.",
-        "ENABLE": "Automatisch nach Ersatzlogos suchen",
-        "RUN": "Jetzt ausführen",
-        "COUNTS": "Repariert: {{repaired}} · Ausstehend: {{pending}} · Ungeklärt: {{unresolved}} · Fehlgeschlagen: {{failed}}",
-        "RUNNING": "Wird ausgeführt…",
-        "RETRY": "Einige Ressourcen sind nicht verfügbar. Der Vorgang wird automatisch wiederholt.",
-        "ERROR": "Die Logo-Wartung konnte nicht aktualisiert werden. Bitte erneut versuchen."
-    },
     "TMDB_MATCH": {
         "SEARCH_TV": "Serie suchen",
         "SEARCH_MOVIE": "Film suchen",

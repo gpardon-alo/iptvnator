@@ -7,7 +7,6 @@ import {
     effect,
     inject,
     input,
-    linkedSignal,
     output,
     signal,
 } from '@angular/core';
@@ -17,8 +16,7 @@ import { MatTooltip } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 import { EpgProgrammeDialogService, getProgramTimeMs } from '@iptvnator/ui/epg';
 import { EpgProgram } from '@iptvnator/shared/interfaces';
-import { SettingsStore, injectChannelLogoFallback } from '@iptvnator/services';
-import type { LogoLookup } from '@iptvnator/shared/channel-enrichment';
+import { SettingsStore } from '@iptvnator/services';
 import { applyChannelNameStrip } from '@iptvnator/shared/m3u-utils';
 
 @Component({
@@ -44,18 +42,6 @@ export class ChannelListItemComponent {
 
     readonly isDraggable = input(false);
     readonly logo = input<string | null | undefined>('');
-    readonly logoRef = input<LogoLookup>();
-    private readonly repairedLogo = injectChannelLogoFallback(
-        this.logoRef,
-        () => !this.logo() || this.logoFailed()
-    );
-    readonly effectiveLogo = computed(() =>
-        this.logoFailed() || !this.logo() ? this.repairedLogo() : this.logo()
-    );
-    private readonly repairFailed = linkedSignal({
-        source: this.repairedLogo,
-        computation: () => false,
-    });
     readonly name = input('');
     readonly disabled = input(false);
     readonly statusLabel = input('');
@@ -101,7 +87,6 @@ export class ChannelListItemComponent {
         effect(() => {
             this.logo();
             this.logoFailed.set(false);
-            this.repairFailed.set(false);
         });
     }
 
@@ -170,13 +155,14 @@ export class ChannelListItemComponent {
     }
 
     showLogoFallback(): boolean {
-        return !this.effectiveLogo() || this.repairFailed();
+        return !this.logo() || this.logoFailed();
     }
 
     onLogoError(event: Event): void {
-        void event;
-        if (this.effectiveLogo() === this.repairedLogo() && this.repairedLogo())
-            this.repairFailed.set(true);
-        else this.logoFailed.set(true);
+        this.logoFailed.set(true);
+        (event.target as HTMLImageElement | null)?.style.setProperty(
+            'display',
+            'none'
+        );
     }
 }

@@ -1,14 +1,4 @@
 {
-    "CHANNEL_LOGOS": {
-        "TITLE": "Logotipos de canales",
-        "DESCRIPTION": "Repara los logotipos de canales Xtream que faltan o no cargan mediante un catálogo público. Funciona mientras la aplicación de escritorio está abierta; las coincidencias ambiguas no se aplican.",
-        "ENABLE": "Buscar logotipos alternativos automáticamente",
-        "RUN": "Ejecutar ahora",
-        "COUNTS": "Reparados: {{repaired}} · Pendientes: {{pending}} · Sin coincidencia: {{unresolved}} · Fallidos: {{failed}}",
-        "RUNNING": "Procesando…",
-        "RETRY": "Algunos recursos no están disponibles. Se volverá a intentar automáticamente.",
-        "ERROR": "No se pudo actualizar el mantenimiento de logotipos. Inténtalo de nuevo."
-    },
     "TMDB_MATCH": {
         "SEARCH_TV": "Buscar series",
         "SEARCH_MOVIE": "Buscar películas",
