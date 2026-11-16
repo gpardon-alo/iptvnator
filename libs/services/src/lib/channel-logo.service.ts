@@ -32,6 +32,7 @@ export class ChannelLogoService {
     private readonly watches = new Map<string, LogoWatch>();
     private timer: ReturnType<typeof setInterval> | null = null;
     private flushing = false;
+    private generation = 0;
 
     constructor() {
         inject(DestroyRef).onDestroy(() => {
@@ -41,10 +42,23 @@ export class ChannelLogoService {
 
     async control(request: LogoControl): Promise<void> {
         if (!this.supported) return;
-        this.status.set(await this.bridge!.channelLogoControl!(request));
+        const generation =
+            request.action === 'status' ? this.generation : ++this.generation;
+        const status = await this.bridge!.channelLogoControl!(request);
+        if (generation !== this.generation) return;
+        this.status.set(status);
+        if (!status.enabled) this.clearFallbacks();
         if (request.action !== 'status') {
             for (const watch of this.watches.values()) watch.checked = 0;
             void this.flush();
+        }
+    }
+
+    private clearFallbacks(): void {
+        for (const watch of this.watches.values()) {
+            watch.url = '';
+            watch.hash = '';
+            for (const notify of watch.listeners) notify('');
         }
     }
 
@@ -98,16 +112,11 @@ export class ChannelLogoService {
     private async flush(): Promise<void> {
         if (this.flushing || !this.supported) return;
         this.flushing = true;
+        const generation = this.generation;
         try {
             await this.control({ action: 'status' });
-            if (!this.status()?.enabled) {
-                for (const watch of this.watches.values()) {
-                    watch.url = '';
-                    watch.hash = '';
-                    for (const notify of watch.listeners) notify('');
-                }
+            if (generation !== this.generation || !this.status()?.enabled)
                 return;
-            }
             const pending = [...this.watches.values()].filter(
                 (w) => w.listeners.size && Date.now() - w.checked >= 10_000
             );
@@ -119,6 +128,8 @@ export class ChannelLogoService {
                         knownHash: watch.hash || undefined,
                     }))
                 );
+                if (generation !== this.generation || !this.status()?.enabled)
+                    return;
                 for (const watch of batch) {
                     watch.checked = Date.now();
                     const result = results.find(

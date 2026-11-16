@@ -79,6 +79,32 @@ describe('desktop channel artwork fallback', () => {
         await settle();
         expect(result()).toBe('');
     });
+    it('discards a pending lookup that completes after disable', async () => {
+        let finish!: (results: unknown[]) => void;
+        lookup.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    finish = resolve;
+                })
+        );
+        const result = TestBed.runInInjectionContext(() =>
+            injectChannelLogoFallback(
+                () => ref,
+                () => true
+            )
+        );
+        TestBed.tick();
+        await settle();
+        expect(lookup).toHaveBeenCalledTimes(1);
+        control.mockResolvedValue({ enabled: false });
+        await TestBed.inject(ChannelLogoService).control({
+            action: 'enable',
+            enabled: false,
+        });
+        finish([{ ...ref, hash: 'a'.repeat(64), dataUrl }]);
+        await settle();
+        expect(result()).toBe('');
+    });
     it('does nothing in a browser without the specific logo capabilities', async () => {
         Object.defineProperty(window, 'electron', {
             configurable: true,

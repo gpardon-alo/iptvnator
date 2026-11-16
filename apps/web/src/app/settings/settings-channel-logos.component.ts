@@ -90,14 +90,15 @@ export class SettingsChannelLogosComponent {
 
     async command(request: LogoControl): Promise<void> {
         if (this.busy()) return;
-        this.busy.set(true);
+        const changesSettings = request.action !== 'status';
+        if (changesSettings) this.busy.set(true);
         this.failed.set(false);
         try {
             await this.logos.control(request);
         } catch {
             this.failed.set(true);
         } finally {
-            this.busy.set(false);
+            if (changesSettings) this.busy.set(false);
         }
     }
 }

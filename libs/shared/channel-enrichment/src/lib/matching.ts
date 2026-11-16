@@ -1,11 +1,13 @@
 import type { LogoCandidate } from '@iptvnator/shared/interfaces/channel-enrichment';
 
+const QUALITY_SUFFIX = /(?:\s+|\s*\|\s*)(?:uhd|fhd|hd|sd|4k)\s*$/i;
+
 /** Remove transport-quality suffixes, never regional names, digits or +1. */
 export function logoNameKey(name: string): string {
     return name
         .normalize('NFKC')
         .toLocaleLowerCase('en')
-        .replace(/(?:\s+|\s*\|\s*)(?:uhd|fhd|hd|sd|4k)\s*$/i, '')
+        .replace(QUALITY_SUFFIX, '')
         .replace(/[\s|]+/g, ' ')
         .trim();
 }
@@ -14,14 +16,15 @@ export function logoIdentity(
     title: string,
     country = ''
 ): { name: string; country: string } {
-    const prefix = /^\s*([A-Z]{2})\s*[|:]\s*(.+)$/i.exec(title);
-    const suffix = /^(.+?)\s*\|\s*([A-Z]{2})\s*$/i.exec(title);
+    const withoutQuality = title.replace(QUALITY_SUFFIX, '');
+    const prefix = /^\s*([A-Z]{2})\s*[|:]\s*(.+)$/i.exec(withoutQuality);
+    const suffix = /^(.+?)\s*\|\s*([A-Z]{2})\s*$/i.exec(withoutQuality);
     const hint = prefix?.[1] ?? suffix?.[2] ?? '';
     // Conflicting explicit evidence is unresolved, not guessed.
     if (country && hint && country.toUpperCase() !== hint.toUpperCase())
         return { name: '', country: '!' };
     return {
-        name: logoNameKey(prefix?.[2] ?? suffix?.[1] ?? title),
+        name: logoNameKey(prefix?.[2] ?? suffix?.[1] ?? withoutQuality),
         country: (country || hint).toUpperCase(),
     };
 }

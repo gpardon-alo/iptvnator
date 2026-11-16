@@ -44,6 +44,17 @@ describe('conservative channel logo identity', () => {
         expect(index.match('Provider title', 'Example.us')?.id).toBe(
             'Example.us'
         ));
+    it.each(['HD', 'SD', 'FHD', 'UHD', '4K'])(
+        'does not interpret terminal %s as a country',
+        (quality) => {
+            expect(
+                index.match(`Example News | ${quality}`, 'Example.us')?.id
+            ).toBe('Example.us');
+            expect(index.match(`US | Example News | ${quality}`, '')?.id).toBe(
+                'Example.us'
+            );
+        }
+    );
     it('normalizes quality and explicit country prefix', () =>
         expect(index.match('US | Example News HD', '')?.id).toBe('Example.us'));
     it('uses an alias and country suffix', () =>

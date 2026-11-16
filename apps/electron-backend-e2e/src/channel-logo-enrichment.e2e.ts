@@ -12,6 +12,7 @@ import {
     type LaunchedElectronApp,
 } from './electron-test-fixtures';
 import { navigateWithinWorkspace } from './workspace-route.e2e-support';
+import { readXtreamImportState } from './xtream-import-wait';
 
 test('repairs missing/broken live logos, deduplicates variants and retains the cache offline after restart @electron @persistence', async ({
     dataDir,
@@ -78,16 +79,36 @@ test('repairs missing/broken live logos, deduplicates variants and retains the c
         launchElectronApp(dataDir, { env: { IPTVNATOR_E2E_LOGO_ROOT: root } });
     try {
         desktop = await launch();
-        const page = desktop.mainWindow;
+        let page = desktop.mainWindow;
         await page.emulateMedia({ colorScheme: 'light' });
         await addXtreamPortal(page, {
             name: 'Synthetic logo source',
             contentTypes: ['live'],
         });
+        const importingSourceId = await page.evaluate(
+            async () =>
+                (await window.electron.dbGetAppPlaylists()).find(
+                    (s) => s.title === 'Synthetic logo source'
+                )!._id
+        );
+        // Provider import owns catalog replacement; seed only after its final write.
+        await expect
+            .poll(
+                async () =>
+                    (await readXtreamImportState(page, importingSourceId)).live
+            )
+            .toMatchObject({
+                status: 'completed',
+                hasCategories: true,
+                hasContent: true,
+            });
         const sourceId = await page.evaluate(async (root) => {
             const source = (await window.electron.dbGetAppPlaylists()).find(
                 (s) => s.title === 'Synthetic logo source'
             )!;
+            // The import APIs intentionally skip populated catalogs. Replace
+            // only this isolated fixture's live cache before writing its rows.
+            await window.electron.dbClearXtreamImportCache(source._id, 'live');
             await window.electron.dbSaveCategories(
                 source._id,
                 [
@@ -128,8 +149,23 @@ test('repairs missing/broken live logos, deduplicates variants and retains the c
                 ],
                 'live'
             );
+            await window.electron.dbSetAppState(
+                `xtream-import-status:${source._id}:live`,
+                'completed'
+            );
+            const saved = await window.electron.dbGetContentByXtreamId(
+                770001,
+                source._id,
+                'live'
+            );
+            if (!saved)
+                throw new Error('Synthetic logo fixture was not persisted');
             return source._id;
         }, root);
+        await closeElectronApp(desktop);
+        desktop = await launch();
+        page = desktop.mainWindow;
+        await page.emulateMedia({ colorScheme: 'light' });
         await navigateWithinWorkspace(page, '/workspace/settings/dictionary');
         const panel = page.getByTestId('channel-logo-settings');
         await expect(panel).toBeVisible();
@@ -155,12 +191,33 @@ test('repairs missing/broken live logos, deduplicates variants and retains the c
                             action: 'status',
                         })
                     ),
+                    snapshot: JSON.stringify(
+                        await page.evaluate(
+                            async (ref) => ({
+                                status: await window.electron
+                                    .channelLogoControl!({ action: 'status' }),
+                                content:
+                                    !!(await window.electron.dbGetContentByXtreamId(
+                                        ref.streamId,
+                                        ref.sourceId,
+                                        'live'
+                                    )),
+                            }),
+                            refs[0]
+                        )
+                    ),
                     downloads,
                     catalogs,
                 }),
                 { timeout: 45_000 }
             )
-            .toMatchObject({ resolved: 2, downloads: 1, catalogs: 2 });
+            .toMatchObject({
+                resolved: 2,
+                downloads: 1,
+                catalogs: 2,
+                status: { enabled: true, error: '' },
+                snapshot: expect.stringMatching(/"repaired":2/),
+            });
         expect(downloads).toBe(1);
         expect(catalogs).toBe(2);
         await navigateWithinWorkspace(page, '/workspace/discovery');
