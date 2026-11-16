@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { LogoCatalogUnavailableError } from './channel-logo-errors';
 import { setImmediate as yieldToMain } from 'node:timers/promises';
 import type {
     LogoJob,
@@ -73,6 +74,7 @@ export class ChannelLogoRunner {
         if (!status.enabled || this.stopped) return;
         if (!this.forceAudit && this.deps.now() < this.retryAt) return;
         const controller = new AbortController();
+        this.retryAt = 0;
         this.controller = controller;
         this.error = '';
         if (
@@ -112,7 +114,7 @@ export class ChannelLogoRunner {
                     state: result ? 'repaired' : 'unresolved',
                     ...result,
                 });
-            } catch {
+            } catch (error) {
                 if (controller.signal.aborted || this.stopped) return;
                 await this.deps.storage({
                     action: 'finish',
@@ -120,10 +122,12 @@ export class ChannelLogoRunner {
                     now: this.deps.now(),
                     state: 'failed',
                 });
-                // A catalog outage must not fan out into 25 failed downloads.
-                this.retryAt = this.deps.now() + 5 * 60_000;
-                this.error = 'catalog';
-                break;
+                if (error instanceof LogoCatalogUnavailableError) {
+                    // Only shared catalog failures pause unrelated channels.
+                    this.retryAt = this.deps.now() + 5 * 60_000;
+                    this.error = 'catalog';
+                    break;
+                }
             }
             await yieldToMain();
         }

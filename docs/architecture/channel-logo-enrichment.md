@@ -68,8 +68,9 @@ Maintenance is disabled by default. Once enabled:
   periodic persisted audits catch notifications missed without Discovery open.
 - Each process has one active run; two-minute persisted leases recover work after
   termination. A backward clock change cannot strand a far-future running lease.
-- Transient failures back off exponentially to one day. A remote failure also
-  backs off the run five minutes instead of cascading through the whole queue.
+- Individual image failures back off exponentially to one day without blocking
+  other channels. Catalog failures back off the run five minutes instead of
+  cascading through the whole queue.
 - Unresolved identities retry weekly; repaired images become due after 30 days.
 - Metadata changes invalidate the prior binding. Completion checks the current
   revision and lease, so late work cannot attach to replacement/deleted content.
@@ -102,8 +103,9 @@ Native decoding must succeed. Results are resized to at most 256 pixels and
 stored as PNGs no larger than 128 KiB, using atomic writes and SHA-256 filenames.
 
 The cache sits beside the active profile's database in `channel-logos/`.
-Thumbnail hash checks reject corruption and path traversal. Pruning runs at most
-hourly after a successful download and retains up to 1000 thumbnails/128 MB.
+Thumbnail hash checks reject corruption and path traversal. The cache inventory
+is refreshed hourly; managed writes update it immediately and enforce the
+1000-thumbnail/128 MB limits after every download.
 Renderer subscriptions retain at most 500 references, batch up to 50 lookups,
 and poll every 15 seconds while subscribed. Known hashes avoid resending image
 bytes; unchanged references and a per-process URL cache avoid duplicate downloads.

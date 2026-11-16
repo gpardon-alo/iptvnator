@@ -53,9 +53,13 @@ export function boundedLogoDimensions(bytes: Buffer): boolean {
 export class ChannelLogoImages {
     private readonly checked = new Map<string, { hash: string; at: number }>();
     private lastPrune = 0;
+    private inventory: Map<string, { size: number; time: number }> | null =
+        null;
+    private cacheBytes = 0;
     constructor(private readonly root: string) {}
 
     async download(url: string, signal: AbortSignal): Promise<string> {
+        if (this.overBudget()) await this.prune();
         const cached = this.checked.get(url);
         if (cached && Date.now() - cached.at < 30 * 86_400_000) {
             try {
@@ -91,6 +95,11 @@ export class ChannelLogoImages {
         } finally {
             await unlink(temporary).catch(() => undefined);
         }
+        if (this.inventory) {
+            this.cacheBytes +=
+                png.length - (this.inventory.get(file)?.size ?? 0);
+            this.inventory.set(file, { size: png.length, time: Date.now() });
+        }
         this.checked.set(url, { hash, at: Date.now() });
         if (this.checked.size > 500)
             this.checked.delete(this.checked.keys().next().value!);
@@ -107,28 +116,50 @@ export class ChannelLogoImages {
         const bytes = await readFile(file);
         if (createHash('sha256').update(bytes).digest('hex') !== hash)
             throw new Error('Invalid cached logo');
+        const entry = this.inventory?.get(file);
+        if (entry) entry.time = Date.now();
         // A recently used logo survives eviction; avoid writes on every lookup.
         if (Date.now() - info.mtimeMs > 86_400_000)
             await utimes(file, new Date(), new Date());
         return bytes;
     }
 
+    private overBudget(): boolean {
+        return (
+            (this.inventory?.size ?? 0) > 1000 || this.cacheBytes > 128_000_000
+        );
+    }
+
     private async prune(): Promise<void> {
-        if (Date.now() - this.lastPrune < 3_600_000) return;
-        this.lastPrune = Date.now();
-        const files: { path: string; size: number; time: number }[] = [];
-        for (const name of await readdir(this.root)) {
-            if (!/^[a-f0-9]{64}\.png$/.test(name)) continue;
-            const path = join(this.root, name);
-            const info = await stat(path).catch(() => null);
-            if (info) files.push({ path, size: info.size, time: info.mtimeMs });
+        // Inventory I/O is hourly; managed writes update the budget immediately.
+        if (!this.inventory || Date.now() - this.lastPrune >= 3_600_000) {
+            this.lastPrune = Date.now();
+            this.inventory = new Map();
+            this.cacheBytes = 0;
+            for (const name of await readdir(this.root)) {
+                if (!/^[a-f0-9]{64}\.png$/.test(name)) continue;
+                const path = join(this.root, name);
+                const info = await stat(path).catch(() => null);
+                if (info) {
+                    this.inventory.set(path, {
+                        size: info.size,
+                        time: info.mtimeMs,
+                    });
+                    this.cacheBytes += info.size;
+                }
+            }
         }
-        files.sort((a, b) => b.time - a.time);
-        let bytes = 0;
-        for (let i = 0; i < files.length; i++) {
-            bytes += files[i].size;
-            if (i >= 1000 || bytes > 128_000_000)
-                await unlink(files[i].path).catch(() => undefined);
+        if (!this.overBudget()) return;
+        const oldest = [...this.inventory].sort(
+            (a, b) => a[1].time - b[1].time
+        );
+        for (const [path, info] of oldest) {
+            if (!this.overBudget()) break;
+            await unlink(path).catch((error: NodeJS.ErrnoException) => {
+                if (error.code !== 'ENOENT') throw error;
+            });
+            this.inventory.delete(path);
+            this.cacheBytes -= info.size;
         }
     }
 }

@@ -8,6 +8,7 @@ import {
     type LogoCandidate,
 } from '@iptvnator/shared/channel-enrichment';
 import { requestWithValidatedRedirects } from '../util/validated-axios';
+import { LogoCatalogUnavailableError } from './channel-logo-errors';
 
 export interface LogoCatalogChannel {
     id: string;
@@ -175,7 +176,7 @@ export class ChannelLogoCatalog {
                 await rename(temp, file);
             } catch {
                 if (signal.aborted || !snapshot)
-                    throw new Error('Logo catalog unavailable');
+                    throw new LogoCatalogUnavailableError();
                 // Use a valid prior snapshot offline, without retrying on every job.
                 this.retryAt = Date.now() + LOGO_DAY;
             }

@@ -3,7 +3,7 @@ import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { TranslateModule } from '@ngx-translate/core';
-import { SettingsStore } from '@iptvnator/services';
+import { SettingsStore, ChannelLogoService } from '@iptvnator/services';
 import { EpgProgram } from '@iptvnator/shared/interfaces';
 import { EpgProgrammeDialogService } from '@iptvnator/ui/epg';
 import { ChannelListItemComponent } from './channel-list-item.component';
@@ -11,6 +11,7 @@ import { ChannelListItemComponent } from './channel-list-item.component';
 describe('ChannelListItemComponent', () => {
     let fixture: ComponentFixture<ChannelListItemComponent>;
     let programmeDialog: { open: jest.Mock };
+    let replacement: (url: string) => void;
 
     beforeEach(async () => {
         programmeDialog = {
@@ -25,6 +26,18 @@ describe('ChannelListItemComponent', () => {
             ],
             providers: [
                 {
+                    provide: ChannelLogoService,
+                    useValue: {
+                        watch: (
+                            _ref: unknown,
+                            notify: (url: string) => void
+                        ) => {
+                            replacement = notify;
+                            return () => undefined;
+                        },
+                    },
+                },
+                {
                     provide: EpgProgrammeDialogService,
                     useValue: programmeDialog,
                 },
@@ -32,6 +45,27 @@ describe('ChannelListItemComponent', () => {
         }).compileComponents();
 
         fixture = TestBed.createComponent(ChannelListItemComponent);
+    });
+
+    it('tries a later repair after the previous replacement image failed', () => {
+        fixture.componentRef.setInput('logoRef', {
+            sourceId: 'fixture-source',
+            streamId: 1,
+        });
+        fixture.detectChanges();
+        TestBed.tick();
+        replacement('data:image/png;base64,Zmlyc3Q=');
+        fixture.detectChanges();
+        fixture.nativeElement
+            .querySelector('img')
+            .dispatchEvent(new Event('error'));
+        fixture.detectChanges();
+        expect(fixture.nativeElement.querySelector('img')).toBeNull();
+        replacement('data:image/png;base64,c2Vjb25k');
+        fixture.detectChanges();
+        expect(
+            fixture.nativeElement.querySelector('img')?.getAttribute('src')
+        ).toBe('data:image/png;base64,c2Vjb25k');
     });
 
     it('exposes a separate keyboard activation button without nesting row actions', () => {

@@ -1,3 +1,4 @@
+import { LogoCatalogUnavailableError } from './channel-logo-errors';
 import {
     ChannelLogoRunner,
     type LogoRunnerDependencies,
@@ -90,7 +91,7 @@ describe('desktop logo maintenance scheduler', () => {
     });
     it('backs off an upstream failure instead of failing every queued channel', async () => {
         const { runner, storage, resolve } = setup();
-        resolve.mockRejectedValue(new Error('Synthetic remote failure'));
+        resolve.mockRejectedValue(new LogoCatalogUnavailableError());
         await runner.run();
         await runner.run();
         expect(resolve).toHaveBeenCalledTimes(1);
@@ -105,6 +106,26 @@ describe('desktop logo maintenance scheduler', () => {
         await runner.run();
         expect(storage).toHaveBeenCalledWith(
             expect.objectContaining({ action: 'finish', state: 'unresolved' })
+        );
+    });
+    it('continues other channels after an individual image fails', async () => {
+        const { runner, storage, resolve } = setup();
+        const jobs = [job, { ...job, streamId: 2 }];
+        storage.mockImplementation(async (request) => {
+            if (request.action === 'status') return status;
+            if (request.action === 'audit') return 0;
+            if (request.action === 'claim') return jobs.shift() ?? null;
+            return null;
+        });
+        resolve.mockRejectedValueOnce(new Error('Synthetic image 404'));
+        await runner.run();
+        expect(resolve).toHaveBeenCalledTimes(2);
+        expect(storage).toHaveBeenCalledWith(
+            expect.objectContaining({
+                action: 'finish',
+                state: 'repaired',
+                job: expect.objectContaining({ streamId: 2 }),
+            })
         );
     });
     it('does no work when disabled', async () => {

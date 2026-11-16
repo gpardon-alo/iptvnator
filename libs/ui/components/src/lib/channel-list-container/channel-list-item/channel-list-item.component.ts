@@ -7,6 +7,7 @@ import {
     effect,
     inject,
     input,
+    linkedSignal,
     output,
     signal,
 } from '@angular/core';
@@ -51,7 +52,10 @@ export class ChannelListItemComponent {
     readonly effectiveLogo = computed(() =>
         this.logoFailed() || !this.logo() ? this.repairedLogo() : this.logo()
     );
-    private readonly repairFailed = signal(false);
+    private readonly repairFailed = linkedSignal({
+        source: this.repairedLogo,
+        computation: () => false,
+    });
     readonly name = input('');
     readonly disabled = input(false);
     readonly statusLabel = input('');
