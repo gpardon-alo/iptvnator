@@ -161,7 +161,7 @@ export class LiveStreamLayoutComponent
     private readonly route = inject(ActivatedRoute);
     private readonly router = inject(Router);
     private readonly favoritesService = inject(FavoritesService);
-    private readonly xtreamStore = inject(XtreamStore);
+    protected readonly xtreamStore = inject(XtreamStore);
     private readonly recordRecentItem = injectXtreamRecentHistory();
     readonly archiveContextKey = computed(() =>
         JSON.stringify([

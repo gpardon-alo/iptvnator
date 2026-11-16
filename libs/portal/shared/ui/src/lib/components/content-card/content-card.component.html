@@ -13,9 +13,9 @@
         (keydown.space)="onCardKey($event)"
     >
         <div class="thumbnail-wrapper">
-            @if (posterUrl() && !artworkFailed()) {
+            @if (effectivePoster() && !artworkMissing()) {
                 <img
-                    [src]="posterUrl()"
+                    [src]="effectivePoster()"
                     [alt]="title()"
                     (error)="onImageError()"
                     class="poster"

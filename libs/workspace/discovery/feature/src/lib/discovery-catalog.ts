@@ -34,6 +34,7 @@ export interface DemoSource {
     facets?: DiscoveryFacets;
 }
 export interface DiscoveryFacets {
+    logoRef?: import('@iptvnator/shared/channel-enrichment').LogoLookup;
     country: string;
     state?: string;
     location: string;

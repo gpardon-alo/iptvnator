@@ -1,5 +1,5 @@
 import {
-    DB_WORKER_OPERATIONS,
+    DB_RENDERER_WORKER_OPERATIONS as DB_WORKER_OPERATIONS,
     DbOperationEvent,
 } from '../../workers/database-worker.types';
 import {

@@ -22,10 +22,10 @@
             @if (showLogoFallback()) {
                 <mat-icon class="channel-logo-fallback">live_tv</mat-icon>
             }
-            @if (logo()) {
+            @if (effectiveLogo() && !showLogoFallback()) {
                 <img
                     class="channel-logo"
-                    [src]="logo()"
+                    [src]="effectiveLogo()"
                     (error)="onLogoError($event)"
                     alt=""
                 />

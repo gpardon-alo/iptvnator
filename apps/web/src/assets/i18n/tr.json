@@ -1,4 +1,14 @@
 {
+    "CHANNEL_LOGOS": {
+        "TITLE": "Kanal logoları",
+        "DESCRIPTION": "Eksik veya yüklenemeyen Xtream kanal logolarını herkese açık bir katalog kullanarak düzeltir. Masaüstü uygulaması açıkken çalışır; belirsiz eşleşmeler uygulanmaz.",
+        "ENABLE": "Alternatif logoları otomatik bul",
+        "RUN": "Şimdi çalıştır",
+        "COUNTS": "Düzeltildi: {{repaired}} · Bekleyen: {{pending}} · Eşleşmeyen: {{unresolved}} · Başarısız: {{failed}}",
+        "RUNNING": "İşleniyor…",
+        "RETRY": "Bazı kaynaklara ulaşılamıyor. Otomatik olarak yeniden denenecek.",
+        "ERROR": "Logo bakımı güncellenemedi. Yeniden deneyin."
+    },
     "TMDB_MATCH": {
         "SEARCH_TV": "Dizi ara",
         "SEARCH_MOVIE": "Film ara",

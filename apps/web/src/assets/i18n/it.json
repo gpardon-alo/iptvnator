@@ -1,4 +1,14 @@
 {
+    "CHANNEL_LOGOS": {
+        "TITLE": "Loghi dei canali",
+        "DESCRIPTION": "Ripara i loghi dei canali Xtream mancanti o non funzionanti usando un catalogo pubblico. Funziona quando l’app desktop è aperta; le corrispondenze ambigue non vengono applicate.",
+        "ENABLE": "Cerca automaticamente loghi alternativi",
+        "RUN": "Esegui ora",
+        "COUNTS": "Riparati: {{repaired}} · In attesa: {{pending}} · Non risolti: {{unresolved}} · Non riusciti: {{failed}}",
+        "RUNNING": "Elaborazione in corso…",
+        "RETRY": "Alcune risorse non sono disponibili. Il tentativo verrà ripetuto automaticamente.",
+        "ERROR": "Impossibile aggiornare la manutenzione dei loghi. Riprova."
+    },
     "TMDB_MATCH": {
         "SEARCH_TV": "Cerca serie",
         "SEARCH_MOVIE": "Cerca film",

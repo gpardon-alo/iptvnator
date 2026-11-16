@@ -26,6 +26,11 @@ export function groupDiscoveryChannels(
         const state = discoveryState(row);
         const stateName = STATES.find((s) => s.id === state)?.name;
         const facets = {
+            logoRef: {
+                sourceId: row.provider.source_id,
+                streamId: row.provider.stream_id,
+                country: row.country || undefined,
+            },
             country: row.country,
             state: state || undefined,
             category: row.category || 'unclassified',

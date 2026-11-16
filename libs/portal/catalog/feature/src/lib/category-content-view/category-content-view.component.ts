@@ -92,6 +92,11 @@ export class CategoryContentViewComponent implements OnInit, OnDestroy {
         CategoryContentItem,
         CategoryContentItem
     >;
+    readonly logoSourceId = computed(() =>
+        this.catalog.provider === 'xtream'
+            ? (this.catalog.playlist()?.id ?? '')
+            : ''
+    );
 
     private readonly stalkerHandoff = createStalkerCatalogHandoff(
         this.catalog,

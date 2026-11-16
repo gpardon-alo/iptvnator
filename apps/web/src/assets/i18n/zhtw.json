@@ -1,4 +1,14 @@
 {
+    "CHANNEL_LOGOS": {
+        "TITLE": "頻道標誌",
+        "DESCRIPTION": "透過公開頻道目錄修復遺失或無法載入的 Xtream 頻道標誌。在桌面應用程式開啟時執行；不會套用不確定的配對。",
+        "ENABLE": "自動尋找替代標誌",
+        "RUN": "立即執行",
+        "COUNTS": "已修復：{{repaired}} · 待處理：{{pending}} · 未配對：{{unresolved}} · 失敗：{{failed}}",
+        "RUNNING": "處理中…",
+        "RETRY": "部分資源無法使用，稍後將自動重試。",
+        "ERROR": "無法更新標誌維護設定，請重試。"
+    },
     "TMDB_MATCH": {
         "SEARCH_TV": "搜尋影集",
         "SEARCH_MOVIE": "搜尋電影",

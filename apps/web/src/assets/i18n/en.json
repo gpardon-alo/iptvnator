@@ -1,4 +1,14 @@
 {
+    "CHANNEL_LOGOS": {
+        "TITLE": "Channel logos",
+        "DESCRIPTION": "Repair missing or broken Xtream channel logos using a public channel catalog. Runs while the desktop app is open; ambiguous matches stay unchanged.",
+        "ENABLE": "Find replacement logos automatically",
+        "RUN": "Run now",
+        "COUNTS": "Repaired: {{repaired}} · Pending: {{pending}} · Unresolved: {{unresolved}} · Failed: {{failed}}",
+        "RUNNING": "Working…",
+        "RETRY": "Some resources are unavailable. Maintenance will retry automatically.",
+        "ERROR": "Could not update logo maintenance. Try again."
+    },
     "TMDB_MATCH": {
         "SEARCH_TV": "Search series",
         "SEARCH_MOVIE": "Search movies",

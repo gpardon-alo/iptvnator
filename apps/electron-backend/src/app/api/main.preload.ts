@@ -1,4 +1,7 @@
-import { HOSTED_SERVER_ACCESS_CODE, HOSTED_SERVER_CONTROL } from '@iptvnator/shared/interfaces';
+import {
+    HOSTED_SERVER_ACCESS_CODE,
+    HOSTED_SERVER_CONTROL,
+} from '@iptvnator/shared/interfaces';
 import { createAppMenuListener } from './app-menu-listener';
 import type {
     ElectronBridgeFavoriteReorderUpdate,
@@ -313,13 +316,18 @@ const electronApi: ElectronBridgeApi = {
     },
     historyLocalRequest: (request) =>
         ipcRenderer.invoke('DB_HISTORY_LOCAL', request),
+    channelLogoControl: (request) =>
+        ipcRenderer.invoke('CHANNEL_LOGOS_CONTROL', request),
+    channelLogoLookup: (refs) =>
+        ipcRenderer.invoke('CHANNEL_LOGOS_LOOKUP', refs),
     favoritesLocalRequest: (request) =>
         ipcRenderer.invoke('DB_FAVORITES_LOCAL', request),
     activityLocalRequest: (request) =>
         ipcRenderer.invoke('DB_ACTIVITY_LOCAL', request),
     sourceSyncRequest: (request) =>
         ipcRenderer.invoke(SOURCE_SYNC_REQUEST, request),
-    hostedServerControl: (command) => ipcRenderer.invoke(HOSTED_SERVER_CONTROL, command),
+    hostedServerControl: (command) =>
+        ipcRenderer.invoke(HOSTED_SERVER_CONTROL, command),
     hostedServerAccessCode: () => ipcRenderer.invoke(HOSTED_SERVER_ACCESS_CODE),
     sourceSyncConfigure: (url, token, restart) =>
         ipcRenderer.invoke(SOURCE_SYNC_CONFIGURE, url, token, restart),

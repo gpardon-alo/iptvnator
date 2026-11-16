@@ -16,7 +16,8 @@ import { MatTooltip } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 import { EpgProgrammeDialogService, getProgramTimeMs } from '@iptvnator/ui/epg';
 import { EpgProgram } from '@iptvnator/shared/interfaces';
-import { SettingsStore } from '@iptvnator/services';
+import { SettingsStore, injectChannelLogoFallback } from '@iptvnator/services';
+import type { LogoLookup } from '@iptvnator/shared/channel-enrichment';
 import { applyChannelNameStrip } from '@iptvnator/shared/m3u-utils';
 
 @Component({
@@ -42,6 +43,15 @@ export class ChannelListItemComponent {
 
     readonly isDraggable = input(false);
     readonly logo = input<string | null | undefined>('');
+    readonly logoRef = input<LogoLookup>();
+    private readonly repairedLogo = injectChannelLogoFallback(
+        this.logoRef,
+        () => !this.logo() || this.logoFailed()
+    );
+    readonly effectiveLogo = computed(() =>
+        this.logoFailed() || !this.logo() ? this.repairedLogo() : this.logo()
+    );
+    private readonly repairFailed = signal(false);
     readonly name = input('');
     readonly disabled = input(false);
     readonly statusLabel = input('');
@@ -87,6 +97,7 @@ export class ChannelListItemComponent {
         effect(() => {
             this.logo();
             this.logoFailed.set(false);
+            this.repairFailed.set(false);
         });
     }
 
@@ -155,14 +166,13 @@ export class ChannelListItemComponent {
     }
 
     showLogoFallback(): boolean {
-        return !this.logo() || this.logoFailed();
+        return !this.effectiveLogo() || this.repairFailed();
     }
 
     onLogoError(event: Event): void {
-        this.logoFailed.set(true);
-        (event.target as HTMLImageElement | null)?.style.setProperty(
-            'display',
-            'none'
-        );
+        void event;
+        if (this.effectiveLogo() === this.repairedLogo() && this.repairedLogo())
+            this.repairFailed.set(true);
+        else this.logoFailed.set(true);
     }
 }

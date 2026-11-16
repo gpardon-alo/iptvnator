@@ -1,4 +1,14 @@
 {
+    "CHANNEL_LOGOS": {
+        "TITLE": "Logos des chaînes",
+        "DESCRIPTION": "Répare les logos des chaînes Xtream absents ou défectueux à partir d’un catalogue public. Fonctionne tant que l’application de bureau est ouverte ; les correspondances ambiguës restent inchangées.",
+        "ENABLE": "Rechercher automatiquement des logos de remplacement",
+        "RUN": "Exécuter maintenant",
+        "COUNTS": "Réparés : {{repaired}} · En attente : {{pending}} · Non résolus : {{unresolved}} · Échecs : {{failed}}",
+        "RUNNING": "Traitement en cours…",
+        "RETRY": "Certaines ressources sont indisponibles. Une nouvelle tentative sera effectuée automatiquement.",
+        "ERROR": "Impossible de mettre à jour la maintenance des logos. Réessayez."
+    },
     "TMDB_MATCH": {
         "SEARCH_TV": "Rechercher des séries",
         "SEARCH_MOVIE": "Rechercher des films",

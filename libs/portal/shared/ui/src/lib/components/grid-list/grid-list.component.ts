@@ -23,7 +23,7 @@ import {
     getXtreamCatchupDays,
     isXtreamCatchupAvailable,
 } from '@iptvnator/portal/shared/util';
-import { SettingsStore } from '@iptvnator/services';
+import { SettingsStore, injectChannelLogoMap } from '@iptvnator/services';
 import {
     ProgressCapsuleComponent,
     WatchedBadgeComponent,
@@ -126,6 +126,26 @@ export class GridListComponent {
     readonly continueLoading = output<void>();
     readonly clearRefinement = output<void>();
     readonly items = input<GridListItem[]>([]);
+    readonly logoSourceId = input('');
+    private readonly repairedLogos = injectChannelLogoMap(() => {
+        const sourceId = this.logoSourceId();
+        if (!sourceId || this.type() !== 'live') return [];
+        return this.gridWindow
+            .rendered()
+            .filter((item: GridListItem) => {
+                const poster = this.providerPoster(item);
+                const streamId = Number(item.xtream_id ?? item.stream_id);
+                return (
+                    (!poster || this.hasArtworkFailed(poster)) &&
+                    Number.isSafeInteger(streamId) &&
+                    streamId > 0
+                );
+            })
+            .map((item) => ({
+                sourceId,
+                streamId: Number(item.xtream_id ?? item.stream_id),
+            }));
+    });
     readonly isLoading = input<boolean>(false);
     readonly showEpg = input(false);
     readonly epgLoading = input(false);
@@ -157,12 +177,24 @@ export class GridListComponent {
         formatGridRating(item.rating_imdb)
             ? 'XTREAM.IMDB_RATING'
             : 'XTREAM.RATING';
-    protected readonly resolvePoster = (
+    private readonly providerPoster = (
         item: GridListItem
     ): string | undefined =>
         normalizeArtworkUrl(item.poster_url) ??
         normalizeArtworkUrl(item.cover) ??
         normalizeArtworkUrl(item.stream_icon);
+    protected readonly resolvePoster = (
+        item: GridListItem
+    ): string | undefined => {
+        const poster = this.providerPoster(item);
+        if (this.type() !== 'live' || !this.logoSourceId()) return poster;
+        if (poster && !this.hasArtworkFailed(poster)) return poster;
+        return (
+            this.repairedLogos().get(
+                Number(item.xtream_id ?? item.stream_id)
+            ) || poster
+        );
+    };
     protected readonly hasActiveSearch = computed(
         () => (this.searchTerm() ?? '').trim().length > 0
     );
@@ -258,16 +290,13 @@ export class GridListComponent {
      * overlay can pin the title, since a default poster identifies nothing.
      */
     protected onImageError(event: Event, poster: string): void {
+        void event;
         this.failedArtworkUrls.update((failedUrls) => {
             const nextFailedUrls = new Set(failedUrls);
             nextFailedUrls.add(poster);
 
             return nextFailedUrls;
         });
-        (event.target as HTMLImageElement | null)?.style.setProperty(
-            'display',
-            'none'
-        );
     }
 
     private usesArtworkPlaceholder(): boolean {

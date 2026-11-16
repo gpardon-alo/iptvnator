@@ -1,4 +1,14 @@
 {
+    "CHANNEL_LOGOS": {
+        "TITLE": "Csatornalogók",
+        "DESCRIPTION": "Hiányzó vagy hibás Xtream-csatornalogók javítása nyilvános csatornakatalógussal. A funkció a megnyitott asztali alkalmazásban működik; a bizonytalan egyezéseket nem alkalmazza.",
+        "ENABLE": "Helyettesítő logók automatikus keresése",
+        "RUN": "Futtatás most",
+        "COUNTS": "Javítva: {{repaired}} · Függőben: {{pending}} · Nincs egyezés: {{unresolved}} · Sikertelen: {{failed}}",
+        "RUNNING": "Folyamatban…",
+        "RETRY": "Egyes erőforrások nem érhetők el. A rendszer automatikusan újrapróbálja.",
+        "ERROR": "A logók karbantartása nem frissíthető. Próbálja újra."
+    },
     "TMDB_MATCH": {
         "SEARCH_TV": "Sorozatok keresése",
         "SEARCH_MOVIE": "Filmek keresése",

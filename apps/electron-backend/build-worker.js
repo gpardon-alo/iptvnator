@@ -114,6 +114,11 @@ async function buildWorker() {
                 sourcemap: isPerformance || !isProduction,
                 minify: isProduction || isPerformance,
                 alias: {
+                    '@iptvnator/shared/interfaces/channel-enrichment':
+                        path.join(
+                            __dirname,
+                            '../../libs/shared/interfaces/src/lib/channel-enrichment.interface.ts'
+                        ),
                     '@iptvnator/shared/interfaces/history-sync': path.join(
                         __dirname,
                         '../../libs/shared/interfaces/src/history-sync.ts'

@@ -1191,6 +1191,10 @@ These remain intentionally out of scope:
 
 ## Extending The Worker
 
+`DB_CHANNEL_LOGOS` is a main-only worker operation for the additive logo-repair
+queue. The renderer uses narrow validated control/lookup IPC instead of a raw
+storage bridge. See [channel logo enrichment](channel-logo-enrichment.md).
+
 When adding another heavy SQLite operation:
 
 1. Put SQL-heavy logic in `apps/electron-backend/src/app/database/operations/`.

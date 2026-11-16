@@ -41,3 +41,4 @@ export * from './lib/server-storage-status.service';
 export * from './lib/server-access-token';
 export * from './lib/server-slow-start';
 export * from './lib/browser-xtream-refresh';
+export * from './lib/channel-logo.service';
