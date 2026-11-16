@@ -73,8 +73,11 @@ Maintenance is disabled by default. Once enabled:
 - Unresolved identities retry weekly; repaired images become due after 30 days.
 - Metadata changes invalidate the prior binding. Completion checks the current
   revision and lease, so late work cannot attach to replacement/deleted content.
+- Audits retain previously supplied Discovery country evidence when they have
+  no new country hint. Explicit updated evidence replaces the old value.
 - Disable aborts network work and hides renderer fallbacks, retaining the cache
-  and queue. Closing the app stops work; nothing runs while it is closed.
+  and queue, and releases running leases for the next enabled cycle. Closing
+  the app stops work; nothing runs while it is closed.
 
 An audit is a bounded periodic reconciliation, not a dependency on a renderer
 event alone. The persisted last-audit timestamp and durable jobs support restart

@@ -104,6 +104,17 @@ assert.equal(
     'a'.repeat(64)
 );
 // New provider metadata invalidates the old repair; late completion cannot restore it.
+run({ action: 'lookup', refs: [{ ...ref, country: 'US' }], now: 123001 });
+db.prepare("UPDATE content SET title='Example News HD' WHERE id=1").run();
+audit();
+const countryPreserved =
+    (
+        db
+            .prepare(
+                'SELECT country FROM channel_logo_jobs WHERE sourceId=? AND streamId=?'
+            )
+            .get(ref.sourceId, ref.streamId) as { country: string }
+    ).country === 'US';
 db.prepare("UPDATE content SET title='CA | Example News HD' WHERE id=1").run();
 audit();
 assert.deepEqual(run({ action: 'lookup', refs: [ref], now: 124000 }), []);
@@ -129,6 +140,8 @@ assert.equal(
 );
 assert.deepEqual(run({ action: 'lookup', refs: [ref], now: 124000 }), []);
 run({ action: 'enable', enabled: true });
+const resumedImmediately =
+    run({ action: 'claim', now: 124002, lease: 'resumed' }) !== null;
 db.prepare('DELETE FROM content').run();
 audit();
 assert.equal(
@@ -173,5 +186,17 @@ assert.equal(
 );
 db.prepare(`UPDATE playlists SET payload='{"xtreamContentTypes":[]}'`).run();
 assert.deepEqual(run({ action: 'lookup', refs: [ref], now: 201_000 }), []);
+if (process.argv[2] === 'country')
+    assert.equal(
+        countryPreserved,
+        true,
+        'audit retains Discovery country evidence'
+    );
+if (process.argv[2] === 'resume')
+    assert.equal(
+        resumedImmediately,
+        true,
+        're-enable releases cancelled job lease immediately'
+    );
 db.close();
 process.stdout.write('logo storage verified');

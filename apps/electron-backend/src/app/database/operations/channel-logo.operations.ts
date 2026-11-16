@@ -82,7 +82,8 @@ function enqueue(db: Database.Database, row: SourceRow, country = ''): void {
         `INSERT INTO channel_logo_jobs(sourceId,streamId,revision,title,epgId,country)
         VALUES(?,?,?,?,?,?) ON CONFLICT(sourceId,streamId) DO UPDATE SET
         revision=excluded.revision,title=excluded.title,epgId=excluded.epgId,
-        country=excluded.country,state='pending',due=0,attempts=0,lease='',hash='',canonicalId=''
+        country=CASE WHEN excluded.country='' THEN channel_logo_jobs.country ELSE excluded.country END,
+        state='pending',due=0,attempts=0,lease='',hash='',canonicalId=''
         WHERE revision!=excluded.revision OR (excluded.country!='' AND country!=excluded.country)`
     ).run(
         row.sourceId,
@@ -103,9 +104,17 @@ export function channelLogoOperation(
         .prepare('SELECT * FROM channel_logo_settings WHERE id=1')
         .get() as { enabled: number; last_audit: number };
     if (request.action === 'enable') {
-        db.prepare('UPDATE channel_logo_settings SET enabled=? WHERE id=1').run(
-            Number(request.enabled)
-        );
+        db.transaction(() => {
+            db.prepare(
+                'UPDATE channel_logo_settings SET enabled=? WHERE id=1'
+            ).run(Number(request.enabled));
+            if (!request.enabled) {
+                // Normal cancellation releases ownership; only crashes wait for lease expiry.
+                db.prepare(
+                    "UPDATE channel_logo_jobs SET state='pending',due=0,lease='' WHERE state='running'"
+                ).run();
+            }
+        })();
         return null;
     }
     if (request.action === 'status') {
