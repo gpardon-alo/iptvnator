@@ -82,6 +82,15 @@ assert.equal(
     }),
     true
 );
+if (process.argv[2] === 'retry') {
+    const monthly = run({
+        action: 'claim',
+        now: 122001 + 30 * 24 * 60 * 60 * 1000,
+        lease: 'monthly',
+    }) as LogoJob;
+    assert.equal(monthly.attempts, 1, 'successful repairs reset the failure streak');
+    run({ action: 'finish', job: monthly, now: 123000, state: 'repaired' });
+}
 const lookup = run({ action: 'lookup', refs: [ref], now: 123000 }) as {
     hash: string;
 }[];

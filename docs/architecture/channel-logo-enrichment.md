@@ -69,7 +69,8 @@ Maintenance is disabled by default. Once enabled:
 - Each process has one active run; two-minute persisted leases recover work after
   termination. A backward clock change cannot strand a far-future running lease.
 - Individual image failures back off exponentially to one day without blocking
-  other channels. Catalog failures back off the run five minutes instead of
+  other channels. A successful repair resets the failure streak. Catalog
+  failures back off the run five minutes instead of
   cascading through the whole queue.
 - Unresolved identities retry weekly; repaired images become due after 30 days.
 - Metadata changes invalidate the prior binding. Completion checks the current

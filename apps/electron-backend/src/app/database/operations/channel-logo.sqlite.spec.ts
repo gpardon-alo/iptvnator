@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-it.each(['country', 'resume', 'refresh', 'artwork'])(
+it.each(['country', 'resume', 'refresh', 'artwork', 'retry'])(
     'preserves historical SQLite and logo job %s state across restart and catalog replacement',
     (scenario) => {
         const dataDir = mkdtempSync(join(tmpdir(), 'iptvnator-logo-test-'));

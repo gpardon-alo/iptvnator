@@ -225,7 +225,7 @@ export function channelLogoOperation(
     if (!row || revision(row) !== job.revision) return false;
     const result = db
         .prepare(
-            `UPDATE channel_logo_jobs SET state=?,due=?,lease='',hash=?,canonicalId=?
+            `UPDATE channel_logo_jobs SET state=?,due=?,lease='',hash=?,canonicalId=?,attempts=?
         WHERE sourceId=? AND streamId=? AND revision=? AND lease=?`
         )
         .run(
@@ -233,6 +233,7 @@ export function channelLogoOperation(
             request.now + logoRetryDelay(request.state, job.attempts),
             request.hash ?? job.hash,
             request.canonicalId ?? '',
+            request.state === 'repaired' ? 0 : job.attempts,
             job.sourceId,
             job.streamId,
             job.revision,
