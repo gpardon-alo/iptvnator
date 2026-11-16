@@ -2,7 +2,11 @@ import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { StreamResolverService } from '@iptvnator/portal/shared/data-access';
 import { classifyDiscoveryStream } from '@iptvnator/portal/shared/util';
-import { EpgPreferencesService, SettingsStore } from '@iptvnator/services';
+import {
+    ChannelIssuesService,
+    EpgPreferencesService,
+    SettingsStore,
+} from '@iptvnator/services';
 import { EpgItem } from '@iptvnator/shared/interfaces';
 import { DiscoveryGuideSession } from './discovery-guide-session';
 
@@ -29,6 +33,7 @@ describe('Discovery selected-channel guide', () => {
     let session: DiscoveryGuideSession;
     let preferences: EpgPreferencesService;
     beforeEach(() => {
+        localStorage.clear();
         resolver = { loadEpgItems: jest.fn().mockResolvedValue([program]) };
         TestBed.configureTestingModule({
             providers: [
@@ -102,5 +107,26 @@ describe('Discovery selected-channel guide', () => {
         await session.load(row);
         expect(session.failed()).toBe(false);
         expect(session.programs()).toHaveLength(1);
+    });
+    it('records completed empty/failed guide observations and clears them when data returns', async () => {
+        const issues = TestBed.inject(ChannelIssuesService);
+        resolver.loadEpgItems.mockResolvedValueOnce([]);
+        await session.load(row, 'example.test');
+        expect(issues.issues()[0]).toMatchObject({
+            sourceId: 'synthetic',
+            streamId: 42,
+            reason: 'empty-epg',
+        });
+        resolver.loadEpgItems.mockRejectedValueOnce(
+            new Error('synthetic outage')
+        );
+        await session.load(row);
+        expect(issues.issues()[0].reason).toBe('epg-error');
+        await session.load(row);
+        expect(issues.issues()).toEqual([]);
+        await preferences.apply(false);
+        resolver.loadEpgItems.mockResolvedValueOnce([]);
+        await session.load(row);
+        expect(issues.issues()).toEqual([]);
     });
 });

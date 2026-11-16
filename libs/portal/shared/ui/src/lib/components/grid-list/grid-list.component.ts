@@ -25,6 +25,7 @@ import {
 } from '@iptvnator/portal/shared/util';
 import { SettingsStore } from '@iptvnator/services';
 import {
+    ChannelLogoIssueDirective,
     ProgressCapsuleComponent,
     WatchedBadgeComponent,
 } from '@iptvnator/ui/components';
@@ -95,6 +96,7 @@ function normalizeArtworkUrl(value: string | undefined): string | undefined {
     templateUrl: './grid-list.component.html',
     styleUrl: './grid-list.component.scss',
     imports: [
+        ChannelLogoIssueDirective,
         DatePipe,
         TranslatePipe,
         PlaylistErrorViewComponent,
@@ -143,6 +145,7 @@ export class GridListComponent {
         this.isLoading
     );
 
+    readonly issueSourceId = input<string>();
     readonly variant = input<'poster' | 'logo'>('poster');
     readonly type = input<'vod' | 'series' | 'live' | string>('');
     programDisplayMs(value: string, timestamp?: number | null): number {

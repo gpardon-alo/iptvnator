@@ -219,6 +219,8 @@
                                 <app-content-card
                                     [title]="match.channel.name"
                                     [posterUrl]="match.channel.logo"
+                                    [appChannelIssue]="match.channel.issueRef"
+                                    [channelLogo]="match.channel.logo"
                                     type="live"
                                     [showTypeBadge]="false"
                                     [statusLabel]="channelLabel(match.channel)"

@@ -2514,5 +2514,18 @@
         "STATE_offline": "历史已保存在本地；服务器不可用",
         "STATE_incompatible": "此服务器不支持历史同步",
         "PENDING": "排队中的历史更改：{{count}}"
+    },
+    "CHANNEL_ISSUES": {
+        "TITLE": "频道问题",
+        "DESCRIPTION": "此安装中发现的问题。可导出列表以供调查。",
+        "ALL": "全部",
+        "LOGO": "标志",
+        "EXPORT": "导出问题 JSON",
+        "EMPTY": "尚未发现问题。",
+        "MISSING_URL": "缺少标志网址",
+        "IMAGE_ERROR": "标志加载失败",
+        "EMPTY_EPG": "未返回 EPG 节目",
+        "EPG_ERROR": "EPG 请求失败",
+        "STORAGE_ERROR": "无法保存。关闭前请导出列表。"
     }
 }

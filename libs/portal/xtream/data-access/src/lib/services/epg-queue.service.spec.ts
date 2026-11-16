@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { SettingsStore } from '@iptvnator/services';
+import { ChannelIssuesService, SettingsStore } from '@iptvnator/services';
 import { EpgQueueService } from './epg-queue.service';
 import { XtreamApiService } from './xtream-api.service';
 import { XtreamXmltvFallbackService } from './xtream-xmltv-fallback.service';
@@ -97,6 +97,36 @@ describe('EpgQueueService', () => {
             stop_timestamp: String(stop),
         };
     }
+
+    it('reports only completed preview failures and clears an issue on later provider data', async () => {
+        const issues = TestBed.inject(ChannelIssuesService);
+        const report = jest.spyOn(issues, 'report');
+        const resolve = jest.spyOn(issues, 'resolve');
+        await service.enqueue(
+            [{ streamId: 101, playlistId: 'synthetic', name: 'Example News' }],
+            new Set([101]),
+            credentials
+        );
+        await jest.advanceTimersByTimeAsync(250);
+        expect(report).toHaveBeenCalledWith(
+            expect.objectContaining({ sourceId: 'synthetic', streamId: 101 }),
+            'empty-epg'
+        );
+        service.invalidate(101);
+        xtreamApi.getShortEpg.mockResolvedValue([
+            listing('Example programme', -5, 30),
+        ]);
+        await service.enqueue(
+            [{ streamId: 101, playlistId: 'synthetic', name: 'Example News' }],
+            new Set([101]),
+            credentials
+        );
+        await jest.advanceTimersByTimeAsync(250);
+        expect(resolve).toHaveBeenCalledWith(
+            expect.objectContaining({ sourceId: 'synthetic', streamId: 101 }),
+            'epg'
+        );
+    });
 
     it('cuts the preview window out of the full guide at the provider clock when a display offset is set', async () => {
         settings.resolvedEpgOffsetMinutes.mockReturnValue(60);

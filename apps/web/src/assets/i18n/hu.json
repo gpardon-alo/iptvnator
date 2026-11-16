@@ -2514,5 +2514,18 @@
         "STATE_offline": "Az előzményeket az alkalmazás helyben mentette; a kiszolgáló nem érhető el",
         "STATE_incompatible": "Ez a kiszolgáló nem támogatja a megtekintési előzmények szinkronizálását",
         "PENDING": "Küldésre váró előzménymódosítások: {{count}}"
+    },
+    "CHANNEL_ISSUES": {
+        "TITLE": "Csatornaproblémák",
+        "DESCRIPTION": "Ezen a telepítésen észlelt problémák. Exportálja a listát vizsgálathoz.",
+        "ALL": "Mind",
+        "LOGO": "Logók",
+        "EXPORT": "Hibák exportálása JSON-ba",
+        "EMPTY": "Még nincs észlelt probléma.",
+        "MISSING_URL": "Hiányzó logó-URL",
+        "IMAGE_ERROR": "A logó betöltése sikertelen",
+        "EMPTY_EPG": "Nem érkezett EPG-műsor",
+        "EPG_ERROR": "Az EPG-lekérés sikertelen",
+        "STORAGE_ERROR": "A mentés sikertelen. Bezárás előtt exportálja a listát."
     }
 }

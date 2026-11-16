@@ -1,3 +1,4 @@
+import { ChannelLogoIssueDirective } from '@iptvnator/ui/components';
 import { DISCOVERY_LEAGUES } from './discovery-leagues';
 import { discoveryLocationIds } from '@iptvnator/portal/shared/util';
 import { A11yModule } from '@angular/cdk/a11y';
@@ -83,6 +84,7 @@ function initialFilters(): DiscoveryFilters {
     selector: 'app-discovery',
     standalone: true,
     imports: [
+        ChannelLogoIssueDirective,
         FormsModule,
         MatIcon,
         RouterLink,

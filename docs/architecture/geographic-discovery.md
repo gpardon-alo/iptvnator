@@ -443,3 +443,9 @@ The dictionary format, provider data and classification rules remain unchanged.
 Logo PNGs and their source manifest live in `assets/discovery/leagues/`, sourced
 from TheSportsDB's league records. Runtime browsing makes no requests to that
 service; a failed image keeps the tournament label available.
+
+## Observed channel issues
+
+Discovery artwork and completed guide lookups feed the device-local
+[logo and EPG issue list](channel-issue-reporting.md). Web and Electron keep
+independent lists; reports can be exported from Library → Dictionary.

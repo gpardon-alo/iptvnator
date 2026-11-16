@@ -2514,5 +2514,18 @@
         "STATE_offline": "History saved locally; server unavailable",
         "STATE_incompatible": "This server does not support history synchronization",
         "PENDING": "Queued history changes: {{count}}"
+    },
+    "CHANNEL_ISSUES": {
+        "TITLE": "Channel issues",
+        "DESCRIPTION": "Problems observed on this installation. Export the list for investigation.",
+        "ALL": "All",
+        "LOGO": "Logos",
+        "EXPORT": "Export issues JSON",
+        "EMPTY": "No issues observed yet.",
+        "MISSING_URL": "Logo URL missing",
+        "IMAGE_ERROR": "Logo failed to load",
+        "EMPTY_EPG": "No EPG programmes returned",
+        "EPG_ERROR": "EPG request failed",
+        "STORAGE_ERROR": "Changes could not be saved. Export the list before closing."
     }
 }

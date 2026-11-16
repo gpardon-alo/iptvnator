@@ -1,10 +1,16 @@
+import { SettingsChannelIssuesComponent } from './settings-channel-issues.component';
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { AsyncPipe, NgComponentOutlet } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 
 @Component({
     selector: 'app-settings-dictionary-section',
-    imports: [TranslateModule, AsyncPipe, NgComponentOutlet],
+    imports: [
+        SettingsChannelIssuesComponent,
+        TranslateModule,
+        AsyncPipe,
+        NgComponentOutlet,
+    ],
     templateUrl: './settings-dictionary-section.component.html',
     changeDetection: ChangeDetectionStrategy.OnPush,
 })

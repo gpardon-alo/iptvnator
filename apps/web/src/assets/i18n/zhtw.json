@@ -2514,5 +2514,18 @@
         "STATE_offline": "歷史已儲存在本機；伺服器無法使用",
         "STATE_incompatible": "此伺服器不支援歷史同步",
         "PENDING": "佇列中的歷史變更：{{count}}"
+    },
+    "CHANNEL_ISSUES": {
+        "TITLE": "頻道問題",
+        "DESCRIPTION": "此安裝中發現的問題。可匯出清單以供調查。",
+        "ALL": "全部",
+        "LOGO": "標誌",
+        "EXPORT": "匯出問題 JSON",
+        "EMPTY": "尚未發現問題。",
+        "MISSING_URL": "缺少標誌網址",
+        "IMAGE_ERROR": "標誌載入失敗",
+        "EMPTY_EPG": "未傳回 EPG 節目",
+        "EPG_ERROR": "EPG 請求失敗",
+        "STORAGE_ERROR": "無法儲存。關閉前請匯出清單。"
     }
 }

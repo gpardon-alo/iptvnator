@@ -2514,5 +2514,18 @@
         "STATE_offline": "기록을 로컬에 저장함. 서버 사용 불가",
         "STATE_incompatible": "이 서버는 기록 동기화를 지원하지 않습니다",
         "PENDING": "대기 중인 기록 변경: {{count}}개"
+    },
+    "CHANNEL_ISSUES": {
+        "TITLE": "채널 문제",
+        "DESCRIPTION": "이 설치에서 발견된 문제입니다. 조사를 위해 목록을 내보내세요.",
+        "ALL": "전체",
+        "LOGO": "로고",
+        "EXPORT": "문제 JSON 내보내기",
+        "EMPTY": "아직 발견된 문제가 없습니다.",
+        "MISSING_URL": "로고 URL 없음",
+        "IMAGE_ERROR": "로고 로드 실패",
+        "EMPTY_EPG": "EPG 프로그램이 반환되지 않음",
+        "EPG_ERROR": "EPG 요청 실패",
+        "STORAGE_ERROR": "저장할 수 없습니다. 닫기 전에 목록을 내보내세요."
     }
 }

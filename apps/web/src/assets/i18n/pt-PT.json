@@ -2514,5 +2514,18 @@
         "STATE_offline": "Histórico guardado localmente; servidor indisponível",
         "STATE_incompatible": "Este servidor não suporta sincronização do histórico",
         "PENDING": "Alterações do histórico na fila: {{count}}"
+    },
+    "CHANNEL_ISSUES": {
+        "TITLE": "Problemas dos canais",
+        "DESCRIPTION": "Problemas observados nesta instalação. Exporte a lista para análise.",
+        "ALL": "Todos",
+        "LOGO": "Logótipos",
+        "EXPORT": "Exportar problemas JSON",
+        "EMPTY": "Ainda não foram observados problemas.",
+        "MISSING_URL": "URL do logótipo em falta",
+        "IMAGE_ERROR": "Não foi possível carregar o logótipo",
+        "EMPTY_EPG": "Nenhum programa EPG recebido",
+        "EPG_ERROR": "O pedido EPG falhou",
+        "STORAGE_ERROR": "Não foi possível guardar. Exporte a lista antes de fechar."
     }
 }

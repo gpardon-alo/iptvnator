@@ -2514,5 +2514,18 @@
         "STATE_offline": "Verlauf lokal gespeichert; Server nicht erreichbar",
         "STATE_incompatible": "Dieser Server unterstützt keine Verlaufssynchronisierung",
         "PENDING": "Verlaufsänderungen in der Warteschlange: {{count}}"
+    },
+    "CHANNEL_ISSUES": {
+        "TITLE": "Kanalprobleme",
+        "DESCRIPTION": "Auf dieser Installation beobachtete Probleme. Liste zur Untersuchung exportieren.",
+        "ALL": "Alle",
+        "LOGO": "Senderlogos",
+        "EXPORT": "Probleme als JSON exportieren",
+        "EMPTY": "Noch keine Probleme beobachtet.",
+        "MISSING_URL": "Logo-URL fehlt",
+        "IMAGE_ERROR": "Logo konnte nicht geladen werden",
+        "EMPTY_EPG": "Keine EPG-Sendungen erhalten",
+        "EPG_ERROR": "EPG-Anfrage fehlgeschlagen",
+        "STORAGE_ERROR": "Änderungen konnten nicht gespeichert werden. Liste vor dem Schließen exportieren."
     }
 }

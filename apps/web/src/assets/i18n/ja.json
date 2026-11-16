@@ -2514,5 +2514,18 @@
         "STATE_offline": "履歴を端末に保存しました。サーバーに接続できません",
         "STATE_incompatible": "このサーバーは履歴の同期に対応していません",
         "PENDING": "送信待ちの履歴変更：{{count}} 件"
+    },
+    "CHANNEL_ISSUES": {
+        "TITLE": "チャンネルの問題",
+        "DESCRIPTION": "この環境で検出された問題です。調査用に一覧をエクスポートできます。",
+        "ALL": "すべて",
+        "LOGO": "ロゴ",
+        "EXPORT": "問題をJSONで出力",
+        "EMPTY": "問題はまだ検出されていません。",
+        "MISSING_URL": "ロゴのURLがありません",
+        "IMAGE_ERROR": "ロゴの読み込みに失敗",
+        "EMPTY_EPG": "EPG番組が取得できませんでした",
+        "EPG_ERROR": "EPGリクエストに失敗",
+        "STORAGE_ERROR": "保存できませんでした。閉じる前に一覧を出力してください。"
     }
 }

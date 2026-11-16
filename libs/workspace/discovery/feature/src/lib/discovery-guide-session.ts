@@ -5,11 +5,16 @@ import {
     ClassifiedStream,
 } from '@iptvnator/portal/shared/util';
 import { toEpgProgram } from '@iptvnator/portal/shared/ui';
-import { EpgPreferencesService, SettingsStore } from '@iptvnator/services';
+import {
+    ChannelIssuesService,
+    EpgPreferencesService,
+    SettingsStore,
+} from '@iptvnator/services';
 import { EpgProgram } from '@iptvnator/shared/interfaces';
 
 @Injectable()
 export class DiscoveryGuideSession {
+    private readonly issues = inject(ChannelIssuesService);
     private readonly resolver = inject(StreamResolverService);
     private readonly preferences = inject(EpgPreferencesService);
     readonly enabled = this.preferences.enabled;
@@ -33,6 +38,13 @@ export class DiscoveryGuideSession {
         this.close();
         if (!row || !this.enabled()) return;
         const generation = this.generation;
+        const ref = {
+            sourceId: row.provider.source_id,
+            streamId: row.provider.stream_id,
+            name: row.provider.name,
+            country: row.country,
+            epgId: epgChannelId,
+        };
         this.loading.set(true);
         try {
             const items = await this.preferences.run(
@@ -53,10 +65,16 @@ export class DiscoveryGuideSession {
                     }),
                 []
             );
-            if (generation === this.generation)
+            if (generation === this.generation && this.enabled()) {
                 this.programs.set(items.map(toEpgProgram));
+                if (items.length) this.issues.resolve(ref, 'epg');
+                else this.issues.report(ref, 'empty-epg');
+            }
         } catch {
-            if (generation === this.generation) this.failed.set(true);
+            if (generation === this.generation && this.enabled()) {
+                this.failed.set(true);
+                this.issues.report(ref, 'epg-error');
+            }
         } finally {
             if (generation === this.generation) this.loading.set(false);
         }

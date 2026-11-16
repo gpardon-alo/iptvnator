@@ -6,6 +6,8 @@ import {
     windowEpgItemsAtProviderClock,
 } from '@iptvnator/shared/interfaces';
 import {
+    ChannelIssuesService,
+    ChannelIssueRef,
     EpgPreferencesService,
     EpgSourceSettingsService,
     SettingsStore,
@@ -25,6 +27,7 @@ interface CacheEntry {
  * Xtream provider returns no programs for that stream.
  */
 export interface EpgQueueEntry {
+    name?: string;
     streamId: number;
     epgChannelId?: string | null;
     /** Owning playlist — required to resolve manual EPG mappings. */
@@ -51,6 +54,8 @@ export interface EpgQueueEntry {
  */
 @Injectable({ providedIn: 'root' })
 export class EpgQueueService implements OnDestroy {
+    private readonly issues = inject(ChannelIssuesService);
+    private readonly issueRefs = new Map<number, ChannelIssueRef>();
     private readonly apiService = inject(XtreamApiService);
     private readonly fallbackService = inject(XtreamXmltvFallbackService);
     private readonly settingsStore = inject(SettingsStore);
@@ -228,7 +233,15 @@ export class EpgQueueService implements OnDestroy {
         // Atomic commit block — no awaits below.
         this.pruneEphemeralMaps(this.visibleSet);
 
+        this.issueRefs.clear();
         for (const entry of normalized) {
+            if (entry.playlistId)
+                this.issueRefs.set(entry.streamId, {
+                    sourceId: entry.playlistId,
+                    streamId: entry.streamId,
+                    name: entry.name || '',
+                    epgId: entry.epgChannelId,
+                });
             const id = entry.epgChannelId?.trim();
             if (id) {
                 this.epgChannelByStreamId.set(entry.streamId, id);
@@ -254,6 +267,10 @@ export class EpgQueueService implements OnDestroy {
             if (preferUploaded) {
                 const xmltv = this.xmltvPreviewByStreamId.get(entry.streamId);
                 if (xmltv) {
+                    this.issues.resolve(
+                        this.issueRefs.get(entry.streamId),
+                        'epg'
+                    );
                     this.recordSuccess(entry.streamId, [xmltv]);
                     continue;
                 }
@@ -379,6 +396,7 @@ export class EpgQueueService implements OnDestroy {
         credentials: XtreamCredentials,
         streamId: number
     ): Promise<void> {
+        const issueRef = this.issueRefs.get(streamId);
         const startEpoch = this.invalidationEpoch.get(streamId) ?? 0;
         const isStale = (): boolean =>
             (this.invalidationEpoch.get(streamId) ?? 0) !== startEpoch;
@@ -412,6 +430,7 @@ export class EpgQueueService implements OnDestroy {
             }
 
             if ('error' in outcome) {
+                this.issues.report(issueRef, 'epg-error');
                 this.failureTimestamps.set(streamId, Date.now());
                 this.logger.error(
                     `Failed to load EPG for stream ${streamId}`,
@@ -421,11 +440,14 @@ export class EpgQueueService implements OnDestroy {
             }
 
             if (outcome.items.length > 0) {
+                this.issues.resolve(issueRef, 'epg');
                 this.recordSuccess(streamId, outcome.items);
                 return;
             }
 
             const xmltv = this.xmltvPreviewByStreamId.get(streamId);
+            if (xmltv) this.issues.resolve(issueRef, 'epg');
+            else this.issues.report(issueRef, 'empty-epg');
             this.recordSuccess(streamId, xmltv ? [xmltv] : []);
         } finally {
             // Only release the in-flight marker if this request still owns it.
