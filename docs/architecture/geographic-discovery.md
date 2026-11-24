@@ -65,7 +65,9 @@ country/territory inventory lives separately in `discovery-locations.ts`.
   filters, selected channel, region and ribbon scroll position. Escape or Back
   returns focus to discovery; source switching remains inside the preview.
   Playback uses a left panel for the channel logo, metadata and shared vertical
-  EPG list, with the player on the right. Source buttons below the player expose
+  EPG list, with a compact logo/title header and the player on the right. A
+  virtualized matching-channel ribbon below the source buttons switches playback
+  inside the same preview without changing the filters. Source buttons expose
   every matching stream and mark the active source with `aria-pressed`.
   At narrow widths the panels stack; the EPG and source list retain their own
   bounded scroll areas. Missing/broken logos show a neutral Live TV fallback.

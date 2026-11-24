@@ -200,58 +200,19 @@
                         aria-label="Matching channels"
                     >
                         <div class="channel-row">
-                            <article
+                            <ng-container
                                 *cdkVirtualFor="
                                     let match of channels();
                                     trackBy: trackChannel
                                 "
-                                class="channel-tile"
-                                [class.stacked]="match.sources.length > 1"
-                                [class.selected]="
-                                    selected()?.channel.id === match.channel.id
-                                "
-                                [attr.aria-label]="
-                                    match.channel.name +
-                                    ', ' +
-                                    match.channel.location
-                                "
                             >
-                                <app-content-card
-                                    [title]="match.channel.name"
-                                    [posterUrl]="match.channel.logo"
-                                    [appChannelIssue]="match.channel.issueRef"
-                                    [channelLogo]="match.channel.logo"
-                                    type="live"
-                                    [showTypeBadge]="false"
-                                    [statusLabel]="channelLabel(match.channel)"
-                                    (cardClick)="pick(match)"
-                                />
-                                <button
-                                    type="button"
-                                    class="source-stack"
-                                    [attr.aria-label]="
-                                        'Choose source for ' +
-                                        match.channel.name +
-                                        ', ' +
-                                        match.channel.location
+                                <ng-container
+                                    *ngTemplateOutlet="
+                                        channelTile;
+                                        context: { $implicit: match }
                                     "
-                                    (click)="showSources(match)"
-                                >
-                                    <mat-icon>{{
-                                        match.sources.length > 1
-                                            ? 'layers'
-                                            : 'high_quality'
-                                    }}</mat-icon
-                                    >{{
-                                        match.sources.length > 1
-                                            ? '×' + match.sources.length
-                                            : match.sources[0].quality ===
-                                                'Unknown'
-                                              ? 'Unknown quality'
-                                              : match.sources[0].quality
-                                    }}
-                                </button>
-                            </article>
+                                />
+                            </ng-container>
                         </div>
                     </cdk-virtual-scroll-viewport>
                 } @else {
@@ -413,11 +374,117 @@
                                     }
                                 </div>
                             </section>
+                            <section
+                                class="preview-channels"
+                                aria-label="Browse matching channels"
+                            >
+                                <header class="channels-header">
+                                    <h2 class="preview-channel-count">
+                                        {{ channels().length }}
+                                        {{
+                                            channels().length === 1
+                                                ? 'channel'
+                                                : 'channels'
+                                        }}
+                                    </h2>
+                                    <div class="ribbon-tools">
+                                        <span>{{ sourceCount() }} streams</span>
+                                        <button
+                                            type="button"
+                                            class="icon-button"
+                                            aria-label="Previous channels"
+                                            [discoveryHoverScroll]="-1"
+                                            [scrollViewport]="previewViewport"
+                                        >
+                                            <mat-icon>chevron_left</mat-icon>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="icon-button"
+                                            aria-label="Next channels"
+                                            [discoveryHoverScroll]="1"
+                                            [scrollViewport]="previewViewport"
+                                        >
+                                            <mat-icon>chevron_right</mat-icon>
+                                        </button>
+                                    </div>
+                                </header>
+                                <cdk-virtual-scroll-viewport
+                                    #previewViewport
+                                    orientation="horizontal"
+                                    [itemSize]="240"
+                                    [minBufferPx]="240"
+                                    [maxBufferPx]="720"
+                                    class="channel-viewport"
+                                    aria-label="Matching channels"
+                                >
+                                    <div class="channel-row">
+                                        <ng-container
+                                            *cdkVirtualFor="
+                                                let candidate of channels();
+                                                trackBy: trackChannel
+                                            "
+                                        >
+                                            <ng-container
+                                                *ngTemplateOutlet="
+                                                    channelTile;
+                                                    context: {
+                                                        $implicit: candidate,
+                                                    }
+                                                "
+                                            />
+                                        </ng-container>
+                                    </div>
+                                </cdk-virtual-scroll-viewport>
+                            </section>
                         </div>
                     </div>
                 </section>
             }
         }
+        <ng-template #channelTile let-match>
+            <article
+                class="channel-tile"
+                [class.stacked]="match.sources.length > 1"
+                [class.selected]="selected()?.channel.id === match.channel.id"
+                [attr.aria-label]="
+                    match.channel.name + ', ' + match.channel.location
+                "
+            >
+                <app-content-card
+                    [title]="match.channel.name"
+                    [posterUrl]="match.channel.logo"
+                    [appChannelIssue]="match.channel.issueRef"
+                    [channelLogo]="match.channel.logo"
+                    type="live"
+                    [showTypeBadge]="false"
+                    [statusLabel]="channelLabel(match.channel)"
+                    (cardClick)="pick(match)"
+                />
+                <button
+                    type="button"
+                    class="source-stack"
+                    [attr.aria-label]="
+                        'Choose source for ' +
+                        match.channel.name +
+                        ', ' +
+                        match.channel.location
+                    "
+                    (click)="showSources(match)"
+                >
+                    <mat-icon>{{
+                        match.sources.length > 1 ? 'layers' : 'high_quality'
+                    }}</mat-icon
+                    >{{
+                        match.sources.length > 1
+                            ? '×' + match.sources.length
+                            : match.sources[0].quality === 'Unknown'
+                              ? 'Unknown quality'
+                              : match.sources[0].quality
+                    }}
+                </button>
+            </article>
+        </ng-template>
         <dialog
             #sourceDialog
             class="discovery-dialog"

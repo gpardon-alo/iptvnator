@@ -276,7 +276,8 @@ button[aria-pressed='true'] {
 .channels-header h2 {
     margin: 0;
 }
-.result-count {
+.result-count,
+.preview-channel-count {
     font-size: 12px;
     font-weight: 400;
     color: var(--app-muted-color);
@@ -392,7 +393,7 @@ footer > span {
     display: flex;
     flex-direction: column;
 }
-.preview header {
+.preview > header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -409,7 +410,7 @@ footer > span {
 }
 .preview-layout {
     display: grid;
-    grid-template-columns: minmax(380px, 0.85fr) minmax(0, 2fr);
+    grid-template-columns: minmax(340px, 1.2fr) minmax(0, 2fr);
     flex: 1;
     min-height: 0;
     gap: 24px;
@@ -423,6 +424,10 @@ footer > span {
     padding-right: 24px;
 }
 .preview-channel {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    column-gap: 24px;
+    align-items: start;
     flex-shrink: 0;
     padding-bottom: 20px;
 }
@@ -432,7 +437,7 @@ footer > span {
     place-items: center;
     width: 88px;
     height: 64px;
-    margin-bottom: 16px;
+    grid-row: 1 / span 2;
     background: var(--app-discovery-panel);
     color: var(--app-muted-color);
     border: 1px solid var(--app-discovery-border);
@@ -452,6 +457,8 @@ footer > span {
 }
 .preview-channel h1 {
     margin: 0 0 8px;
+    font-size: clamp(20px, 2vw, 32px);
+    line-height: 1.2;
     overflow-wrap: anywhere;
 }
 .preview-channel p {
@@ -461,8 +468,10 @@ footer > span {
     line-height: 1.5;
 }
 .preview-playback {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: minmax(180px, 1fr) auto 240px;
+    gap: 12px;
+    overflow-y: auto;
     min-width: 0;
     min-height: 0;
 }
@@ -478,11 +487,11 @@ footer > span {
     min-height: 0;
     display: flex;
     flex-direction: column;
-    padding: 20px 0 0;
-    max-height: 30%;
+    padding: 0;
+    max-height: 120px;
 }
 .preview-sources h2 {
-    margin: 0 0 12px;
+    margin: 0 0 6px;
     font-size: 13px;
     font-weight: 600;
 }
@@ -534,6 +543,21 @@ footer > span {
 .preview-source[aria-pressed='true'] .preview-source-quality {
     color: inherit;
 }
+.preview-channels {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+.preview-channels .channels-header {
+    flex-shrink: 0;
+    height: 32px;
+    padding: 0 0 6px;
+}
+.preview-channels .channel-viewport {
+    flex: 1;
+    min-height: 0;
+}
 @media (max-width: 1000px) {
     .preview-layout {
         display: flex;
@@ -550,6 +574,12 @@ footer > span {
     }
     .preview-playback {
         flex: 0 0 auto;
+        display: flex;
+        flex-direction: column;
+        overflow: visible;
+    }
+    .preview-channels {
+        flex: 0 0 240px;
     }
     .preview-stage {
         flex: none;

@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { ChannelLogoIssueDirective } from '@iptvnator/ui/components';
 import { DISCOVERY_LEAGUES } from './discovery-leagues';
 import { discoveryLocationIds } from '@iptvnator/portal/shared/util';
@@ -94,6 +95,7 @@ function initialFilters(): DiscoveryFilters {
     selector: 'app-discovery',
     standalone: true,
     imports: [
+        NgTemplateOutlet,
         ChannelLogoIssueDirective,
         FormsModule,
         MatIcon,
