@@ -506,5 +506,6 @@ describe('Linux-only release assets', () => {
             })
         );
         assert.equal(result.exitCode, 0, result.lines.join('\n'));
+        assert.ok(result.lines.includes('All 15 required assets present (15 attached).'));
     });
 });

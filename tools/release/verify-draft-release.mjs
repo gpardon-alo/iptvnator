@@ -355,7 +355,7 @@ export async function runVerification(options, io) {
     }
 
     lines.push(
-        `All ${requiredAssetRules(version).length} required assets present (${assetNames.length} attached).`
+        `All ${requiredAssetRules(version, options.packageSet ?? 'all').length} required assets present (${assetNames.length} attached).`
     );
 
     // A published release still gets its asset report — auditing one after the
