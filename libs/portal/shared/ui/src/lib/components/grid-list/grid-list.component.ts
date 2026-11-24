@@ -216,8 +216,8 @@ export class GridListComponent {
         this.gridWindow.synchronize();
     }
 
-    protected hasArtworkFailed(poster: string): boolean {
-        return this.failedArtworkUrls().has(poster);
+    protected hasArtworkFailed(poster: string | undefined): boolean {
+        return !!poster && this.failedArtworkUrls().has(poster);
     }
 
     protected shouldRenderArtworkPlaceholder(

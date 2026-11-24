@@ -15,6 +15,7 @@ export class ChannelLogoIssueDirective {
         alias: 'appChannelIssue',
     });
     readonly channelLogo = input<string | null>();
+    readonly channelLogoFailed = input(false);
     private readonly host = inject(ElementRef<HTMLElement>).nativeElement;
     private readonly issues = inject(ChannelIssuesService);
 
@@ -22,6 +23,7 @@ export class ChannelLogoIssueDirective {
         effect((cleanup) => {
             const ref = this.channelIssue();
             const url = this.channelLogo()?.trim();
+            const failed = this.channelLogoFailed();
             if (!ref) return;
             if (
                 !url ||
@@ -30,6 +32,10 @@ export class ChannelLogoIssueDirective {
                 )
             ) {
                 untracked(() => this.issues.report(ref, 'missing-url'));
+                return;
+            }
+            if (failed) {
+                untracked(() => this.issues.report(ref, 'image-error'));
                 return;
             }
             const matches = (

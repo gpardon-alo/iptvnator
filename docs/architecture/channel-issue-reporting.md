@@ -10,7 +10,9 @@ is no synchronization, background catalog scan, automatic repair or LLM call.
 card or row, including non-bubbling errors. A source/stream reference and the
 actual provider artwork URL identify which image to observe. Empty URLs and
 known application/blank placeholders report `missing-url`; failed loads report
-`image-error`. A later successful load clears that source/stream's logo issue.
+`image-error`. Cards reusing a cached failed URL record the same failure for
+each rendered channel, even when the grid suppresses another image request.
+A later successful load clears that source/stream's logo issue.
 A valid image containing generic artwork is not distinguishable from a logo.
 Only rendered views contribute observations; this is not a completeness audit.
 

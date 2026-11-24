@@ -50,6 +50,7 @@
                         : undefined
                 "
                 [channelLogo]="resolvePoster(i)"
+                [channelLogoFailed]="hasArtworkFailed(resolvePoster(i))"
                 [attr.data-catalog-focus-key]="
                     i.id ??
                     i.stream_id ??
