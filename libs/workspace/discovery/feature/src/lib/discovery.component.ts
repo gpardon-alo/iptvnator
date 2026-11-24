@@ -42,6 +42,16 @@ import { DiscoveryPlayerComponent } from './discovery-player.component';
 import { DiscoveryMapComponent } from './discovery-map.component';
 import { DiscoveryHoverScrollDirective } from './discovery-hover-scroll.directive';
 
+/** Known application artwork is a missing channel logo in the playback header. */
+export function discoveryPreviewLogo(value: string | undefined): string {
+    const logo = value?.trim() ?? '';
+    return /(?:^|\/)(?:blank-icon\.(?:png|jpe?g|webp|gif|svg)|assets\/icons\/icon-64\.png)(?:[?#].*)?$/i.test(
+        logo
+    )
+        ? ''
+        : logo;
+}
+
 const PREFERENCES_KEY = 'iptvnator-discovery-prototype:v1';
 function initialFilters(): DiscoveryFilters {
     const defaults: DiscoveryFilters = {
@@ -204,6 +214,12 @@ export class DiscoveryComponent {
     );
     readonly currentSource = computed(() =>
         this.selected()?.sources.find((s) => s.id === this.sourceId())
+    );
+
+    readonly previewLogo = computed(() =>
+        discoveryPreviewLogo(
+            this.currentSource()?.facets?.logo || this.selected()?.channel.logo
+        )
     );
 
     constructor() {

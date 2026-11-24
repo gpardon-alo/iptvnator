@@ -324,16 +324,10 @@
                                     <mat-icon aria-hidden="true"
                                         >live_tv</mat-icon
                                     >
-                                    @if (
-                                        currentSource()?.facets?.logo ||
-                                        match.channel.logo
-                                    ) {
+                                    @if (previewLogo(); as logo) {
                                         <img
                                             #channelLogo
-                                            [src]="
-                                                currentSource()?.facets?.logo ||
-                                                match.channel.logo
-                                            "
+                                            [src]="logo"
                                             [alt]="match.channel.name + ' logo'"
                                             (error)="channelLogo.hidden = true"
                                             (load)="channelLogo.hidden = false"

@@ -197,17 +197,6 @@ export function withEpg() {
                     // channel ID for the XMLTV / provider lookup.
                     let epgChannelId = selectedItem?.epg_channel_id ?? null;
                     const playlistId = storeAny.currentPlaylist?.()?.id;
-                    const issueRef = playlistId
-                        ? {
-                              sourceId: playlistId,
-                              streamId: xtreamId,
-                              name:
-                                  selectedItem?.title ||
-                                  selectedItem?.name ||
-                                  '',
-                              epgId: epgChannelId,
-                          }
-                        : undefined;
                     if (runtime.supportsEpgMapping && playlistId) {
                         try {
                             const mapping =
@@ -224,6 +213,18 @@ export function withEpg() {
                             // Non-fatal; keep original epgChannelId.
                         }
                     }
+
+                    const issueRef = playlistId
+                        ? {
+                              sourceId: playlistId,
+                              streamId: xtreamId,
+                              name:
+                                  selectedItem?.title ||
+                                  selectedItem?.name ||
+                                  '',
+                              epgId: epgChannelId,
+                          }
+                        : undefined;
 
                     try {
                         const epgItems =
