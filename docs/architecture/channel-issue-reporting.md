@@ -36,7 +36,8 @@ the deduplication key; duplicate category appearances therefore share an issue.
 The retained record contains channel name, optional country/EPG identity, a
 reason and first/last observation timestamps. It excludes artwork URLs, portal
 endpoints, credentials, raw errors and provider payloads. Observations within a
-minute coalesce; writes debounce for 300 ms and flush on service destruction.
+minute coalesce; writes debounce for 300 ms and flush on page hide and service
+destruction, including reloads before that delay expires.
 At most 5,000 issues are retained, evicting the least recently observed entry.
 Malformed persisted records are ignored. Storage failures leave the in-memory
 list exportable and show a visible save warning.

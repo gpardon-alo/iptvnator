@@ -78,7 +78,14 @@ export class ChannelIssuesService {
         } catch {
             this.storageFailed.set(true);
         }
-        inject(DestroyRef).onDestroy(() => this.flush());
+        const flushOnPageHide = () => {
+            if (this.timer !== undefined) this.flush();
+        };
+        window.addEventListener('pagehide', flushOnPageHide);
+        inject(DestroyRef).onDestroy(() => {
+            window.removeEventListener('pagehide', flushOnPageHide);
+            this.flush();
+        });
     }
 
     report(ref: ChannelIssueRef | undefined, reason: ChannelIssueReason): void {

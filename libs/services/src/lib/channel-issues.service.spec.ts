@@ -45,6 +45,19 @@ describe('device-local channel issue reports', () => {
             ['second-source', 'logo'],
         ]);
     });
+    it('flushes a pending observation on pagehide before the debounce expires', () => {
+        const service = create();
+        service.report(ref, 'missing-url');
+        expect(storage.setItem).not.toHaveBeenCalled();
+        window.dispatchEvent(new Event('pagehide'));
+        expect(storage.setItem).toHaveBeenCalledWith(
+            'channel-issues-v1',
+            expect.stringContaining('missing-url')
+        );
+        const writes = storage.setItem.mock.calls.length;
+        jest.advanceTimersByTime(300);
+        expect(storage.setItem).toHaveBeenCalledTimes(writes);
+    });
     it('persists on this storage and restores across reload without copying unknown fields', () => {
         let service = create();
         service.report(
