@@ -66,12 +66,12 @@ git push upstream master
 git push upstream v0.25.1
 ```
 
-Master and `v*` pushes can publish Docker images. The tag build creates a draft
-GitHub release. Run `pnpm run release:verify:draft` — it waits for the tag
-build, then checks draft status, warns on an empty authored body, and verifies
-the complete 27-asset set documented in `docs/architecture/release-pipeline.md`.
-It is read-only, and fails on an already-published release. Still review the
-authored text and generated commits by eye.
+Master and `v*` pushes can publish Docker images. Tag builds create drafts.
+Run `pnpm run release:verify:draft`: it checks the build, draft, authored body
+and all 27 assets. Linux-only manual releases use `--package-set linux` (15
+assets); branch drafts also need `--no-wait --tag <draft-tag>`. Repository
+selection defaults are documented in the release pipeline. The verifier is
+read-only and rejects published releases. Review text and commits by eye.
 
 Manually publish the release; this verifies and uploads Snaps
 to `edge`. Installed-Snap smoke and candidate/stable promotion stay manual.

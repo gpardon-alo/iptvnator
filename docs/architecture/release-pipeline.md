@@ -291,7 +291,17 @@ uploaded; other platform jobs and draft-release publication are skipped.
 The system profile also assembles RPM/Pacman packages internally to preserve
 its exact runtime-manifest target contract, but omits their distribution probes.
 The pinned Linux runtime prerequisite and its cache/source checks still run.
-The default `all` option preserves the full build and release behavior.
+Manual runs default to `package_set: repository`, which reads the repository
+Actions variable `RELEASE_PACKAGE_SET` (fallback: `all`). Set that variable to
+`linux` for Linux-only manual releases. A run can override it with `linux`,
+`all`, or `deb`; push/tag/PR builds retain their existing full-platform behavior.
+`linux` builds the system, portable and Flatpak profiles, skips Mac/Windows,
+and creates a Linux-only draft after all Linux jobs pass. Verify it with
+`pnpm run release:verify:draft --no-wait --package-set linux --tag <draft-tag> <version>`
+for branch test drafts (omit `--tag` for a normal `v<version>` draft).
+The Linux set has 15 assets: the 11 Linux installers, three Linux updater
+metadata files, and the matching source archive. The default verifier still
+requires all 27 assets for full-platform releases.
 
 Fork CI keeps coverage checks and downloadable report artifacts enabled. Codecov
 uploads are opt-in through the `CODECOV_UPLOAD_ENABLED=true` repository variable

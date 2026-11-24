@@ -34,13 +34,15 @@ const workspaceRoot = path.resolve(
 export const REPO_SLUG = REPO_URL.replace('https://github.com/', '');
 const WORKFLOW = 'build-and-make.yaml';
 const CLI_USAGE =
-    'Usage: verify-draft-release.mjs [--no-wait] [--repo owner/name] [<version>]';
+    'Usage: verify-draft-release.mjs [--no-wait] [--repo owner/name] [--package-set all|linux] [--tag release-tag] [<version>]';
 
 /**
  * @param {string} version bare semver
  * @returns {{ label: string, matches: (name: string) => boolean }[]}
  */
-export function requiredAssetRules(version) {
+export function requiredAssetRules(version, packageSet = 'all') {
+    if (!['all', 'linux'].includes(packageSet))
+        throw new Error('Invalid release package set');
     const exact = (label, name) => ({
         label: `${label} (${name})`,
         matches: (candidate) => candidate === name,
@@ -48,19 +50,21 @@ export function requiredAssetRules(version) {
 
     const rules = [];
 
-    for (const arch of ['x64', 'arm64']) {
-        for (const extension of ['dmg', 'zip']) {
-            const base = `iptvnator-${version}-mac-${arch}.${extension}`;
+    if (packageSet === 'all') {
+        for (const arch of ['x64', 'arm64']) {
+            for (const extension of ['dmg', 'zip']) {
+                const base = `iptvnator-${version}-mac-${arch}.${extension}`;
 
-            rules.push(exact('macOS', base));
-            rules.push(exact('macOS blockmap', `${base}.blockmap`));
+                rules.push(exact('macOS', base));
+                rules.push(exact('macOS blockmap', `${base}.blockmap`));
+            }
         }
+
+        const windowsSetup = `iptvnator-${version}-windows-x64-setup.exe`;
+
+        rules.push(exact('Windows', windowsSetup));
+        rules.push(exact('Windows blockmap', `${windowsSetup}.blockmap`));
     }
-
-    const windowsSetup = `iptvnator-${version}-windows-x64-setup.exe`;
-
-    rules.push(exact('Windows', windowsSetup));
-    rules.push(exact('Windows blockmap', `${windowsSetup}.blockmap`));
 
     for (const arch of ['amd64', 'arm64', 'armv7l']) {
         rules.push(exact('DEB', `iptvnator-${version}-linux-${arch}.deb`));
@@ -101,7 +105,9 @@ export function requiredAssetRules(version) {
         'latest-linux.yml',
         'latest-linux-arm.yml',
         'latest-linux-arm64.yml',
-    ]) {
+    ].filter(
+        (name) => packageSet === 'all' || name.startsWith('latest-linux')
+    )) {
         rules.push(exact('Updater metadata', name));
     }
 
@@ -119,8 +125,8 @@ export function requiredAssetRules(version) {
  * rule labels; `extras` lists assets no rule claims (informational only —
  * a new build target shows up here before the rules learn about it)
  */
-export function verifyReleaseAssets(assetNames, version) {
-    const rules = requiredAssetRules(version);
+export function verifyReleaseAssets(assetNames, version, packageSet = 'all') {
+    const rules = requiredAssetRules(version, packageSet);
     const missing = rules
         .filter((rule) => !assetNames.some((name) => rule.matches(name)))
         .map((rule) => rule.label);
@@ -145,6 +151,15 @@ export function parseVerifyArguments(args) {
 
         if (arg === '--no-wait') {
             options.wait = false;
+        } else if (arg === '--tag') {
+            const value = args[++index];
+            if (!value || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(value))
+                return null;
+            options.tag = value;
+        } else if (arg === '--package-set') {
+            const value = args[++index];
+            if (!['all', 'linux'].includes(value)) return null;
+            options.packageSet = value;
         } else if (arg === '--repo') {
             const value = args[index + 1];
 
@@ -270,7 +285,7 @@ function verifyAuthoredBody(body, version, io) {
  */
 export async function runVerification(options, io) {
     const { version, wait, repo } = options;
-    const tag = `v${version}`;
+    const tag = options.tag ?? `v${version}`;
     const lines = [];
 
     if (wait) {
@@ -286,7 +301,9 @@ export async function runVerification(options, io) {
         }
 
         if (run.status !== 'completed') {
-            io.progress(`Waiting for ${WORKFLOW} run ${run.databaseId} (${tag})…`);
+            io.progress(
+                `Waiting for ${WORKFLOW} run ${run.databaseId} (${tag})…`
+            );
             io.watchRun({ repo, runId: run.databaseId });
         } else if (run.conclusion !== 'success') {
             return {
@@ -318,10 +335,16 @@ export async function runVerification(options, io) {
     lines.push(...verifyAuthoredBody(release.body ?? '', version, io));
 
     const assetNames = release.assets.map((asset) => asset.name);
-    const { missing, extras } = verifyReleaseAssets(assetNames, version);
+    const { missing, extras } = verifyReleaseAssets(
+        assetNames,
+        version,
+        options.packageSet ?? 'all'
+    );
 
     for (const extra of extras) {
-        lines.push(`NOTE: unrecognized asset ${extra} (not required by the rules).`);
+        lines.push(
+            `NOTE: unrecognized asset ${extra} (not required by the rules).`
+        );
     }
 
     if (missing.length > 0) {
