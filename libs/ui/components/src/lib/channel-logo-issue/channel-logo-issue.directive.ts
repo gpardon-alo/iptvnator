@@ -1,10 +1,19 @@
-import { Directive, ElementRef, effect, inject, input } from '@angular/core';
+import {
+    Directive,
+    ElementRef,
+    effect,
+    inject,
+    input,
+    untracked,
+} from '@angular/core';
 import { ChannelIssueRef, ChannelIssuesService } from '@iptvnator/services';
 
 /** Observe the actual channel artwork, including non-bubbling image errors. */
 @Directive({ selector: '[appChannelIssue]' })
 export class ChannelLogoIssueDirective {
-    readonly channelIssue = input<ChannelIssueRef>(undefined, { alias: 'appChannelIssue' });
+    readonly channelIssue = input<ChannelIssueRef>(undefined, {
+        alias: 'appChannelIssue',
+    });
     readonly channelLogo = input<string | null>();
     private readonly host = inject(ElementRef<HTMLElement>).nativeElement;
     private readonly issues = inject(ChannelIssuesService);
@@ -20,7 +29,7 @@ export class ChannelLogoIssueDirective {
                     url
                 )
             ) {
-                this.issues.report(ref, 'missing-url');
+                untracked(() => this.issues.report(ref, 'missing-url'));
                 return;
             }
             const matches = (

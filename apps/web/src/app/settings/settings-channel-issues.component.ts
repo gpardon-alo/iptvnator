@@ -85,7 +85,7 @@ import { ChannelIssuesService } from '@iptvnator/services';
         :host {
             display: block;
             margin-top: 24px;
-            color: var(--app-text-color);
+            color: var(--app-on-surface);
         }
         p,
         small {

@@ -5,6 +5,7 @@ import { classifyDiscoveryStream } from '@iptvnator/portal/shared/util';
 import {
     ChannelIssuesService,
     EpgPreferencesService,
+    RuntimeCapabilitiesService,
     SettingsStore,
 } from '@iptvnator/services';
 import { EpgItem } from '@iptvnator/shared/interfaces';
@@ -32,12 +33,15 @@ describe('Discovery selected-channel guide', () => {
     let resolver: { loadEpgItems: jest.Mock };
     let session: DiscoveryGuideSession;
     let preferences: EpgPreferencesService;
+    let runtime: { supportsProviderEpg: boolean };
     beforeEach(() => {
         localStorage.clear();
+        runtime = { supportsProviderEpg: true };
         resolver = { loadEpgItems: jest.fn().mockResolvedValue([program]) };
         TestBed.configureTestingModule({
             providers: [
                 DiscoveryGuideSession,
+                { provide: RuntimeCapabilitiesService, useValue: runtime },
                 { provide: StreamResolverService, useValue: resolver },
                 {
                     provide: SettingsStore,
@@ -64,6 +68,14 @@ describe('Discovery selected-channel guide', () => {
             stopTimestamp: 1794135600,
         });
         expect(session.offsetMinutes()).toBe(60);
+        expect(session.loading()).toBe(false);
+    });
+    it('does not record a missing guide when provider EPG is unavailable', async () => {
+        runtime.supportsProviderEpg = false;
+        resolver.loadEpgItems.mockResolvedValue([]);
+        await session.load(row);
+        expect(resolver.loadEpgItems).not.toHaveBeenCalled();
+        expect(TestBed.inject(ChannelIssuesService).issues()).toEqual([]);
         expect(session.loading()).toBe(false);
     });
     it('does not load EPG for demo channels or when EPG is disabled', async () => {

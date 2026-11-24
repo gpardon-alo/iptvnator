@@ -16,7 +16,8 @@ Only rendered views contribute observations; this is not a completeness audit.
 
 Discovery guide sessions, selected Xtream guides and viewport EPG previews
 report `empty-epg` only after a completed lookup and its configured fallback
-returns no programmes. Rejected lookups report `epg-error`. Loading, disabled
+returns no programmes. Rejected provider previews use an available uploaded
+XMLTV programme before reporting `epg-error`. Loading, disabled
 EPG, unavailable capabilities, absent sources and cancelled/stale Discovery
 requests do not create missing-guide issues. Later successful lookups clear
 the corresponding EPG issue. Reports describe an observation, not a diagnosis

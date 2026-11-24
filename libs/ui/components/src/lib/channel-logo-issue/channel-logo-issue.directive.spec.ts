@@ -26,6 +26,16 @@ describe('observed channel artwork issues', () => {
             providers: [{ provide: ChannelIssuesService, useValue: issues }],
         });
     });
+    it('does not observe issue-store reads while recording missing artwork', () => {
+        const records = signal(0);
+        issues.report.mockImplementation(() => records());
+        const fixture = TestBed.createComponent(Host);
+        fixture.detectChanges();
+        expect(issues.report).toHaveBeenCalledTimes(1);
+        records.set(1);
+        fixture.detectChanges();
+        expect(issues.report).toHaveBeenCalledTimes(1);
+    });
     it('reports absent artwork and non-bubbling image errors, then clears on a successful load', () => {
         const fixture = TestBed.createComponent(Host);
         fixture.detectChanges();

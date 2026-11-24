@@ -9,12 +9,14 @@ import {
     ChannelIssuesService,
     EpgPreferencesService,
     SettingsStore,
+    RuntimeCapabilitiesService,
 } from '@iptvnator/services';
 import { EpgProgram } from '@iptvnator/shared/interfaces';
 
 @Injectable()
 export class DiscoveryGuideSession {
     private readonly issues = inject(ChannelIssuesService);
+    private readonly runtime = inject(RuntimeCapabilitiesService);
     private readonly resolver = inject(StreamResolverService);
     private readonly preferences = inject(EpgPreferencesService);
     readonly enabled = this.preferences.enabled;
@@ -36,7 +38,8 @@ export class DiscoveryGuideSession {
         epgChannelId?: string
     ): Promise<void> {
         this.close();
-        if (!row || !this.enabled()) return;
+        if (!row || !this.enabled() || !this.runtime.supportsProviderEpg)
+            return;
         const generation = this.generation;
         const ref = {
             sourceId: row.provider.source_id,

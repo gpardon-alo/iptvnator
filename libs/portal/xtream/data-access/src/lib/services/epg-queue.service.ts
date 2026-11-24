@@ -430,6 +430,12 @@ export class EpgQueueService implements OnDestroy {
             }
 
             if ('error' in outcome) {
+                const xmltv = this.xmltvPreviewByStreamId.get(streamId);
+                if (xmltv) {
+                    this.issues.resolve(issueRef, 'epg');
+                    this.recordSuccess(streamId, [xmltv]);
+                    return;
+                }
                 this.issues.report(issueRef, 'epg-error');
                 this.failureTimestamps.set(streamId, Date.now());
                 this.logger.error(

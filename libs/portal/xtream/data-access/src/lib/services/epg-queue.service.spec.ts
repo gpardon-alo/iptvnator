@@ -301,6 +301,18 @@ describe('EpgQueueService', () => {
         expect(fallback.getProgramsForChannel).not.toHaveBeenCalled();
     });
 
+    it('uses a successful XMLTV fallback when provider EPG rejects without reporting an issue', async () => {
+        const issues = TestBed.inject(ChannelIssuesService);
+        const report = jest.spyOn(issues, 'report');
+        const resolve = jest.spyOn(issues, 'resolve');
+        xtreamApi.getShortEpg.mockRejectedValue(new Error('Synthetic outage'));
+        const item = seedXmltvPreview(303, 'synthetic.example.test');
+        await priv().fetchEpg(credentials, 303);
+        expect(service.getCached(303)).toEqual([item]);
+        expect(report).not.toHaveBeenCalled();
+        expect(resolve).toHaveBeenCalledWith(undefined, 'epg');
+    });
+
     it('does not consult XMLTV when Xtream already returned programs', async () => {
         const apiItems = [makeEpgItem('rtl.de', 'Punkt 12')];
         xtreamApi.getShortEpg.mockResolvedValue(apiItems);
