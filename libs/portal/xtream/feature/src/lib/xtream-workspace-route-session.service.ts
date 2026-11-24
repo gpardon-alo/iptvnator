@@ -315,12 +315,28 @@ export class XtreamWorkspaceRouteSession {
             return;
         }
 
+        const navigation = this.router.lastSuccessfulNavigation();
         await this.initializeCurrentSectionContent(
             section,
             didBootstrapPlaylist,
             canUseCachedContent,
             cacheScope
         );
+
+        // Refresh keeps its existing import route, then finishes on Discovery.
+        // Navigation info is transient, so Back/reload cannot replay this redirect.
+        const info = navigation?.extras.info as
+            { xtreamRefresh?: boolean } | undefined;
+        if (
+            info?.xtreamRefresh === true &&
+            !this.destroyRef.destroyed &&
+            this.router.url === url &&
+            this.router.lastSuccessfulNavigation() === navigation &&
+            this.xtreamStore.isContentInitialized() &&
+            !this.xtreamStore.contentInitBlockReason()
+        ) {
+            await this.router.navigate(['/workspace', 'discovery']);
+        }
     }
 
     private syncRouteState(

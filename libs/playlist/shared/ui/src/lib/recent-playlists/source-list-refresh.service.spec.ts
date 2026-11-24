@@ -453,12 +453,10 @@ describe('SourceListRefreshService', () => {
                 generation: parkedState.generation,
             },
         });
-        expect(router.navigate).toHaveBeenCalledWith([
-            '/workspace',
-            'xtreams',
-            item._id,
-            'vod',
-        ]);
+        expect(router.navigate).toHaveBeenCalledWith(
+            ['/workspace', 'xtreams', item._id, 'vod'],
+            { info: { xtreamRefresh: true } }
+        );
         expect(executionOrder).toEqual([
             'parkCatalogState',
             'setItem',

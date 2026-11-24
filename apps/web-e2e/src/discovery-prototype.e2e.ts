@@ -517,7 +517,7 @@ test('Discovery classifies a cached source, reviews unknowns and retains mapping
     await expect.poll(() => guideRequests).toContain('8103');
     const guide = page.locator('app-discovery-guide');
     await expect(
-        guide.getByRole('button', { name: 'Synthetic guide 8103', exact: true })
+        guide.getByRole('button', { name: /Synthetic guide 8103/ }).first()
     ).toBeVisible();
     const video = page.locator('.preview video');
     await expect(video).toBeVisible();
@@ -525,40 +525,36 @@ test('Discovery classifies a cached source, reviews unknowns and retains mapping
         .poll(() => video.evaluate((el: HTMLVideoElement) => el.currentTime))
         .toBeGreaterThan(0);
     await expect(video).toHaveJSProperty('paused', false);
-    const alternate = page.getByLabel('Stream source');
+    const alternate = page.getByRole('group', {
+        name: 'Stream source',
+        exact: true,
+    });
     const switchedMedia = page.waitForRequest((request) =>
         /\/8102\.m3u8(?:\?|$)/.test(request.url())
     );
-    await alternate.selectOption(`local:${encodeURIComponent(id!)}:live:8102`);
+    await alternate
+        .locator(
+            `[data-source-id="local:${encodeURIComponent(id!)}:live:8102"]`
+        )
+        .click();
     await switchedMedia;
     await expect(
-        guide.getByRole('button', { name: 'Synthetic guide 8102', exact: true })
+        guide.getByRole('button', { name: /Synthetic guide 8102/ }).first()
     ).toBeVisible();
     await expect(
-        guide.getByRole('button', { name: 'Synthetic guide 8103', exact: true })
+        guide.getByRole('button', { name: /Synthetic guide 8103/ }).first()
     ).toHaveCount(0);
     await expect(page.locator('.preview-info')).toContainText('Peru · Spanish');
     await expect(video).toHaveJSProperty('paused', false);
     await expect
         .poll(() => video.evaluate((el: HTMLVideoElement) => el.currentTime))
         .toBeGreaterThan(0);
-    const titleHeight = await guide
-        .locator('.epg-timeline__block-title')
-        .first()
-        .evaluate((el) => el.getBoundingClientRect().height);
-    expect(titleHeight).toBeGreaterThanOrEqual(14);
-    const positions = await page.locator('.preview-info').evaluate((el) => {
-        const children = [...el.children].map((child) =>
-            child.getBoundingClientRect()
-        );
-        return children.map((rect) => ({
-            left: rect.left,
-            right: rect.right,
-            top: rect.top,
-        }));
-    });
-    expect(positions[1].left).toBeGreaterThan(positions[0].left);
-    expect(positions[1].right).toBeLessThan(positions[2].left);
+    await expect(guide.locator('app-epg-list-view')).toBeVisible();
+    const sidebar = await page.locator('.preview-info').boundingBox();
+    const player = await page.locator('.preview-stage').boundingBox();
+    const sources = await alternate.boundingBox();
+    expect(sidebar!.x + sidebar!.width).toBeLessThanOrEqual(player!.x);
+    expect(sources!.y).toBeGreaterThanOrEqual(player!.y + player!.height);
     await page.screenshot({ path: '../../dist/discovery-live-playback.png' });
     await video.focus();
     await page.keyboard.press('Escape');
@@ -690,10 +686,17 @@ test('Discovery prototype filters mock channels, selects sources and preserves c
         .click();
     const sources = page.locator('dialog[open]');
     await sources.getByRole('button', { name: /Demo source 2/ }).click();
-    await expect(page.getByLabel('Stream source')).toHaveValue(
-        'demo-PE-news-1'
-    );
-    await page.getByLabel('Stream source').selectOption('demo-PE-news-0');
+    const streamSources = page.getByRole('group', {
+        name: 'Stream source',
+        exact: true,
+    });
+    await expect(
+        streamSources.locator('[data-source-id="demo-PE-news-1"]')
+    ).toHaveAttribute('aria-pressed', 'true');
+    await streamSources.locator('[data-source-id="demo-PE-news-0"]').click();
+    await expect(
+        streamSources.locator('[data-source-id="demo-PE-news-0"]')
+    ).toHaveAttribute('aria-pressed', 'true');
     await page.getByRole('button', { name: 'Back to discovery' }).click();
     await expect(page.locator('.result-count')).toHaveText('1 channel');
     await page.screenshot({

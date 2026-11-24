@@ -64,6 +64,11 @@ country/territory inventory lives separately in `discovery-locations.ts`.
 - The virtual ribbon renders a bounded window. Opening the preview retains
   filters, selected channel, region and ribbon scroll position. Escape or Back
   returns focus to discovery; source switching remains inside the preview.
+  Playback uses a left panel for the channel logo, metadata and shared vertical
+  EPG list, with the player on the right. Source buttons below the player expose
+  every matching stream and mark the active source with `aria-pressed`.
+  At narrow widths the panels stack; the EPG and source list retain their own
+  bounded scroll areas. Missing/broken logos show a neutral Live TV fallback.
 - Filters persist in the prototype's own
   `iptvnator-discovery-prototype:v1` localStorage key. Search is authoritative in
   the shared header's `q` URL parameter, including reload and history changes.
@@ -311,13 +316,13 @@ Closing destroys the shared inline player. External players follow their existin
 application lifecycle. Recent history uses `PlaybackHistoryGate` and is recorded
 only after confirmed playback. Demo channels remain non-playable. Resolution
 failures offer retry; media diagnostics and recovery remain owned by the shared
-player. The selected-channel schedule reuses `EpgTimelineComponent` in the middle of the
-channel information row. `DiscoveryGuideSession` independently loads the selected
+player. The selected-channel schedule reuses `EpgListViewComponent` in the left
+channel information panel. `DiscoveryGuideSession` independently loads the selected
 provider alternate through `StreamResolverService.loadEpgItems`, preserving the
 existing uploaded/manual mapping and provider fallbacks, EPG opt-out, and display
 offset. Shared `toEpgProgram` normalization preserves epoch timestamps. Loading,
 unavailable/error states, retry, collapse, date navigation and programme details
-use the shared timeline; archive playback is not enabled in this view. Selection
+use the shared list; archive playback is not enabled in this view. Selection
 generations discard late guide responses without interrupting video playback.
 
 ## Saved US subdivisions

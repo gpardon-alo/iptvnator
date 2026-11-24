@@ -85,7 +85,12 @@ catalogs through those same API-backed readers instead of seeding a second
 public write path.
 
 Destructive refresh belongs to `XtreamRefreshFlowService`; the data-source
-contract has no separate clear-and-snapshot entry point. Browser backup tests
+contract has no separate clear-and-snapshot entry point. Desktop refresh keeps
+its enabled-section navigation to trigger re-import, then opens Workspace
+Discovery after successful initialization. Failed or cancelled imports stay on
+the import screen, and leaving the page during import suppresses the final
+redirect. The completion redirect uses transient navigation info so browser
+history and reload do not replay it. Browser backup tests
 use `PwaXtreamBackupStorage` export/restore to preserve typed collection identity,
 saved snapshots and artwork. Category visibility writes remain owned by the
 category-management flow through `DatabaseService`, with no PWA no-op wrapper.

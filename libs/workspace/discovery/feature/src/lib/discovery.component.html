@@ -304,66 +304,122 @@
                             catalog.sourceId() ? 'LIVE TV' : 'DEMO PREVIEW'
                         }}</span>
                     </header>
-                    <div class="preview-stage">
-                        <app-discovery-player
-                            [row]="playbackRow()"
-                            [logo]="
-                                currentSource()?.facets?.logo ??
-                                match.channel.logo
-                            "
-                        />
-                    </div>
-                    <div class="preview-info">
-                        <div>
-                            <h1>{{ match.channel.name }}</h1>
-                            <p>
-                                {{
-                                    currentSource()?.facets?.location ??
-                                        match.channel.location
-                                }}
-                                ·
-                                {{
-                                    currentSource()?.facets?.language ??
-                                        match.channel.language
-                                }}
-                                ·
-                                {{ currentSource()?.quality }}
-                            </p>
-                        </div>
-                        @if (playbackRow()) {
-                            <app-discovery-guide
-                                [row]="playbackRow()"
-                                [epgChannelId]="
-                                    catalog
-                                        .epgChannelIds()
-                                        .get(
-                                            playbackRow()?.provider
-                                                ?.stream_id ?? 0
-                                        ) ?? ''
-                                "
-                                [logo]="
-                                    currentSource()?.facets?.logo ??
-                                    match.channel.logo
-                                "
-                            />
-                        }
-                        <label
-                            >Stream source<select
-                                aria-label="Stream source"
-                                [ngModel]="sourceId()"
-                                (ngModelChange)="sourceId.set($event)"
-                            >
-                                @for (
-                                    source of match.sources;
-                                    track source.id
-                                ) {
-                                    <option [value]="source.id">
-                                        {{ source.label }} ·
-                                        {{ source.quality }}
-                                    </option>
-                                }
-                            </select></label
+                    <div class="preview-layout">
+                        <aside
+                            class="preview-info"
+                            aria-label="Channel information and programme guide"
                         >
+                            <div class="preview-channel">
+                                <div
+                                    class="preview-logo"
+                                    [appChannelIssue]="
+                                        currentSource()?.facets?.issueRef ??
+                                        match.channel.issueRef
+                                    "
+                                    [channelLogo]="
+                                        currentSource()?.facets?.logo ??
+                                        match.channel.logo
+                                    "
+                                >
+                                    <mat-icon aria-hidden="true"
+                                        >live_tv</mat-icon
+                                    >
+                                    @if (
+                                        currentSource()?.facets?.logo ||
+                                        match.channel.logo
+                                    ) {
+                                        <img
+                                            #channelLogo
+                                            [src]="
+                                                currentSource()?.facets?.logo ||
+                                                match.channel.logo
+                                            "
+                                            [alt]="match.channel.name + ' logo'"
+                                            (error)="channelLogo.hidden = true"
+                                            (load)="channelLogo.hidden = false"
+                                        />
+                                    }
+                                </div>
+                                <h1>{{ match.channel.name }}</h1>
+                                <p>
+                                    {{
+                                        currentSource()?.facets?.location ??
+                                            match.channel.location
+                                    }}
+                                    ·
+                                    {{
+                                        currentSource()?.facets?.language ??
+                                            match.channel.language
+                                    }}
+                                    · {{ currentSource()?.quality }}
+                                </p>
+                            </div>
+                            @if (playbackRow()) {
+                                <app-discovery-guide
+                                    [row]="playbackRow()"
+                                    [epgChannelId]="
+                                        catalog
+                                            .epgChannelIds()
+                                            .get(
+                                                playbackRow()?.provider
+                                                    ?.stream_id ?? 0
+                                            ) ?? ''
+                                    "
+                                    [logo]="
+                                        currentSource()?.facets?.logo ??
+                                        match.channel.logo
+                                    "
+                                />
+                            }
+                        </aside>
+                        <div class="preview-playback">
+                            <div class="preview-stage">
+                                <app-discovery-player
+                                    [row]="playbackRow()"
+                                    [logo]="
+                                        currentSource()?.facets?.logo ??
+                                        match.channel.logo
+                                    "
+                                />
+                            </div>
+                            <section
+                                class="preview-sources"
+                                aria-label="Stream sources"
+                            >
+                                <h2>Stream source</h2>
+                                <div
+                                    class="preview-source-list"
+                                    role="group"
+                                    aria-label="Stream source"
+                                >
+                                    @for (
+                                        source of match.sources;
+                                        track source.id
+                                    ) {
+                                        <button
+                                            type="button"
+                                            class="preview-source"
+                                            [attr.aria-pressed]="
+                                                sourceId() === source.id
+                                            "
+                                            [attr.data-source-id]="source.id"
+                                            (click)="sourceId.set(source.id)"
+                                        >
+                                            <mat-icon aria-hidden="true">{{
+                                                sourceId() === source.id
+                                                    ? 'check_circle'
+                                                    : 'play_circle'
+                                            }}</mat-icon>
+                                            <span>{{ source.label }}</span>
+                                            <span
+                                                class="preview-source-quality"
+                                                >{{ source.quality }}</span
+                                            >
+                                        </button>
+                                    }
+                                </div>
+                            </section>
+                        </div>
                     </div>
                 </section>
             }

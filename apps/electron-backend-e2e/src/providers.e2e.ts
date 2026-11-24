@@ -192,6 +192,9 @@ test.describe('Electron Provider Smoke Tests', () => {
                 defaultXtreamPortalName
             );
             await waitForXtreamImportToFinish(app.mainWindow);
+            await expect(app.mainWindow).toHaveURL(
+                /\/workspace\/discovery(?:[?#]|$)/
+            );
         } finally {
             await closeElectronApp(app);
         }
