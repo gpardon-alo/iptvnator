@@ -1824,7 +1824,11 @@ jobs:
                   fi
 
                   if [ "${PACKAGE_SET}" = "linux" ]; then
-                      BODY="${BODY}"$'\n\nLinux-only test build.'
+                      if [ "${IS_TAG_BUILD}" != "true" ]; then
+                          TAG="${TAG}-linux-${SHORT_SHA}"
+                          NAME="${NAME} [Linux]"
+                      fi
+                      BODY="${BODY}"$'\n\nLinux-only build.'
                   fi
 
                   if [ "${PACKAGE_SET}" = "all" ] && [ "${UNSIGNED_MACOS}" = "true" ]; then

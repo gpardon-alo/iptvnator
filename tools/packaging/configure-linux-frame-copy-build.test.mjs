@@ -1199,3 +1199,11 @@ test('Linux-only release creation rejects failed or cancelled dependencies', () 
         assert.equal(vm.runInNewContext(condition, context), false);
     }
 });
+
+
+test('Linux branch test metadata does not reuse a full-platform release tag', () => {
+    const script = buildWorkflowConfig.jobs['create-release'].steps.find((step) => step.name === 'Compose release metadata').run;
+    const branch = script.slice(script.indexOf('if [ "${PACKAGE_SET}" = "linux" ]; then'), script.indexOf('if [ "${PACKAGE_SET}" = "all" ]'));
+    assert.match(branch, /IS_TAG_BUILD/);
+    assert.match(branch, /TAG="\$\{TAG\}-linux-\$\{SHORT_SHA\}"/);
+});

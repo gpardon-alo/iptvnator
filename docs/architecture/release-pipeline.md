@@ -296,7 +296,8 @@ Actions variable `RELEASE_PACKAGE_SET` (fallback: `all`). Set that variable to
 `linux` for Linux-only manual releases. A run can override it with `linux`,
 `all`, or `deb`; push/tag/PR builds retain their existing full-platform behavior.
 `linux` builds the system, portable and Flatpak profiles, skips Mac/Windows,
-and creates a Linux-only draft after all Linux jobs pass. Verify it with
+and creates a Linux-only draft after all Linux jobs pass. Branch test drafts
+use a `-linux-<commit>` tag suffix, separate from full-platform test releases. Verify it with
 `pnpm run release:verify:draft --no-wait --package-set linux --tag <draft-tag> <version>`
 for branch test drafts (omit `--tag` for a normal `v<version>` draft).
 The Linux set has 15 assets: the 11 Linux installers, three Linux updater
