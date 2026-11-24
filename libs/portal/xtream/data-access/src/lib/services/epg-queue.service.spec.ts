@@ -1,5 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { ChannelIssuesService, SettingsStore } from '@iptvnator/services';
+import {
+    ChannelIssuesService,
+    EpgPreferencesService,
+    SettingsStore,
+} from '@iptvnator/services';
 import { EpgQueueService } from './epg-queue.service';
 import { XtreamApiService } from './xtream-api.service';
 import { XtreamXmltvFallbackService } from './xtream-xmltv-fallback.service';
@@ -97,6 +101,29 @@ describe('EpgQueueService', () => {
             stop_timestamp: String(stop),
         };
     }
+
+    it.each(['empty', 'error'])(
+        'ignores an in-flight %s observation after EPG is disabled',
+        async (outcome) => {
+            const issues = TestBed.inject(ChannelIssuesService);
+            const report = jest.spyOn(issues, 'report');
+            let finish!: () => void;
+            xtreamApi.getShortEpg.mockImplementationOnce(
+                () =>
+                    new Promise((resolve, reject) => {
+                        finish = () =>
+                            outcome === 'empty'
+                                ? resolve([])
+                                : reject(new Error('Synthetic outage'));
+                    })
+            );
+            const pending = priv().fetchEpg(credentials, 101);
+            await TestBed.inject(EpgPreferencesService).apply(false);
+            finish();
+            await pending;
+            expect(report).not.toHaveBeenCalled();
+        }
+    );
 
     it('reports only completed preview failures and clears an issue on later provider data', async () => {
         const issues = TestBed.inject(ChannelIssuesService);

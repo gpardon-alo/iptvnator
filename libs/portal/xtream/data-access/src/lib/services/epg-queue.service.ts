@@ -411,7 +411,7 @@ export class EpgQueueService implements OnDestroy {
         );
         try {
             // A mapping change during the request invalidated this result.
-            if (isStale()) {
+            if (isStale() || !this.epgPreferences.enabled()) {
                 return;
             }
 

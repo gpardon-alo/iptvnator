@@ -306,7 +306,7 @@ export class XtreamRefreshFlowService {
                     item._id,
                     ...(section ? [section] : []),
                 ],
-                { info: { xtreamRefresh: true } }
+                { info: { xtreamRefresh: true }, onSameUrlNavigation: 'reload' }
             );
         } catch (error) {
             if (!isDbAbortError(error)) {

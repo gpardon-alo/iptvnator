@@ -573,7 +573,7 @@ describe('XtreamRefreshFlowService', () => {
                     item._id,
                     ...(section ? [section] : []),
                 ],
-                { info: { xtreamRefresh: true } }
+                { info: { xtreamRefresh: true }, onSameUrlNavigation: 'reload' }
             );
         }
     );
@@ -589,7 +589,7 @@ describe('XtreamRefreshFlowService', () => {
         expect(calls).toEqual(['begin', 'end']);
         expect(router.navigate).toHaveBeenCalledWith(
             ['/workspace', 'xtreams', item._id, 'vod'],
-            { info: { xtreamRefresh: true } }
+            { info: { xtreamRefresh: true }, onSameUrlNavigation: 'reload' }
         );
     });
 

@@ -53,6 +53,9 @@ import {
     createLogger,
 } from '@iptvnator/portal/shared/util';
 
+/** A guide lookup skipped because its source/capability is no longer available. */
+export class EpgLookupUnavailableError extends Error {}
+
 type PlaylistWithChannels = Playlist & {
     readonly playlist?: { readonly items?: Channel[] };
 };
@@ -216,7 +219,11 @@ export class StreamResolverService {
         return this.fetchM3uPrograms(epgLookupKey);
     }
 
-    async loadEpgItems(item: UnifiedCollectionItem): Promise<EpgItem[]> {
+    /** Observation callers opt into failures instead of treating them as empty guides. */
+    async loadEpgItems(
+        item: UnifiedCollectionItem,
+        options: { throwOnFailure?: boolean } = {}
+    ): Promise<EpgItem[]> {
         if (
             !this.epgPreferences.enabled() ||
             item.radio === 'true' ||
@@ -231,10 +238,11 @@ export class StreamResolverService {
         if (!this.supportsProviderEpg) return [];
         return this.withFallbackTimeout(
             item.sourceType === 'xtream'
-                ? this.loadXtreamEpgItems(item)
+                ? this.loadXtreamEpgItems(item, options.throwOnFailure)
                 : this.loadStalkerEpgItems(item, 10),
             this.portalEpgTimeoutMs,
-            []
+            [],
+            options.throwOnFailure
         );
     }
 
@@ -755,15 +763,18 @@ export class StreamResolverService {
     }
 
     private async loadXtreamEpgItems(
-        item: UnifiedCollectionItem
+        item: UnifiedCollectionItem,
+        throwOnFailure = false
     ): Promise<EpgItem[]> {
         try {
             if (item.xtreamId == null) {
+                if (throwOnFailure) throw new EpgLookupUnavailableError();
                 return [];
             }
 
             const creds = await this.getXtreamCredentials(item.playlistId);
             if (!creds) {
+                if (throwOnFailure) throw new EpgLookupUnavailableError();
                 return [];
             }
 
@@ -818,9 +829,12 @@ export class StreamResolverService {
                 item.playlistId,
                 creds,
                 item.xtreamId,
-                50
+                50,
+                this.epgLoadClock(),
+                throwOnFailure
             );
-        } catch {
+        } catch (error) {
+            if (throwOnFailure) throw error;
             return [];
         }
     }
@@ -996,19 +1010,24 @@ export class StreamResolverService {
     private async withFallbackTimeout<T>(
         promise: Promise<T>,
         timeoutMs: number,
-        fallback: T
+        fallback: T,
+        throwOnFailure = false
     ): Promise<T> {
-        return new Promise((resolve) => {
-            const timeoutId = setTimeout(() => resolve(fallback), timeoutMs);
+        return new Promise((resolve, reject) => {
+            const timeoutId = setTimeout(() => {
+                if (throwOnFailure) reject(new Error('Guide lookup timed out'));
+                else resolve(fallback);
+            }, timeoutMs);
 
             promise
                 .then((value) => {
                     clearTimeout(timeoutId);
                     resolve(value);
                 })
-                .catch(() => {
+                .catch((error) => {
                     clearTimeout(timeoutId);
-                    resolve(fallback);
+                    if (throwOnFailure) reject(error);
+                    else resolve(fallback);
                 });
         });
     }
@@ -1187,9 +1206,11 @@ export class StreamResolverService {
         },
         streamId: number,
         limit: number,
-        clock = this.epgLoadClock()
+        clock = this.epgLoadClock(),
+        throwOnFailure = false
     ): Promise<EpgItem[]> {
         if (!this.supportsProviderEpg) {
+            if (throwOnFailure) throw new EpgLookupUnavailableError();
             return [];
         }
 
@@ -1207,6 +1228,7 @@ export class StreamResolverService {
         }
 
         if (this.isXtreamEpgFailureCoolingDown(cacheKey)) {
+            if (throwOnFailure) throw new Error('Guide lookup failed recently');
             return [];
         }
 
@@ -1234,16 +1256,23 @@ export class StreamResolverService {
                           wallNowMs
                       );
 
-            if (revision !== this.epgSources.revision()) return [];
+            if (revision !== this.epgSources.revision()) {
+                if (throwOnFailure) throw new EpgLookupUnavailableError();
+                return [];
+            }
             this.xtreamEpgCache.set(cacheKey, {
                 data: items,
                 timestamp: Date.now(),
             });
             this.xtreamEpgFailureTimestamps.delete(cacheKey);
             return items;
-        } catch {
-            if (revision !== this.epgSources.revision()) return [];
+        } catch (error) {
+            if (revision !== this.epgSources.revision()) {
+                if (throwOnFailure) throw new EpgLookupUnavailableError();
+                return [];
+            }
             this.xtreamEpgFailureTimestamps.set(cacheKey, Date.now());
+            if (throwOnFailure) throw error;
             return [];
         }
     }

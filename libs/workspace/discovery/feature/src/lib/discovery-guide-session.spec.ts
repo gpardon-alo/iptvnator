@@ -1,6 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { StreamResolverService } from '@iptvnator/portal/shared/data-access';
+import {
+    EpgLookupUnavailableError,
+    StreamResolverService,
+} from '@iptvnator/portal/shared/data-access';
 import { classifyDiscoveryStream } from '@iptvnator/portal/shared/util';
 import {
     ChannelIssuesService,
@@ -60,7 +63,8 @@ describe('Discovery selected-channel guide', () => {
                 xtreamId: 42,
                 contentType: 'live',
                 epgChannelId: 'synthetic.xmltv.channel',
-            })
+            }),
+            { throwOnFailure: true }
         );
         expect(session.programs()[0]).toMatchObject({
             title: program.title,
@@ -119,6 +123,14 @@ describe('Discovery selected-channel guide', () => {
         await session.load(row);
         expect(session.failed()).toBe(false);
         expect(session.programs()).toHaveLength(1);
+    });
+    it('does not record an issue when the selected source is unavailable', async () => {
+        resolver.loadEpgItems.mockRejectedValueOnce(
+            new EpgLookupUnavailableError()
+        );
+        await session.load(row);
+        expect(TestBed.inject(ChannelIssuesService).issues()).toEqual([]);
+        expect(session.failed()).toBe(false);
     });
     it('records completed empty/failed guide observations and clears them when data returns', async () => {
         const issues = TestBed.inject(ChannelIssuesService);

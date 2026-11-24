@@ -1,5 +1,8 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { StreamResolverService } from '@iptvnator/portal/shared/data-access';
+import {
+    EpgLookupUnavailableError,
+    StreamResolverService,
+} from '@iptvnator/portal/shared/data-access';
 import {
     buildXtreamCollectionUid,
     ClassifiedStream,
@@ -52,20 +55,23 @@ export class DiscoveryGuideSession {
         try {
             const items = await this.preferences.run(
                 () =>
-                    this.resolver.loadEpgItems({
-                        uid: buildXtreamCollectionUid(
-                            row.provider.source_id,
-                            'live',
-                            row.provider.stream_id
-                        ),
-                        sourceType: 'xtream',
-                        contentType: 'live',
-                        playlistId: row.provider.source_id,
-                        playlistName: '',
-                        xtreamId: row.provider.stream_id,
-                        name: row.provider.name,
-                        epgChannelId,
-                    }),
+                    this.resolver.loadEpgItems(
+                        {
+                            uid: buildXtreamCollectionUid(
+                                row.provider.source_id,
+                                'live',
+                                row.provider.stream_id
+                            ),
+                            sourceType: 'xtream',
+                            contentType: 'live',
+                            playlistId: row.provider.source_id,
+                            playlistName: '',
+                            xtreamId: row.provider.stream_id,
+                            name: row.provider.name,
+                            epgChannelId,
+                        },
+                        { throwOnFailure: true }
+                    ),
                 []
             );
             if (generation === this.generation && this.enabled()) {
@@ -73,7 +79,8 @@ export class DiscoveryGuideSession {
                 if (items.length) this.issues.resolve(ref, 'epg');
                 else this.issues.report(ref, 'empty-epg');
             }
-        } catch {
+        } catch (error) {
+            if (error instanceof EpgLookupUnavailableError) return;
             if (generation === this.generation && this.enabled()) {
                 this.failed.set(true);
                 this.issues.report(ref, 'epg-error');

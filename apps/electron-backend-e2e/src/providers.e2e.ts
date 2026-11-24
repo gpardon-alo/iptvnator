@@ -173,6 +173,25 @@ test.describe('Electron Provider Smoke Tests', () => {
         }
     });
 
+    test('@xtream @electron finishes refresh on Discovery when its import route is already open', async ({ dataDir, request }) => {
+        await resetMockServers(request, ['xtream']);
+        const app = await launchElectronApp(dataDir);
+        try {
+            const page = app.mainWindow;
+            await addXtreamPortal(page);
+            await waitForXtreamCatalog(page);
+            await expect(page).toHaveURL(/\/workspace\/xtreams\/[^/]+\/vod(?:[?#]|$)/);
+            await page.getByTestId('playlist-switcher-trigger').click();
+            await page.locator('app-playlist-switcher-panel [role="option"][aria-current="true"] .source-row__more').click();
+            await page.getByRole('menuitem', { name: 'Refresh playlist', exact: true }).click();
+            const dialog = page.locator('mat-dialog-container');
+            await dialog.getByRole('button', { name: 'Refresh playlist', exact: true }).click();
+            await expect(page).toHaveURL(/\/workspace\/discovery(?:[?#]|$)/, { timeout: 30000 });
+        } finally {
+            await closeElectronApp(app);
+        }
+    });
+
     test('@xtream @electron shows refresh overlay immediately from the dashboard Xtream source menu', async ({
         dataDir,
         request,

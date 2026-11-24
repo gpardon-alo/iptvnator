@@ -455,7 +455,7 @@ describe('SourceListRefreshService', () => {
         });
         expect(router.navigate).toHaveBeenCalledWith(
             ['/workspace', 'xtreams', item._id, 'vod'],
-            { info: { xtreamRefresh: true } }
+            { info: { xtreamRefresh: true }, onSameUrlNavigation: 'reload' }
         );
         expect(executionOrder).toEqual([
             'parkCatalogState',
