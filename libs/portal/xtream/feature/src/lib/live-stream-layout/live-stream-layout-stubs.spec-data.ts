@@ -39,6 +39,7 @@ export class StubPortalChannelsListComponent {
     template: '<div data-test-id="grid-list-stub"></div>',
 })
 export class StubGridListComponent {
+    readonly issueSourceId = input<string>();
     readonly items = input<unknown[]>([]);
     readonly isLoading = input(false);
     readonly isAppending = input(false);

@@ -298,7 +298,11 @@ uploads are opt-in through the `CODECOV_UPLOAD_ENABLED=true` repository variable
 and a configured `CODECOV_TOKEN` secret; upstream upload behavior is unchanged.
 
 Fork pushes leave the expensive Electron packaging matrix idle; use manual
-dispatch for fork builds. Upstream Docker Hub and Snap Store publication jobs
+dispatch for fork builds. Manual builds on branches other than `master` may
+set `unsigned_macos: true` to package macOS test installers without Apple
+credentials. This disables signing and notarization only for that test build;
+master and version-tag builds retain mandatory signing and notarization.
+Upstream Docker Hub and Snap Store publication jobs
 are restricted to the upstream repository. The fork's Debian-only release is
 published from the reviewed dispatch commit with the amd64 DEB, its SHA-256
 checksum and the matching Linux runtime source-compliance archive. It does not

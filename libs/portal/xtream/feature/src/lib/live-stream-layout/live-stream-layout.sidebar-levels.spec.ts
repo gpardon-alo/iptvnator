@@ -76,6 +76,7 @@ class StubChannelListHiddenStateComponent {
     template: '',
 })
 class StubGridListComponent {
+    readonly issueSourceId = input<string>();
     readonly items = input<unknown[]>([]);
     readonly isLoading = input(false);
     readonly searchTerm = input('');

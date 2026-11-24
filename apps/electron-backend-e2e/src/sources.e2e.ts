@@ -179,8 +179,10 @@ test.describe('Electron Sources View', () => {
             );
             expect(saved?.serverUrl).toBe(liveFormatMock);
             await refreshSource(page, title, { confirm: true });
-            // Xtream refresh leaves Sources to re-import the catalog.
-            await waitForXtreamCatalog(page);
+            // Refresh completes on Discovery after every content type imports.
+            await expect(page).toHaveURL(/\/workspace\/discovery(?:[?#]|$)/, {
+                timeout: 60000,
+            });
             const refreshed = await waitForPortalDebugEvent(page, {
                 provider: 'xtream',
                 operation: 'get_live_streams',
@@ -975,7 +977,10 @@ https://streams.example.test/refreshed-url.m3u8
             await refreshSource(app.mainWindow, 'Refresh Xtream Source', {
                 confirm: true,
             });
-            await waitForXtreamCatalog(app.mainWindow);
+            await expect(app.mainWindow).toHaveURL(
+                /\/workspace\/discovery(?:[?#]|$)/,
+                { timeout: 60000 }
+            );
             await waitForPortalDebugEvent(app.mainWindow, {
                 operation: 'get_live_categories',
                 provider: 'xtream',

@@ -100,8 +100,10 @@ async function startDelayingProxy(
  * launch reuses a type only when its status reads `completed` and rows exist,
  * and global search finds nothing of a type whose rows are missing.
  */
-async function expectCatalogComplete(page: Page): Promise<void> {
-    const playlistId = xtreamPlaylistIdFromUrl(page.url());
+async function expectCatalogComplete(
+    page: Page,
+    playlistId = xtreamPlaylistIdFromUrl(page.url())
+): Promise<void> {
     expect(playlistId).not.toBeNull();
     const imported = {
         status: 'completed',
@@ -159,11 +161,17 @@ test.describe('Electron Xtream catalog wait', () => {
 
                 // A refresh deletes the catalog and re-imports it, leaving
                 // the three statuses at `completed` from the first import.
+                const playlistId = xtreamPlaylistIdFromUrl(
+                    app.mainWindow.url()
+                );
                 proxy.slowDown();
                 await openSources(app.mainWindow);
                 await refreshSource(app.mainWindow, title, { confirm: true });
-                await waitForXtreamCatalog(app.mainWindow);
-                await expectCatalogComplete(app.mainWindow);
+                await expect(app.mainWindow).toHaveURL(
+                    /\/workspace\/discovery(?:[?#]|$)/,
+                    { timeout: 60000 }
+                );
+                await expectCatalogComplete(app.mainWindow, playlistId);
             } finally {
                 await closeElectronApp(app);
             }
