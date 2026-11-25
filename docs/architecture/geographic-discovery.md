@@ -210,6 +210,22 @@ queued work; destroying the session removes its subscription. Closed Discovery
 sessions read the latest catalog when opened. This adds no polling timer: PWA
 TTL renewal still happens on the next catalog access.
 
+Dictionary rows may carry optional `epg` metadata: `source`, `id`, `xmltvId`,
+`language`, `channelsFile`, `status` and `method` are strings. Imports, device
+storage, exports and private packaged baselines validate and preserve these fields;
+older rows without `epg` remain valid. Conflicting duplicate EPG metadata is rejected.
+The guide uses only `epg.xmltvId`, matched by exact source ID and provider stream
+ID. Descriptive source/file fields never add a download URL.
+
+Provider-first guides try the provider API, the configured XMLTV backup with
+the provider ID (or explicit manual mapping), then the same backup with the
+dictionary XMLTV ID. Empty and duplicate IDs are skipped. Uploaded-first mode
+tries both backup IDs before the provider. Discovery, full live guides and
+current-programme previews share this order. Dictionary edits invalidate EPG
+lookup caches and pending results; viewport retries batch dictionary reads by
+source and XMLTV queries by unresolved IDs. Dictionary reads fail independently
+of provider EPG. Browser runtimes without XMLTV lookup retain provider guides.
+
 ## Dictionary in Settings
 
 `/workspace/settings/dictionary` places the editor under Settings → Library.

@@ -8,6 +8,7 @@ import { StalkerSessionService } from '@iptvnator/portal/stalker/data-access';
 import { EpgRuntimeBridgeService } from '@iptvnator/epg/data-access';
 import {
     DataService,
+    READ_EPG_DICTIONARY,
     EpgPreferencesService,
     PlaylistsService,
     RuntimeCapabilitiesService,
@@ -152,6 +153,15 @@ describe('StreamResolverService provider EPG', () => {
             providers: [
                 StreamResolverService,
                 {
+                    provide: READ_EPG_DICTIONARY,
+                    useValue: async (source: string) => [
+                        {
+                            provider: { source_id: source, stream_id: 1 },
+                            epg: { xmltvId: 'Dictionary.example@SD' },
+                        },
+                    ],
+                },
+                {
                     provide: PlaylistsService,
                     useValue: {
                         getPlaylistById: jest.fn((id: string) =>
@@ -191,6 +201,52 @@ describe('StreamResolverService provider EPG', () => {
         service = TestBed.inject(StreamResolverService);
     });
 
+    it('resolves the full guide and current programme through the dictionary as the third choice', async () => {
+        epgBridge.supportsProgramLookup = true;
+        xtreamApi.getFullEpg.mockResolvedValue([]);
+        xtreamApi.getShortEpg.mockResolvedValue([]);
+        epgBridge.getChannelPrograms.mockImplementation(async (id: string) =>
+            id === 'Dictionary.example@SD'
+                ? [
+                      {
+                          channel: id,
+                          title: 'Synthetic dictionary programme',
+                          start: new Date(
+                              (nowSeconds - 60) * 1000
+                          ).toISOString(),
+                          stop: new Date(
+                              (nowSeconds + 60) * 1000
+                          ).toISOString(),
+                      },
+                  ]
+                : []
+        );
+        const guide = await service.loadEpgItems(xtreamXmltvItem);
+        expect(guide[0].title).toBe('Synthetic dictionary programme');
+        expect(
+            epgBridge.getChannelPrograms.mock.calls.map(([id]) => id)
+        ).toEqual(['xtream.xmltv', 'Dictionary.example@SD']);
+        epgBridge.getChannelPrograms.mockClear();
+        const current = await service.loadEpgForItems([xtreamXmltvItem]);
+        expect([...current.values()][0]?.title).toBe(
+            'Synthetic dictionary programme'
+        );
+        expect(
+            epgBridge.getChannelPrograms.mock.calls.map(([id]) => id)
+        ).toEqual(['xtream.xmltv', 'Dictionary.example@SD']);
+    });
+
+    it('keeps provider programmes ahead of either backup identity', async () => {
+        epgBridge.supportsProgramLookup = true;
+        xtreamApi.getFullEpg.mockResolvedValue([
+            xtreamListing('Provider first'),
+        ]);
+        expect((await service.loadEpgItems(xtreamXmltvItem))[0].title).toBe(
+            'Provider first'
+        );
+        expect(epgBridge.getChannelPrograms).not.toHaveBeenCalled();
+    });
+
     it('preserves provider failure and missing-source outcomes for observation callers', async () => {
         xtreamApi.getFullEpg.mockRejectedValue(new Error('Synthetic outage'));
         xtreamApi.getShortEpg.mockRejectedValue(new Error('Synthetic outage'));
@@ -210,7 +266,10 @@ describe('StreamResolverService provider EPG', () => {
         jest.useFakeTimers();
         try {
             xtreamApi.getFullEpg.mockImplementationOnce(
-                () => new Promise(() => { /* Provider intentionally never answers. */ })
+                () =>
+                    new Promise(() => {
+                        /* Provider intentionally never answers. */
+                    })
             );
             const assertion = expect(
                 service.loadEpgItems(xtreamItem, { throwOnFailure: true })

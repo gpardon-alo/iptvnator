@@ -43,6 +43,7 @@ function validateBaseline(manifest) {
                     'category',
                     'language',
                     'quality',
+                    'epg',
                     'status',
                     'origin',
                     'ruleVersion',
@@ -66,6 +67,19 @@ function validateBaseline(manifest) {
                 !['country', 'category', 'language'].every(
                     (key) => typeof row[key] === 'string'
                 ) ||
+                (row.epg !== undefined &&
+                    (!only(row.epg, [
+                        'source',
+                        'id',
+                        'xmltvId',
+                        'language',
+                        'channelsFile',
+                        'status',
+                        'method',
+                    ]) ||
+                        !Object.values(row.epg).every(
+                            (field) => typeof field === 'string'
+                        ))) ||
                 (row.quality !== undefined &&
                     !['4K', 'FHD', 'HD', 'SD', 'Unknown'].includes(
                         row.quality

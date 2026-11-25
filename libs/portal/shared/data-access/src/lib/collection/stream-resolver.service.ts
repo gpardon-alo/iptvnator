@@ -1,3 +1,4 @@
+import { DictionaryEpgService } from '@iptvnator/services/dictionary-epg';
 import { isCatalogUnavailable } from '@iptvnator/shared/interfaces';
 import { inject, Injectable, Injector } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -50,6 +51,7 @@ import {
 import {
     UnifiedCollectionItem,
     collectionEpgKey,
+    resolveEpgFallback,
     createLogger,
 } from '@iptvnator/portal/shared/util';
 
@@ -104,6 +106,7 @@ interface EpgLoadClock {
 
 @Injectable({ providedIn: 'root' })
 export class StreamResolverService {
+    private readonly dictionary = inject(DictionaryEpgService);
     private readonly playlistsService = inject(PlaylistsService);
     private readonly injector = inject(Injector);
     private readonly xtreamApi = inject(XtreamApiService);
@@ -778,61 +781,61 @@ export class StreamResolverService {
                 return [];
             }
 
-            // 1) Check uploaded XMLTV EPG via the provider's epg_channel_id.
-            // Runtime catalog metadata supplies the provider's XMLTV identity.
-            const epgKey = item.epgChannelId?.trim();
-            if (this.supportsProgramLookup && epgKey) {
-                const uploaded = await this.epgBridge
-                    .getChannelPrograms(epgKey)
-                    .catch(() => null);
-                if (uploaded && uploaded.length > 0) {
-                    return this.mapProgramsToEpgItems(uploaded);
-                }
-            }
-
-            // 2) Fall back to the manual mapping table (playlist-scoped
-            // Xtream key → epgChannelId).
-            if (this.supportsProgramLookup && item.xtreamId) {
-                const mapping = await this.epgBridge
-                    .getEpgMapping(
-                        buildXtreamEpgMappingKey(item.playlistId, item.xtreamId)
-                    )
-                    .catch(() => null);
-                if (mapping?.epgChannelId) {
-                    const mapped = await this.epgBridge
-                        .getChannelPrograms(mapping.epgChannelId)
+            const revision = this.epgSources.revision();
+            const result = await resolveEpgFallback({
+                preferUploaded:
+                    this.settingsStore.preferUploadedEpgOverXtream?.() ?? false,
+                fetchBackup: async () => {
+                    if (!this.supportsProgramLookup) return [];
+                    const mapping = await this.epgBridge
+                        .getEpgMapping(
+                            buildXtreamEpgMappingKey(
+                                item.playlistId,
+                                item.xtreamId!
+                            )
+                        )
                         .catch(() => null);
-                    if (mapped && mapped.length > 0) {
-                        return this.mapProgramsToEpgItems(mapped);
+                    const id =
+                        mapping?.epgChannelId?.trim() ||
+                        item.epgChannelId?.trim();
+                    if (id) {
+                        const programs = await this.epgBridge
+                            .getChannelPrograms(id)
+                            .catch(() => []);
+                        if (programs?.length)
+                            return this.mapProgramsToEpgItems(programs);
                     }
-                }
-            }
-
-            // 3) Try the full EPG endpoint (same as the main live-view
-            // loadEpg() in with-epg.feature.ts) — many providers only
-            // support get_simple_data_table, not get_short_epg.
-            try {
-                const fullEpg = await this.xtreamApi.getFullEpg(
-                    creds,
-                    item.xtreamId,
-                    { suppressErrorLog: true }
-                );
-                if (fullEpg.length > 0) {
-                    return fullEpg;
-                }
-            } catch {
-                // getFullEpg failed — continue to short-EPG fallback below.
-            }
-
-            // Fall back to the short-EPG endpoint with a generous limit.
-            return await this.fetchXtreamEpgItems(
-                item.playlistId,
-                creds,
-                item.xtreamId,
-                50,
-                this.epgLoadClock(),
-                throwOnFailure
-            );
+                    const dictionaryId = (
+                        await this.dictionary.idsFor(item.playlistId)
+                    ).get(item.xtreamId!);
+                    if (!dictionaryId || dictionaryId === id) return [];
+                    const programs = await this.epgBridge
+                        .getChannelPrograms(dictionaryId)
+                        .catch(() => []);
+                    return this.mapProgramsToEpgItems(programs ?? []);
+                },
+                fetchProvider: async () => {
+                    try {
+                        const full = await this.xtreamApi.getFullEpg(
+                            creds,
+                            item.xtreamId!,
+                            { suppressErrorLog: true }
+                        );
+                        if (full.length) return full;
+                    } catch {
+                        /* Try short EPG before the backup feed. */
+                    }
+                    return this.fetchXtreamEpgItems(
+                        item.playlistId,
+                        creds,
+                        item.xtreamId!,
+                        50,
+                        this.epgLoadClock(),
+                        throwOnFailure
+                    );
+                },
+            });
+            return revision === this.epgSources.revision() ? result : [];
         } catch (error) {
             if (throwOnFailure) throw error;
             return [];
@@ -1052,6 +1055,11 @@ export class StreamResolverService {
             channels
         );
 
+        const revision = this.epgSources.revision();
+        const dictionaryIds = this.supportsProgramLookup
+            ? await this.dictionary.idsFor(playlistId)
+            : new Map<number, string>();
+
         // Limit concurrency to avoid overwhelming the provider with
         // simultaneous EPG requests when loading a large channel list.
         const concurrency = 3;
@@ -1069,62 +1077,57 @@ export class StreamResolverService {
                     const nowSeconds = Math.floor(now / 1000);
                     let currentItem: EpgItem | null = null;
 
-                    // 1) Try uploaded XMLTV EPG via the provider's epg_channel_id.
-                    const epgChannelKey = (
-                        channel as unknown as Record<
-                            string,
-                            string | undefined | null
-                        >
-                    )['epgChannelId']?.trim();
-                    if (this.supportsProgramLookup && epgChannelKey) {
-                        currentItem = await this.findCurrentInXmltv(
-                            epgChannelKey,
-                            nowSeconds
-                        );
-                    }
-
-                    // 2) Fall back to manual mapping (epg_channel_mappings
-                    // table), using the batch-prefetched map. Candidate key
-                    // order matches how mappings can be saved: the
-                    // playlist-scoped Xtream key (portal/favorites dialogs),
-                    // then tvgId and name (M3U dialogs).
-                    if (!currentItem && this.supportsProgramLookup) {
-                        for (const key of this.mappingCandidateKeys(
-                            playlistId,
-                            channel
-                        )) {
-                            const mappedId = mappingByKey.get(key);
-                            if (!mappedId) continue;
-                            currentItem = await this.findCurrentInXmltv(
-                                mappedId,
-                                nowSeconds
-                            );
-                            if (currentItem) break;
-                        }
-                    }
-
-                    if (!currentItem) {
+                    const provider = async (): Promise<EpgItem[]> => {
                         const items = await this.fetchXtreamEpgItems(
                             playlistId,
                             creds,
-                            channel.xtreamId,
+                            channel.xtreamId!,
                             5,
                             clock
                         );
-                        currentItem =
-                            items.find(
-                                (item) =>
-                                    Number(item.start_timestamp) <=
-                                        nowSeconds &&
-                                    nowSeconds < Number(item.stop_timestamp)
-                            ) ?? null;
-                    }
+                        return items.filter(
+                            (item) =>
+                                Number(item.start_timestamp) <= nowSeconds &&
+                                nowSeconds < Number(item.stop_timestamp)
+                        );
+                    };
+                    const items = await resolveEpgFallback({
+                        preferUploaded:
+                            this.settingsStore.preferUploadedEpgOverXtream?.() ??
+                            false,
+                        fetchProvider: provider,
+                        fetchBackup: async () => {
+                            if (!this.supportsProgramLookup) return [];
+                            const ids = this.mappingCandidateKeys(
+                                playlistId,
+                                channel
+                            ).map((key) => mappingByKey.get(key));
+                            ids.push(
+                                channel.epgChannelId,
+                                dictionaryIds.get(channel.xtreamId!)
+                            );
+                            for (const id of new Set(
+                                ids
+                                    .filter((id): id is string => !!id?.trim())
+                                    .map((id) => id.trim())
+                            )) {
+                                const current = await this.findCurrentInXmltv(
+                                    id,
+                                    nowSeconds
+                                );
+                                if (current) return [current];
+                            }
+                            return [];
+                        },
+                    });
+                    currentItem = items[0] ?? null;
                     const epgKey = collectionEpgKey(channel);
 
                     if (!epgKey) {
                         continue;
                     }
 
+                    if (revision !== this.epgSources.revision()) continue;
                     epgMap.set(
                         epgKey,
                         currentItem

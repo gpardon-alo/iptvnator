@@ -11,6 +11,7 @@ import { XtreamXmltvFallbackService } from '../../services/xtream-xmltv-fallback
 import { withEpg } from './with-epg.feature';
 
 jest.mock('@iptvnator/portal/shared/util', () => ({
+    ...jest.requireActual('@iptvnator/portal/shared/util'),
     createLogger: () => ({
         debug: jest.fn(),
         info: jest.fn(),
@@ -72,6 +73,8 @@ function configureStore(setup: TestStoreSetup) {
     };
 
     const fallbackService = {
+        sources: { revision: () => 0 },
+        injector: { get: () => ({ idsFor: async () => new Map() }) },
         getProgramsForChannel: jest.fn<Promise<EpgItem[]>, unknown[]>(),
         resolveCurrentEpg:
             XtreamXmltvFallbackService.prototype.resolveCurrentEpg,

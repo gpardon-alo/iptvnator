@@ -68,6 +68,9 @@ export function parseDiscoveryDictionary(
             row.language,
             row.quality ?? 'Unknown',
             row.provider.name,
+            row.epg
+                ? Object.entries(row.epg).sort(([a], [b]) => a.localeCompare(b))
+                : null,
         ]);
         if (signatures.has(row.id) && signatures.get(row.id) !== signature)
             throw new DictionaryImportError(

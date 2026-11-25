@@ -17,6 +17,47 @@ const row = () =>
     );
 
 describe('Discovery dictionary round trips', () => {
+    it('round-trips optional EPG metadata and rejects unsafe or malformed fields', () => {
+        const epg = {
+            source: 'example.test',
+            id: '123',
+            xmltvId: 'ExampleNews.test@SD',
+            language: 'en',
+            channelsFile: 'sites/example/channels.xml',
+            status: 'matched',
+            method: 'exact-name-country',
+        };
+        const imported = parseDiscoveryDictionary(
+            JSON.stringify([{ ...row(), epg }]),
+            'synthetic',
+            []
+        );
+        expect(discoveryDictionaryRows(imported)[0].epg).toEqual(epg);
+        for (const invalid of [
+            null,
+            [],
+            { xmltvId: 123 },
+            { ...epg, url: 'https://example.test' },
+        ]) {
+            expect(() =>
+                parseDiscoveryDictionary(
+                    JSON.stringify([{ ...row(), epg: invalid }]),
+                    'synthetic',
+                    []
+                )
+            ).toThrow('Entry 1');
+        }
+        expect(() =>
+            parseDiscoveryDictionary(
+                JSON.stringify([
+                    { ...row(), epg },
+                    { ...row(), epg: { ...epg, xmltvId: 'Other.test' } },
+                ]),
+                'synthetic',
+                []
+            )
+        ).toThrow('Entry 2');
+    });
     it('exports the first occurrence of each source-scoped ID, matching the screen', () => {
         const first = row();
         const duplicate = {

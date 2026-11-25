@@ -43,6 +43,7 @@ export function assertDiscoveryMappings(
                             (row.country !== 'US' || !discoveryState(row))))) ||
                 (row.quality !== undefined &&
                     !DISCOVERY_QUALITIES.includes(row.quality)) ||
+                !validEpgMatch(row.epg) ||
                 !Array.isArray(row.categories) ||
                 !row.categories.every((v: unknown) => typeof v === 'string') ||
                 !['classified', 'unclassified'].includes(row.status) ||
@@ -52,6 +53,24 @@ export function assertDiscoveryMappings(
         )
     )
         throw new Error('Classification storage needs recovery');
+}
+
+function validEpgMatch(value: unknown): boolean {
+    if (value === undefined) return true;
+    if (!value || typeof value !== 'object' || Array.isArray(value))
+        return false;
+    const fields = [
+        'source',
+        'id',
+        'xmltvId',
+        'language',
+        'channelsFile',
+        'status',
+        'method',
+    ];
+    return Object.entries(value).every(
+        ([key, field]) => fields.includes(key) && typeof field === 'string'
+    );
 }
 
 function exactKeys(value: object, allowed: string[]): boolean {
@@ -97,6 +116,7 @@ export function parseDiscoveryBaseline(
                     'category',
                     'language',
                     'quality',
+                    'epg',
                     'status',
                     'origin',
                     'ruleVersion',

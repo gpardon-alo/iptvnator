@@ -1,3 +1,5 @@
+import { readXtreamImportState } from './xtream-import-wait';
+import { navigateWithinWorkspace } from './workspace-route.e2e-support';
 import type { Locator } from '@playwright/test';
 import {
     addStalkerPortal,
@@ -29,6 +31,53 @@ const epgCredentials = {
     username: 'epg',
     password: 'epg',
 };
+
+test('@epg @xtream @electron dictionary XMLTV ID supplies Discovery and live guides after provider-ID misses', async ({ dataDir }) => {
+    test.setTimeout(120000);
+    const stamp = (date: Date) => date.toISOString().replace(/[-:T]/g, '').slice(0, 14);
+    const source = await createMutableTextServer(
+        `<tv><channel id="Dictionary.example@SD"><display-name>Synthetic Guide</display-name></channel><programme channel="Dictionary.example@SD" start="${stamp(new Date(Date.now() - 600000))} +0000" stop="${stamp(new Date(Date.now() + 3600000))} +0000"><title>Synthetic dictionary bulletin</title></programme></tv>`,
+        { contentType: 'application/xml', resourcePath: '/dictionary.xml' }
+    );
+    const app = await launchElectronApp(dataDir);
+    try {
+        const page = app.mainWindow;
+        await addXtreamPortal(page, { name: 'Synthetic dictionary EPG', ...epgCredentials, contentTypes: ['live'] });
+        const sourceId = await page.evaluate(async () => (await window.electron.dbGetAppPlaylists()).find(p => p.title === 'Synthetic dictionary EPG')!._id);
+        await expect.poll(async () => (await readXtreamImportState(page, sourceId)).live).toMatchObject({ status: 'completed', hasCategories: true, hasContent: true });
+        await openSettings(page);
+        await openSettingsSection(page, 'epg');
+        await page.getByRole('button', { name: 'Add EPG source' }).click();
+        await page.locator('.epg-source-row input').fill(source.resourceUrl);
+        await saveSettings(page);
+        await expect.poll(() => page.evaluate(async () => (await window.electron.getChannelPrograms('Dictionary.example@SD')).map(p => p.title)), { timeout: 30000 }).toContain('Synthetic dictionary bulletin');
+        // The mock deliberately returns no provider EPG for stream 10001.
+        await navigateWithinWorkspace(page, '/workspace/settings/dictionary');
+        await page.getByLabel('Dictionary source', { exact: true }).selectOption(sourceId);
+        const file = JSON.stringify([{
+            id: `local:${encodeURIComponent(sourceId)}:live:10001`, name: 'Synthetic Dictionary News', categories: ['United States', 'News', 'English'],
+            provider: { source_id: sourceId, stream_id: 10001, name: 'Night Sports' },
+            country: 'US', category: 'news', language: 'English', status: 'classified', origin: 'manual', ruleVersion: 4,
+            epg: { xmltvId: 'Dictionary.example@SD', source: 'example.test', status: 'matched' },
+        }]);
+        const chooser = page.waitForEvent('filechooser');
+        await page.getByRole('button', { name: 'Import dictionary', exact: true }).click();
+        await (await chooser).setFiles({ name: 'synthetic-epg-dictionary.json', mimeType: 'application/json', buffer: Buffer.from(file) });
+        await expect(page.locator('app-discovery-dictionary')).toContainText('Imported 1 dictionary mappings');
+        await navigateWithinWorkspace(page, '/workspace/discovery');
+        await page.locator('.channel-tile').filter({ hasText: 'Synthetic Dictionary News' }).click();
+        await expect(page.locator('app-discovery-guide').getByRole('button', { name: /Synthetic dictionary bulletin/ }).first()).toBeVisible();
+        await openWorkspaceSection(page, 'Live TV');
+        await clickCategoryByNameExact(page, 'EPG Focus');
+        const row = channelItemByTitle(page, 'Night Sports').first();
+        await expect(row.locator('.epg-title')).toHaveText('Synthetic dictionary bulletin');
+        await row.click();
+        await expect.poll(() => timelineBlockTitles(page)).toContain('Synthetic dictionary bulletin');
+    } finally {
+        await closeElectronApp(app);
+        await source.close();
+    }
+});
 
 test('@epg @xtream @electron removes uploaded guide data and restores provider EPG without restarting', async ({
     dataDir,

@@ -6,11 +6,14 @@ import {
     type DiscoveryBaseline,
     type ClassifiedStream,
 } from '@iptvnator/portal/shared/util';
+import { EpgSourceSettingsService } from '@iptvnator/services';
+import { inject } from '@angular/core';
 import { sourceProfileName } from '@iptvnator/services/source-sync/connection';
 
 /** Device-local user mappings live independently of the expiring provider cache. */
 @Injectable({ providedIn: 'root' })
 export class DiscoveryMappingStorage {
+    private readonly epgSources = inject(EpgSourceSettingsService);
     private async visit<T>(
         sourceId: string,
         rows?: ClassifiedStream[]
@@ -62,6 +65,7 @@ export class DiscoveryMappingStorage {
     async write(sourceId: string, rows: ClassifiedStream[]): Promise<void> {
         assertDiscoveryMappings(rows, sourceId);
         await this.visit(sourceId, rows);
+        this.epgSources.invalidateLookups();
     }
 
     /** Receipt, rollback snapshot and merge commit atomically in the existing v1 store. */

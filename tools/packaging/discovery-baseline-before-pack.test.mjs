@@ -105,3 +105,18 @@ test('accepts optional supported quality and rejects unsupported quality before 
         assert.throws(() => validateBaseline(value));
     }
 });
+
+test('validates and preserves optional dictionary EPG metadata in private baselines', () => {
+    const value = manifest();
+    value.baselines[0].rows[0].epg = {
+        xmltvId: 'News.example@SD',
+        source: 'example.test',
+        status: 'matched',
+    };
+    assert.equal(
+        validateBaseline(value).baselines[0].rows[0].epg.xmltvId,
+        'News.example@SD'
+    );
+    value.baselines[0].rows[0].epg.password = 'synthetic';
+    assert.throws(() => validateBaseline(value));
+});

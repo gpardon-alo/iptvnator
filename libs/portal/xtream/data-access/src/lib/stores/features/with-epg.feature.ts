@@ -230,6 +230,8 @@ export function withEpg() {
                         const epgItems =
                             await fallbackService.resolveCurrentEpg({
                                 epgChannelId,
+                                playlistId,
+                                streamId: xtreamId,
                                 preferUploaded: preferUploaded(),
                                 fetchProvider: () =>
                                     fetchFullProvider(credentials, xtreamId),
@@ -274,6 +276,10 @@ export function withEpg() {
                     try {
                         return await fallbackService.resolveCurrentEpg({
                             epgChannelId,
+                            playlistId: (
+                                store as ParentSelectionStoreLike
+                            ).currentPlaylist?.()?.id,
+                            streamId,
                             preferUploaded: preferUploaded(),
                             fetchProvider: () =>
                                 apiService.getShortEpg(

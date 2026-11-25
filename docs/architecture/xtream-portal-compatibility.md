@@ -1316,3 +1316,15 @@ History projections, explicit-import previews and backup overlays normalize
 legacy SQLite UTC timestamps through the shared date normalizer before comparing
 them with ISO timestamps. The merged browsing cap therefore preserves genuinely
 newer archived entries outside UTC; local Stalker archive/import uses the same rule.
+
+## Dictionary XMLTV fallback
+
+Provider-first EPG resolves provider programmes, backup XMLTV by provider ID
+(or explicit manual mapping), then backup XMLTV by the dictionary row's
+`epg.xmltvId`. Uploaded-first mode tries both XMLTV identities before the
+provider. Dictionary resolution uses the exact playlist and provider stream ID;
+blank/duplicate IDs are skipped, and storage failures do not disable provider
+EPG. Full guides and current-programme previews follow this priority, including
+Discovery and collection consumers. Successful dictionary writes invalidate
+lookup revisions and caches. The metadata contract lives in
+[Geographic discovery](geographic-discovery.md).

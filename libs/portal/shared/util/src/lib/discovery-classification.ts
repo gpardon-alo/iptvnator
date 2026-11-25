@@ -17,6 +17,16 @@ export interface DiscoveryProviderStream {
     name: string;
     category_name?: string;
 }
+/** Optional imported XMLTV match; descriptive fields never select download URLs. */
+export interface DiscoveryEpgMatch {
+    source?: string;
+    id?: string;
+    xmltvId?: string;
+    language?: string;
+    channelsFile?: string;
+    status?: string;
+    method?: string;
+}
 export interface ClassifiedStream {
     id: string;
     name: string;
@@ -30,6 +40,7 @@ export interface ClassifiedStream {
     language: string;
     /** Omitted historical values display as Unknown; quality is not inferred. */
     quality?: DiscoveryQuality;
+    epg?: DiscoveryEpgMatch;
     status: 'classified' | 'unclassified';
     origin: 'rules' | 'manual';
     ruleVersion: number;
