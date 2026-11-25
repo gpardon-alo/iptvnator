@@ -11,6 +11,19 @@ this marker — see `.changes/README.md`.
 
 <!-- next-release -->
 
+# [0.26.0](https://github.com/gpardon-alo/iptvnator/compare/v0.25.5...v0.26.0) (2026-11-24)
+
+### Features
+
+- **discovery** — View the channel header and vertical programme guide beside the live player, select stream sources with pills below the video, and browse matching channel cards underneath without leaving playback.
+- **channels** — Review locally observed logo and programme-guide failures in Settings → Library → Dictionary and export the issue list for investigation.
+
+### Fixes
+
+- **xtream** — Return to Discovery after a successful desktop playlist refresh while preserving the existing refresh process.
+
+This fork release provides the Linux amd64 Debian installer, its SHA-256 checksum and the matching runtime source archive.
+
 # [0.25.5](https://github.com/gpardon-alo/iptvnator/compare/v0.25.4...v0.25.5) (2026-11-13)
 
 ### Fixes
@@ -952,6 +965,5 @@ The storage location of playlists has been changed, now everything is stored in 
 * initial commit ([2f1701a](https://github.com/4gray/iptvnator/commit/2f1701a3db04beb2fc6aca1e3a05f04c0a04b8af))
 * list with recent playlists ([1735026](https://github.com/4gray/iptvnator/commit/1735026c201591c4192317f3a5371c8548f8fa1c))
 * list with recent playlists ([8ee96ee](https://github.com/4gray/iptvnator/commit/8ee96eeebe0ca422d7bc183296f896c49e827b19))
-
 
 
