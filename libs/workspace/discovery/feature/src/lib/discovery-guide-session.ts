@@ -30,14 +30,23 @@ export class DiscoveryGuideSession {
     readonly loading = signal(false);
     readonly failed = signal(false);
     private generation = 0;
+    private selection: { row: ClassifiedStream; epgChannelId?: string } | null =
+        null;
 
     constructor() {
         inject(EpgSourceSettingsService)
             .changed$.pipe(takeUntilDestroyed())
-            .subscribe(() => this.close());
+            .subscribe(() => {
+                // The host tracks enabled(); source-only changes reload here.
+                const selected = this.selection;
+                if (selected && this.enabled())
+                    void this.load(selected.row, selected.epgChannelId);
+                else this.close();
+            });
     }
 
     close(): void {
+        this.selection = null;
         this.generation++;
         this.programs.set([]);
         this.loading.set(false);
@@ -51,6 +60,7 @@ export class DiscoveryGuideSession {
         this.close();
         if (!row || !this.enabled() || !this.runtime.supportsProviderEpg)
             return;
+        this.selection = { row, epgChannelId };
         const generation = this.generation;
         const ref = {
             sourceId: row.provider.source_id,

@@ -144,11 +144,9 @@ describe('Discovery selected-channel guide', () => {
             expect(session.programs()).toHaveLength(1);
         }
     );
-    it('retires loaded programmes and pending observations after dictionary/source revisions', async () => {
+    it('reloads active guides after source revisions and fences older observations', async () => {
         await session.load(row);
-        TestBed.inject(EpgSourceSettingsService).invalidateLookups();
-        expect(session.programs()).toEqual([]);
-        let finish!: (items: EpgItem[]) => void;
+        let finishOld!: (items: EpgItem[]) => void;
         let markStarted!: () => void;
         const started = new Promise<void>((resolve) => {
             markStarted = resolve;
@@ -156,17 +154,31 @@ describe('Discovery selected-channel guide', () => {
         resolver.loadEpgItems.mockImplementationOnce(
             () =>
                 new Promise((resolve) => {
-                    finish = resolve;
+                    finishOld = resolve;
                     markStarted();
                 })
         );
-        const pending = session.load(row);
-        await started;
         TestBed.inject(EpgSourceSettingsService).invalidateLookups();
-        finish([]);
-        await pending;
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(resolver.loadEpgItems).toHaveBeenCalledTimes(2);
+        await started;
+        expect(session.programs()).toEqual([]);
+        resolver.loadEpgItems.mockResolvedValueOnce([
+            { ...program, title: 'Fresh dictionary guide' },
+        ]);
+        TestBed.inject(EpgSourceSettingsService).invalidateLookups();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(session.programs()[0].title).toBe('Fresh dictionary guide');
+        finishOld([]);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(session.programs()[0].title).toBe('Fresh dictionary guide');
         expect(TestBed.inject(ChannelIssuesService).issues()).toEqual([]);
         expect(session.loading()).toBe(false);
+        session.close();
+        const calls = resolver.loadEpgItems.mock.calls.length;
+        TestBed.inject(EpgSourceSettingsService).invalidateLookups();
+        expect(resolver.loadEpgItems).toHaveBeenCalledTimes(calls);
+        expect(session.programs()).toEqual([]);
     });
     it('clears stale programmes and exposes retryable failures', async () => {
         await session.load(row);
