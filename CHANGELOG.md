@@ -15,7 +15,7 @@ this marker — see `.changes/README.md`.
 
 ### Fixes
 
-- **epg** — Channel guides try the provider first, then the backup XMLTV feed using the provider ID and the dictionary XMLTV ID. Dictionary imports preserve EPG matches, and the uploaded-first preference continues to work.
+- **epg** — Channel guides try the provider first, then the backup XMLTV feed using the provider ID and the dictionary XMLTV ID. Dictionary EPG matches survive imports and reclassification, and the uploaded-first preference continues to work.
 
 This fork release provides the Linux amd64 Debian installer, its SHA-256 checksum and the matching runtime source archive.
 

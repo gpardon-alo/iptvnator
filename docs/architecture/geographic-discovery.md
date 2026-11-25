@@ -213,7 +213,9 @@ TTL renewal still happens on the next catalog access.
 Dictionary rows may carry optional `epg` metadata: `source`, `id`, `xmltvId`,
 `language`, `channelsFile`, `status` and `method` are strings. Imports, device
 storage, exports and private packaged baselines validate and preserve these fields;
-older rows without `epg` remain valid. Conflicting duplicate EPG metadata is rejected.
+older rows without `epg` remain valid. Reclassification preserves EPG matches.
+Conflicting duplicate EPG metadata is rejected. New baseline commits invalidate EPG
+lookups only after the transaction commits; receipt replays and aborts do not.
 The guide uses only `epg.xmltvId`, matched by exact source ID and provider stream
 ID. Descriptive source/file fields never add a download URL.
 

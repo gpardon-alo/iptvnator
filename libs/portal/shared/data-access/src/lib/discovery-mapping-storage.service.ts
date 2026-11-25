@@ -72,6 +72,7 @@ export class DiscoveryMappingStorage {
     async applyBaseline(baseline: DiscoveryBaseline): Promise<void> {
         parseDiscoveryBaseline({ schemaVersion: 1, baselines: [baseline] });
         await new Promise<void>((resolve, reject) => {
+            let changed = false;
             const open = indexedDB.open(
                 `${sourceProfileName()}:discovery-mappings-v1`,
                 1
@@ -128,6 +129,7 @@ export class DiscoveryMappingStorage {
                                     },
                                     receiptKey
                                 );
+                                changed = true;
                             } catch {
                                 tx.abort();
                             }
@@ -135,6 +137,7 @@ export class DiscoveryMappingStorage {
                     };
                     tx.oncomplete = () => {
                         db.close();
+                        if (changed) this.epgSources.invalidateLookups();
                         resolve();
                     };
                     tx.onabort = tx.onerror = () => {

@@ -644,4 +644,36 @@ describe('Discovery source classification session', () => {
         await session.edit({ ...session.rows()[0], language: 'Portuguese' });
         expect(session.rows()[0].quality).toBe('HD');
     });
+    it('preserves imported EPG metadata through reload, edits and classification actions', async () => {
+        const epg = {
+            xmltvId: 'SyntheticNews.example@SD',
+            source: 'example.test',
+            status: 'matched',
+        };
+        await session.load();
+        await session.importDictionary(
+            dictionaryFile([{ ...session.rows()[0], epg }])
+        );
+        storage.read.mockResolvedValue(storage.write.mock.calls[0][1]);
+        await session.load();
+        expect(session.rows()[0].epg).toEqual(epg);
+        await session.reclassify(session.rows()[0]);
+        expect(session.rows()[0].epg).toEqual(epg);
+        await session.edit({ ...session.rows()[0], language: 'Portuguese' });
+        expect(session.rows()[0].epg).toEqual(epg);
+        session.rows.set([
+            {
+                ...session.rows()[0],
+                origin: 'rules',
+                country: '',
+                language: '',
+            },
+        ]);
+        await session.classifyUnclassified();
+        expect(session.rows()[0].epg).toEqual(epg);
+        expect(
+            storage.write.mock.calls[storage.write.mock.calls.length - 1][1][0]
+                .epg
+        ).toEqual(epg);
+    });
 });

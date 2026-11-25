@@ -10,6 +10,7 @@ import {
     DataService,
     READ_EPG_DICTIONARY,
     EpgPreferencesService,
+    EpgSourceSettingsService,
     PlaylistsService,
     RuntimeCapabilitiesService,
     SettingsStore,
@@ -246,6 +247,40 @@ describe('StreamResolverService provider EPG', () => {
         );
         expect(epgBridge.getChannelPrograms).not.toHaveBeenCalled();
     });
+
+    it.each([false, true])(
+        'treats invalidated strict guide loads as unavailable, including failures (%s)',
+        async (fails) => {
+            let settle!: () => void;
+            let markStarted!: () => void;
+            const started = new Promise<void>((resolve) => {
+                markStarted = resolve;
+            });
+            xtreamApi.getShortEpg.mockResolvedValue([]);
+            xtreamApi.getFullEpg.mockImplementationOnce(
+                () =>
+                    new Promise((resolve, reject) => {
+                        settle = () =>
+                            fails
+                                ? reject(new Error('Synthetic failure'))
+                                : resolve([
+                                      xtreamListing('Retired full guide'),
+                                  ]);
+                        markStarted();
+                    })
+            );
+            const pending = service.loadEpgItems(xtreamItem, {
+                throwOnFailure: true,
+            });
+            await started;
+            TestBed.inject(EpgSourceSettingsService).invalidateLookups();
+            const assertion = expect(pending).rejects.toBeInstanceOf(
+                EpgLookupUnavailableError
+            );
+            settle();
+            await assertion;
+        }
+    );
 
     it('preserves provider failure and missing-source outcomes for observation callers', async () => {
         xtreamApi.getFullEpg.mockRejectedValue(new Error('Synthetic outage'));

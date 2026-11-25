@@ -769,6 +769,7 @@ export class StreamResolverService {
         item: UnifiedCollectionItem,
         throwOnFailure = false
     ): Promise<EpgItem[]> {
+        const revision = this.epgSources.revision();
         try {
             if (item.xtreamId == null) {
                 if (throwOnFailure) throw new EpgLookupUnavailableError();
@@ -781,7 +782,6 @@ export class StreamResolverService {
                 return [];
             }
 
-            const revision = this.epgSources.revision();
             const result = await resolveEpgFallback({
                 preferUploaded:
                     this.settingsStore.preferUploadedEpgOverXtream?.() ?? false,
@@ -835,9 +835,14 @@ export class StreamResolverService {
                     );
                 },
             });
-            return revision === this.epgSources.revision() ? result : [];
+            if (revision !== this.epgSources.revision())
+                throw new EpgLookupUnavailableError();
+            return result;
         } catch (error) {
-            if (throwOnFailure) throw error;
+            if (throwOnFailure)
+                throw revision !== this.epgSources.revision()
+                    ? new EpgLookupUnavailableError()
+                    : error;
             return [];
         }
     }

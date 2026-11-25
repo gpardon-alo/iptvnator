@@ -233,6 +233,7 @@ export class DiscoverySourceSession {
                 ? {
                       ...classifyDiscoveryStream(row.provider, COUNTRIES),
                       ...(row.quality ? { quality: row.quality } : {}),
+                      ...(row.epg ? { epg: row.epg } : {}),
                   }
                 : row
         );
@@ -262,6 +263,7 @@ export class DiscoverySourceSession {
         const next = {
             ...classifyDiscoveryStream(row.provider, COUNTRIES),
             ...(row.quality ? { quality: row.quality } : {}),
+            ...(row.epg ? { epg: row.epg } : {}),
         };
         await this.save(this.rows().map((r) => (r.id === row.id ? next : r)));
     }

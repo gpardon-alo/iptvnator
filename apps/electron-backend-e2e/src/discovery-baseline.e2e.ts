@@ -114,6 +114,18 @@ test('Electron imports a packaged baseline through file assets without replacing
             }, sourceId);
         const before = await connection();
         const stream = fixture.items[0];
+        const epg = { xmltvId: 'SyntheticNews.example@SD', source: 'example.test', status: 'matched' };
+        const storedEpg = () => app.mainWindow.evaluate(({ sourceId, streamId }) => new Promise<unknown>((resolve, reject) => {
+            const open = indexedDB.open('iptvnator:discovery-mappings-v1', 1);
+            open.onerror = () => reject(new Error('Cannot read synthetic dictionary'));
+            open.onsuccess = () => {
+                const db = open.result;
+                const tx = db.transaction('sources', 'readonly');
+                const row = tx.objectStore('sources').get(sourceId);
+                tx.oncomplete = () => { db.close(); resolve(row.result?.find((entry: { provider: { stream_id: number } }) => entry.provider.stream_id === streamId)?.epg); };
+                tx.onabort = () => { db.close(); reject(new Error('Synthetic dictionary read aborted')); };
+            };
+        }), { sourceId, streamId: Number(stream.stream_id) });
         const input = join(directory, 'baseline.json');
         writeFileSync(
             input,
@@ -137,6 +149,7 @@ test('Electron imports a packaged baseline through file assets without replacing
                                     stream_id: Number(stream.stream_id),
                                     name: stream.name,
                                 },
+                                epg,
                                 country: 'US',
                                 state: 'US-FL',
                                 category: 'news',
@@ -163,6 +176,7 @@ test('Electron imports a packaged baseline through file assets without replacing
                 .locator('app-content-card')
                 .filter({ hasText: 'Packaged synthetic root' })
         ).toBeAttached();
+        expect(await storedEpg()).toEqual(epg);
         expect(await connection()).toEqual(before);
         app = await restartElectronApp(app, dataDir);
         await app.mainWindow.getByTestId('rail-discovery-prototype').click();
@@ -174,6 +188,7 @@ test('Electron imports a packaged baseline through file assets without replacing
                 .locator('app-content-card')
                 .filter({ hasText: 'Packaged synthetic root' })
         ).toBeAttached();
+        expect(await storedEpg()).toEqual(epg);
         expect(await connection()).toEqual(before);
     } finally {
         await closeElectronApp(app);
