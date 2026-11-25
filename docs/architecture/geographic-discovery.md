@@ -226,7 +226,9 @@ tries both backup IDs before the provider. Discovery, full live guides and
 current-programme previews share this order. Dictionary edits invalidate EPG
 lookup caches and pending results; viewport retries batch dictionary reads by
 source and XMLTV queries by unresolved IDs. Dictionary reads fail independently
-of provider EPG. Browser runtimes without XMLTV lookup retain provider guides.
+of provider EPG. Discovery retires loaded guides and pending observations on
+committed EPG preference/source revisions, including off/on cycles. Browser runtimes
+without XMLTV lookup retain provider guides.
 
 ## Dictionary in Settings
 

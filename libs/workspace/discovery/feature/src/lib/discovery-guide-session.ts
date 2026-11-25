@@ -1,4 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
     EpgLookupUnavailableError,
     StreamResolverService,
@@ -11,6 +12,7 @@ import { toEpgProgram } from '@iptvnator/portal/shared/ui';
 import {
     ChannelIssuesService,
     EpgPreferencesService,
+    EpgSourceSettingsService,
     SettingsStore,
     RuntimeCapabilitiesService,
 } from '@iptvnator/services';
@@ -28,6 +30,12 @@ export class DiscoveryGuideSession {
     readonly loading = signal(false);
     readonly failed = signal(false);
     private generation = 0;
+
+    constructor() {
+        inject(EpgSourceSettingsService)
+            .changed$.pipe(takeUntilDestroyed())
+            .subscribe(() => this.close());
+    }
 
     close(): void {
         this.generation++;

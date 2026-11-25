@@ -8,6 +8,7 @@ import { classifyDiscoveryStream } from '@iptvnator/portal/shared/util';
 import {
     ChannelIssuesService,
     EpgPreferencesService,
+    EpgSourceSettingsService,
     RuntimeCapabilitiesService,
     SettingsStore,
 } from '@iptvnator/services';
@@ -111,6 +112,61 @@ describe('Discovery selected-channel guide', () => {
         session.close();
         await closing;
         expect(session.programs()).toEqual([]);
+    });
+    it.each([false, true])(
+        'does not report cancelled off/on preference revisions (%s)',
+        async (fails) => {
+            let finish!: () => void;
+            let markStarted!: () => void;
+            const started = new Promise<void>((resolve) => {
+                markStarted = resolve;
+            });
+            resolver.loadEpgItems.mockImplementationOnce(
+                () =>
+                    new Promise((resolve, reject) => {
+                        finish = () =>
+                            fails
+                                ? reject(new Error('Retired synthetic request'))
+                                : resolve([]);
+                        markStarted();
+                    })
+            );
+            const pending = session.load(row);
+            await started;
+            await preferences.apply(false);
+            await preferences.apply(true);
+            finish();
+            await pending;
+            expect(TestBed.inject(ChannelIssuesService).issues()).toEqual([]);
+            expect(session.failed()).toBe(false);
+            expect(session.loading()).toBe(false);
+            await session.load(row);
+            expect(session.programs()).toHaveLength(1);
+        }
+    );
+    it('retires loaded programmes and pending observations after dictionary/source revisions', async () => {
+        await session.load(row);
+        TestBed.inject(EpgSourceSettingsService).invalidateLookups();
+        expect(session.programs()).toEqual([]);
+        let finish!: (items: EpgItem[]) => void;
+        let markStarted!: () => void;
+        const started = new Promise<void>((resolve) => {
+            markStarted = resolve;
+        });
+        resolver.loadEpgItems.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    finish = resolve;
+                    markStarted();
+                })
+        );
+        const pending = session.load(row);
+        await started;
+        TestBed.inject(EpgSourceSettingsService).invalidateLookups();
+        finish([]);
+        await pending;
+        expect(TestBed.inject(ChannelIssuesService).issues()).toEqual([]);
+        expect(session.loading()).toBe(false);
     });
     it('clears stale programmes and exposes retryable failures', async () => {
         await session.load(row);
