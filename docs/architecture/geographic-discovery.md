@@ -211,13 +211,16 @@ sessions read the latest catalog when opened. This adds no polling timer: PWA
 TTL renewal still happens on the next catalog access.
 
 Dictionary rows may carry optional `epg` metadata: `source`, `id`, `xmltvId`,
-`language`, `channelsFile`, `status` and `method` are strings. Imports, device
+`language`, `channelsFile`, `status`, `method` and `reason` are individually optional
+strings or null. Unmatched, skipped and review entries may retain null references
+and a reason; matched source-native entries may have a null `xmltvId`. Imports, device
 storage, exports and private packaged baselines validate and preserve these fields;
 older rows without `epg` remain valid. Reclassification preserves EPG matches.
 Conflicting duplicate EPG metadata is rejected. New baseline commits invalidate EPG
 lookups only after the transaction commits; receipt replays and aborts do not.
 The guide uses only `epg.xmltvId`, matched by exact source ID and provider stream
-ID. Descriptive source/file fields never add a download URL.
+ID. Missing, null and blank XMLTV IDs are skipped without disabling other guides.
+Descriptive source/file fields never add a download URL.
 
 Provider-first guides try the provider API, the configured XMLTV backup with
 the provider ID (or explicit manual mapping), then the same backup with the

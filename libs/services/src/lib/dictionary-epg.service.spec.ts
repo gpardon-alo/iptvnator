@@ -23,6 +23,14 @@ describe('DictionaryEpgService', () => {
                 epg: { xmltvId: 'Other.example' },
             },
             { provider: { source_id: 'synthetic-a', stream_id: 9 } },
+            {
+                provider: { source_id: 'synthetic-a', stream_id: 10 },
+                epg: { xmltvId: null },
+            },
+            {
+                provider: { source_id: 'synthetic-a', stream_id: 11 },
+                epg: { xmltvId: '  ' },
+            },
         ]);
         expect(
             await TestBed.inject(DictionaryEpgService).idsFor('synthetic-a')

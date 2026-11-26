@@ -114,7 +114,16 @@ test('Electron imports a packaged baseline through file assets without replacing
             }, sourceId);
         const before = await connection();
         const stream = fixture.items[0];
-        const epg = { xmltvId: 'SyntheticNews.example@SD', source: 'example.test', status: 'matched' };
+        const epg = {
+            xmltvId: 'SyntheticNews.example@SD',
+            source: 'example.test',
+            status: 'matched',
+            id: null,
+            language: null,
+            channelsFile: null,
+            method: null,
+            reason: null,
+        };
         const storedEpg = () => app.mainWindow.evaluate(({ sourceId, streamId }) => new Promise<unknown>((resolve, reject) => {
             const open = indexedDB.open('iptvnator:discovery-mappings-v1', 1);
             open.onerror = () => reject(new Error('Cannot read synthetic dictionary'));

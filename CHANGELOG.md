@@ -11,6 +11,14 @@ this marker — see `.changes/README.md`.
 
 <!-- next-release -->
 
+# [0.26.2](https://github.com/gpardon-alo/iptvnator/compare/v0.26.1...v0.26.2) (2026-11-25)
+
+### Fixes
+
+- **epg** — Dictionary imports accept optional and null EPG fields, including reasons for unmatched, skipped or review entries. Channels without an XMLTV ID remain importable and retain provider guide fallbacks.
+
+This fork release provides the Linux amd64 Debian installer, its SHA-256 checksum and the matching runtime source archive.
+
 # [0.26.1](https://github.com/gpardon-alo/iptvnator/compare/v0.26.0...v0.26.1) (2026-11-25)
 
 ### Fixes
@@ -973,5 +981,4 @@ The storage location of playlists has been changed, now everything is stored in 
 * initial commit ([2f1701a](https://github.com/4gray/iptvnator/commit/2f1701a3db04beb2fc6aca1e3a05f04c0a04b8af))
 * list with recent playlists ([1735026](https://github.com/4gray/iptvnator/commit/1735026c201591c4192317f3a5371c8548f8fa1c))
 * list with recent playlists ([8ee96ee](https://github.com/4gray/iptvnator/commit/8ee96eeebe0ca422d7bc183296f896c49e827b19))
-
 

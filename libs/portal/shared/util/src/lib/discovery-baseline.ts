@@ -67,9 +67,12 @@ function validEpgMatch(value: unknown): boolean {
         'channelsFile',
         'status',
         'method',
+        'reason',
     ];
     return Object.entries(value).every(
-        ([key, field]) => fields.includes(key) && typeof field === 'string'
+        ([key, field]) =>
+            fields.includes(key) &&
+            (field === null || typeof field === 'string')
     );
 }
 

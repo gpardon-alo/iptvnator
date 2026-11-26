@@ -19,13 +19,14 @@ export interface DiscoveryProviderStream {
 }
 /** Optional imported XMLTV match; descriptive fields never select download URLs. */
 export interface DiscoveryEpgMatch {
-    source?: string;
-    id?: string;
-    xmltvId?: string;
-    language?: string;
-    channelsFile?: string;
-    status?: string;
-    method?: string;
+    source?: string | null;
+    id?: string | null;
+    xmltvId?: string | null;
+    language?: string | null;
+    channelsFile?: string | null;
+    status?: string | null;
+    method?: string | null;
+    reason?: string | null;
 }
 export interface ClassifiedStream {
     id: string;

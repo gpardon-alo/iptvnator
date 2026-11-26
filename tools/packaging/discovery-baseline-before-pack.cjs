@@ -76,9 +76,11 @@ function validateBaseline(manifest) {
                         'channelsFile',
                         'status',
                         'method',
+                        'reason',
                     ]) ||
                         !Object.values(row.epg).every(
-                            (field) => typeof field === 'string'
+                            (field) =>
+                                field === null || typeof field === 'string'
                         ))) ||
                 (row.quality !== undefined &&
                     !['4K', 'FHD', 'HD', 'SD', 'Unknown'].includes(

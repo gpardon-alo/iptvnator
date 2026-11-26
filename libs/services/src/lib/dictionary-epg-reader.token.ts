@@ -2,7 +2,7 @@ import { InjectionToken } from '@angular/core';
 
 export interface DictionaryEpgRow {
     provider: { source_id: string; stream_id: number };
-    epg?: { xmltvId?: string };
+    epg?: { xmltvId?: string | null };
 }
 
 /** The app supplies lazy access to portable dictionary storage. */

@@ -54,16 +54,26 @@ test('@epg @xtream @electron dictionary XMLTV ID supplies Discovery and live gui
         // The mock deliberately returns no provider EPG for stream 10001.
         await navigateWithinWorkspace(page, '/workspace/settings/dictionary');
         await page.getByLabel('Dictionary source', { exact: true }).selectOption(sourceId);
-        const file = JSON.stringify([{
+        const dictionaryRow = {
             id: `local:${encodeURIComponent(sourceId)}:live:10001`, name: 'Synthetic Dictionary News', categories: ['United States', 'News', 'English'],
             provider: { source_id: sourceId, stream_id: 10001, name: 'Night Sports' },
             country: 'US', category: 'news', language: 'English', status: 'classified', origin: 'manual', ruleVersion: 4,
             epg: { xmltvId: 'Dictionary.example@SD', source: 'example.test', status: 'matched' },
-        }]);
+        };
+        const file = JSON.stringify([
+            dictionaryRow,
+            ...['unmatched', 'skipped', 'review', 'matched'].map((status, index) => ({
+                ...dictionaryRow,
+                id: `local:${encodeURIComponent(sourceId)}:live:${10002 + index}`,
+                name: `Synthetic Optional Fields ${index + 1}`,
+                provider: { source_id: sourceId, stream_id: 10002 + index, name: 'Synthetic optional fields' },
+                epg: { source: null, id: null, xmltvId: null, status, reason: 'Synthetic reference unavailable' },
+            })),
+        ]);
         const chooser = page.waitForEvent('filechooser');
         await page.getByRole('button', { name: 'Import dictionary', exact: true }).click();
         await (await chooser).setFiles({ name: 'synthetic-epg-dictionary.json', mimeType: 'application/json', buffer: Buffer.from(file) });
-        await expect(page.locator('app-discovery-dictionary')).toContainText('Imported 1 dictionary mappings');
+        await expect(page.locator('app-discovery-dictionary')).toContainText('Imported 5 dictionary mappings');
         await navigateWithinWorkspace(page, '/workspace/discovery');
         await page.locator('.channel-tile').filter({ hasText: 'Synthetic Dictionary News' }).click();
         await expect(page.locator('app-discovery-guide').getByRole('button', { name: /Synthetic dictionary bulletin/ }).first()).toBeVisible();

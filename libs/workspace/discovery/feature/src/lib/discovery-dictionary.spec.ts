@@ -17,6 +17,67 @@ const row = () =>
     );
 
 describe('Discovery dictionary round trips', () => {
+    it.each([
+        {},
+        { xmltvId: 'SyntheticNews.example@SD' },
+        {
+            source: null,
+            id: null,
+            xmltvId: null,
+            status: 'unmatched',
+            reason: 'No exact synthetic match',
+        },
+        {
+            source: null,
+            id: null,
+            xmltvId: null,
+            status: 'skipped',
+            reason: 'Synthetic entry excluded',
+        },
+        {
+            source: null,
+            id: null,
+            xmltvId: null,
+            status: 'review',
+            reason: 'Multiple synthetic candidates',
+        },
+        {
+            source: 'example.test',
+            id: 'synthetic-native-id',
+            xmltvId: null,
+            language: 'en',
+            channelsFile: 'sites/example.test/example.test.channels.xml',
+            status: 'matched',
+            method: 'reviewed',
+        },
+        {
+            source: null,
+            id: null,
+            xmltvId: null,
+            language: null,
+            channelsFile: null,
+            status: null,
+            method: null,
+            reason: null,
+        },
+    ])('preserves omitted and nullable EPG fields: %j', (epg) => {
+        const first = row();
+        delete first.provider.category_name;
+        const imported = parseDiscoveryDictionary(
+            JSON.stringify([{ ...first, epg }]),
+            'synthetic',
+            []
+        );
+        const exported = discoveryDictionaryRows(imported);
+        const restored = parseDiscoveryDictionary(
+            JSON.stringify(exported),
+            'synthetic',
+            []
+        );
+        expect(restored[0].epg).toEqual(epg);
+        expect(restored[0].provider.category_name).toBeUndefined();
+    });
+
     it('round-trips optional EPG metadata and rejects unsafe or malformed fields', () => {
         const epg = {
             source: 'example.test',
@@ -37,6 +98,8 @@ describe('Discovery dictionary round trips', () => {
             null,
             [],
             { xmltvId: 123 },
+            { reason: { text: 'Malformed synthetic reason' } },
+            { source: false },
             { ...epg, url: 'https://example.test' },
         ]) {
             expect(() =>
