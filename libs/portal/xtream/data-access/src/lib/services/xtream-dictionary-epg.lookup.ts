@@ -21,7 +21,7 @@ export function resolveXtreamEpg(
             const id = (args.epgChannelId ?? '').trim();
             const primary = id ? await fetchXmltv(id) : [];
             if (primary.length) return primary;
-            if (!args.playlistId || !args.streamId) return [];
+            if (!args.playlistId || args.streamId == null) return [];
             const dictionaryId = (
                 await injector.get(DictionaryEpgService).idsFor(args.playlistId)
             ).get(args.streamId);
