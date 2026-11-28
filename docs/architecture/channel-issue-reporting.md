@@ -29,7 +29,11 @@ of whether the provider, connectivity or channel mapping caused it.
 
 ## Local list and export
 
-`ChannelIssuesService` owns a device-local `channel-issues-v1` Web Storage key.
+`ChannelIssuesService` owns a device-local Web Storage key scoped with
+`sourceProfileStorageKey('channel-issues-v1')`. The default local profile keeps
+the historical unprefixed key; self-hosted profiles never import those ambiguous
+legacy records. Connections are prepared before Angular starts and changing a
+connection reloads the app. Delayed writes retain their creating profile's key.
 It deliberately uses its own browser-storage adapter rather than the optional
 server-synced user-data storage. Each browser origin/profile and Electron
 profile keeps an independent list. Source ID, stream ID and issue kind form

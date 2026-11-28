@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import * as connection from './source-sync/source-connection';
 import {
     CHANNEL_ISSUE_STORAGE,
     ChannelIssuesService,
@@ -29,7 +30,47 @@ describe('device-local channel issue reports', () => {
     });
     afterEach(() => {
         TestBed.resetTestingModule();
+        jest.restoreAllMocks();
         jest.useRealTimers();
+    });
+    it('isolates server profiles with colliding source IDs and preserves legacy local reports', () => {
+        const profile = jest
+            .spyOn(connection, 'sourceProfileName')
+            .mockReturnValue('iptvnator');
+        let service = create();
+        service.report(ref, 'image-error');
+        jest.advanceTimersByTime(300);
+        const legacy = values.get('channel-issues-v1');
+        TestBed.resetTestingModule();
+
+        profile.mockReturnValue('iptvnator-server:synthetic-a');
+        service = create();
+        expect(service.issues()).toEqual([]);
+        service.report({ ...ref, name: 'Synthetic server A' }, 'empty-epg');
+        // Even a delayed flush remains owned by the profile that created it.
+        profile.mockReturnValue('iptvnator-server:synthetic-b');
+        jest.advanceTimersByTime(300);
+        expect(
+            values.get('iptvnator-server:synthetic-a:channel-issues-v1')
+        ).toContain('Synthetic server A');
+        TestBed.resetTestingModule();
+
+        service = create();
+        expect(service.issues()).toEqual([]);
+        service.resolve(ref, 'epg');
+        TestBed.resetTestingModule();
+
+        profile.mockReturnValue('iptvnator-server:synthetic-a');
+        service = create();
+        expect(service.issues()[0].name).toBe('Synthetic server A');
+        TestBed.resetTestingModule();
+
+        profile.mockReturnValue('iptvnator');
+        service = create();
+        expect(service.issues()).toMatchObject([
+            { ...ref, reason: 'image-error' },
+        ]);
+        expect(values.get('channel-issues-v1')).toBe(legacy);
     });
     it('deduplicates repeated logo observations and keeps EPG and source identities separate', () => {
         const service = create();

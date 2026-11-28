@@ -18,6 +18,10 @@ this marker — see `.changes/README.md`.
 - **discovery** — Import a source dictionary from a JSON URL in Settings → Dictionary. Successful imports remember the URL on this device for each source. Failed imports retain previous mappings, and reselecting the current source preserves its loaded rows.
 - **epg** — Refreshing a source also reloads its dictionary when a URL is configured, downloads the latest backup guide, and refreshes programme lookups. Failed dictionary or guide updates retain the saved data and identify the failed step.
 
+### Fixes
+
+- **channels** — Channel issue lists and exports stay separate for local libraries and each self-hosted server. Existing local reports remain available, and delayed writes stay with the profile that created them.
+
 This fork release provides the Linux amd64 Debian installer, its SHA-256 checksum and the matching runtime source archive.
 
 # [0.26.2](https://github.com/gpardon-alo/iptvnator/compare/v0.26.1...v0.26.2) (2026-11-25)

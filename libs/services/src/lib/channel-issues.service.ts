@@ -9,6 +9,7 @@ import {
     createBrowserUserDataStorage,
     UserDataStorage,
 } from './user-data-storage';
+import { sourceProfileStorageKey } from './source-sync/source-profile-storage';
 
 export interface ChannelIssueRef {
     sourceId: string;
@@ -42,6 +43,9 @@ const REASONS: ChannelIssueReason[] = [
 @Injectable({ providedIn: 'root' })
 export class ChannelIssuesService {
     private readonly storage = inject(CHANNEL_ISSUE_STORAGE);
+    // Source connections are prepared before Angular starts. Retain the local
+    // legacy key, but never read its records into a self-hosted profile.
+    private readonly storageKey = sourceProfileStorageKey(KEY);
     private readonly records = signal<ChannelIssue[]>([]);
     readonly issues = this.records.asReadonly();
     readonly storageFailed = signal(false);
@@ -50,7 +54,7 @@ export class ChannelIssuesService {
     constructor() {
         try {
             const value: unknown = JSON.parse(
-                this.storage.getItem(KEY) ?? '[]'
+                this.storage.getItem(this.storageKey) ?? '[]'
             );
             if (Array.isArray(value)) {
                 const unique = new Map<string, ChannelIssue>();
@@ -186,7 +190,10 @@ export class ChannelIssuesService {
         clearTimeout(this.timer);
         this.timer = undefined;
         try {
-            this.storage.setItem(KEY, JSON.stringify(this.records()));
+            this.storage.setItem(
+                this.storageKey,
+                JSON.stringify(this.records())
+            );
             this.storageFailed.set(false);
         } catch {
             this.storageFailed.set(true);
