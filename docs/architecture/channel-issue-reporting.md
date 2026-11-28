@@ -16,9 +16,11 @@ A later successful load clears that source/stream's logo issue.
 A valid image containing generic artwork is not distinguishable from a logo.
 Only rendered views contribute observations; this is not a completeness audit.
 
-Discovery guide sessions, selected Xtream guides and viewport EPG previews
-report `empty-epg` only after a completed lookup and its configured fallback
-returns no programmes. Rejected provider previews use an available uploaded
+Discovery guide sessions and selected Xtream guides report `empty-epg` only
+after a completed lookup and its configured fallback returns no programmes.
+Empty viewport previews remain inconclusive: a short endpoint can be empty
+while the full guide works, or the preview window can fall inside a schedule gap.
+Rejected provider previews use an available uploaded
 XMLTV programme before reporting `epg-error`. Discovery opts into strict resolver
 outcomes: provider failures/timeouts are errors, while unavailable source data
 is skipped rather than counted as an empty guide. Loading, disabled

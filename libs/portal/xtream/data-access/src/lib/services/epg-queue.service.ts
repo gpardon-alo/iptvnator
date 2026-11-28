@@ -413,7 +413,9 @@ export class EpgQueueService implements OnDestroy {
 
             const xmltv = this.xmltvPreviewByStreamId.get(streamId);
             if (xmltv) this.issues.resolve(issueRef, 'epg');
-            else this.issues.report(issueRef, 'empty-epg');
+            // An empty preview does not exhaust the full guide: some providers
+            // only implement that endpoint, or have a gap around "now".
+            // Full-guide consumers own confirmed empty-guide observations.
             this.recordSuccess(streamId, xmltv ? [xmltv] : []);
         } finally {
             // Only release the in-flight marker if this request still owns it.

@@ -125,10 +125,25 @@ describe('EpgQueueService', () => {
         }
     );
 
-    it('reports only completed preview failures and clears an issue on later provider data', async () => {
+    it('leaves empty previews inconclusive, reports failures and clears an issue on later provider data', async () => {
         const issues = TestBed.inject(ChannelIssuesService);
         const report = jest.spyOn(issues, 'report');
         const resolve = jest.spyOn(issues, 'resolve');
+        xtreamApi.getFullEpg.mockResolvedValue([
+            listing('Synthetic full-guide programme', -5, 30),
+        ]);
+        await service.enqueue(
+            [{ streamId: 101, playlistId: 'synthetic', name: 'Example News' }],
+            new Set([101]),
+            credentials
+        );
+        await jest.advanceTimersByTimeAsync(250);
+        expect(report).not.toHaveBeenCalled();
+        expect(xtreamApi.getFullEpg).not.toHaveBeenCalled();
+        service.invalidate(101);
+        xtreamApi.getShortEpg.mockRejectedValueOnce(
+            new Error('Synthetic outage')
+        );
         await service.enqueue(
             [{ streamId: 101, playlistId: 'synthetic', name: 'Example News' }],
             new Set([101]),
@@ -137,7 +152,7 @@ describe('EpgQueueService', () => {
         await jest.advanceTimersByTimeAsync(250);
         expect(report).toHaveBeenCalledWith(
             expect.objectContaining({ sourceId: 'synthetic', streamId: 101 }),
-            'empty-epg'
+            'epg-error'
         );
         service.invalidate(101);
         xtreamApi.getShortEpg.mockResolvedValue([
