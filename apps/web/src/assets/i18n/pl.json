@@ -1078,6 +1078,7 @@
         "OPEN_EPG_GUIDE": "Przewodnik po programach"
     },
     "EPG": {
+        "SOURCE_REFRESH_FAILED": "Nie udało się odświeżyć {{step}}. Wcześniej zapisane dane zostały zachowane.",
         "NEXT_DAY": "Następny dzień",
         "PREVIOUS_DAY": "Poprzedni dzień",
         "ZOOM_IN": "Powiększ",

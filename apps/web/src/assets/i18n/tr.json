@@ -1078,6 +1078,7 @@
         "OPEN_EPG_GUIDE": "Program rehberi"
     },
     "EPG": {
+        "SOURCE_REFRESH_FAILED": "{{step}} yenilenemedi. Önceden kaydedilen veriler korunuyor.",
         "NEXT_DAY": "Sonraki gün",
         "PREVIOUS_DAY": "Önceki gün",
         "ZOOM_IN": "Yakınlaştır",

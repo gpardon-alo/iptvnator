@@ -1,4 +1,5 @@
 import { startAppMenuActions } from './services/app-menu-actions';
+import { startSourceRefreshFollowUp } from './services/source-refresh-follow-up';
 import {
     Component,
     effect,
@@ -117,6 +118,7 @@ export class AppComponent implements OnInit {
 
     constructor() {
         startAppMenuActions();
+        startSourceRefreshFollowUp();
         syncDocumentLanguage();
 
         // Body-level class (like 'dark-theme') so layout adjustments also

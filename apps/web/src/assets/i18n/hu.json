@@ -1078,6 +1078,7 @@
         "OPEN_EPG_GUIDE": "Műsorújság"
     },
     "EPG": {
+        "SOURCE_REFRESH_FAILED": "A(z) {{step}} frissítése nem sikerült. A korábban mentett adatok megmaradnak.",
         "NEXT_DAY": "Következő nap",
         "PREVIOUS_DAY": "Előző nap",
         "ZOOM_IN": "Nagyítás",

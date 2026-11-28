@@ -1328,3 +1328,13 @@ EPG. Full guides and current-programme previews follow this priority, including
 Discovery and collection consumers. Successful dictionary writes invalidate
 lookup revisions and caches. The metadata contract lives in
 [Geographic discovery](geographic-discovery.md).
+
+Fresh live-catalog acceptance starts the app's source-refresh follow-ups: reload
+the source's dictionary if it has a saved URL, then force-import the configured
+backup XMLTV guides, then invalidate programme lookups. The successful-catalog
+notification reaches Discovery after that chain. `SourceActivityService` protects
+the source throughout; repeated notifications share one per-source run, while
+different sources share an in-flight XMLTV download. Failed dictionary imports
+retain mappings and continue to EPG; failed XMLTV imports retain the transactional
+last guide. Unsupported runtimes and disabled EPG skip XMLTV work. These steps
+reuse the published guide and never launch a remote guide-generation job.

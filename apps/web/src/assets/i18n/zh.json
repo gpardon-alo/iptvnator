@@ -1078,6 +1078,7 @@
         "OPEN_EPG_GUIDE": "节目指南"
     },
     "EPG": {
+        "SOURCE_REFRESH_FAILED": "无法刷新 {{step}}。此前保存的数据将予以保留。",
         "NEXT_DAY": "明天",
         "PREVIOUS_DAY": "昨天",
         "ZOOM_IN": "放大",

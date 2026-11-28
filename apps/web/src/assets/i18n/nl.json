@@ -1078,6 +1078,7 @@
         "OPEN_EPG_GUIDE": "Programmagids"
     },
     "EPG": {
+        "SOURCE_REFRESH_FAILED": "{{step}} kon niet worden vernieuwd. Eerder opgeslagen gegevens blijven behouden.",
         "NEXT_DAY": "Volgende dag",
         "PREVIOUS_DAY": "Vorige dag",
         "ZOOM_IN": "Inzoomen",

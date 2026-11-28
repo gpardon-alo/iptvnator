@@ -47,6 +47,19 @@ summary:focus-visible {
     grid-template-columns: 1fr 1fr;
     gap: 24px;
 }
+.dictionary-url {
+    align-items: end;
+
+    label {
+        flex: 1 1 280px;
+        min-width: 0;
+        margin-bottom: 0;
+    }
+
+    input {
+        min-width: 0;
+    }
+}
 .mapping-grid > section {
     min-width: 0;
 }

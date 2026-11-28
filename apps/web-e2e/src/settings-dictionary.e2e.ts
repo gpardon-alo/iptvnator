@@ -158,23 +158,55 @@ for (const theme of ['light', 'dark'] as const) {
         await expect(editor.getByRole('status')).toContainText(
             'Imported 1 dictionary'
         );
+        const dictionaryUrl = 'https://dictionary.example.test/mappings.json';
+        rows[0].name = 'Synthetic URL channel';
+        await page.route('https://dictionary.example.test/**', (route) =>
+            route.fulfill({
+                headers: { 'access-control-allow-origin': '*' },
+                json: route.request().url().includes('?invalid') ? {} : rows,
+            })
+        );
+        const urlInput = editor.getByLabel('Dictionary URL', { exact: true });
+        await urlInput.fill(dictionaryUrl);
+        await editor
+            .getByRole('button', { name: 'Import from URL', exact: true })
+            .click();
+        await expect(editor.getByRole('status')).toContainText(
+            'Imported 1 dictionary'
+        );
+        await expect(editor.locator('.mapping-row')).toContainText(
+            'Synthetic URL channel'
+        );
+        await urlInput.fill(`${dictionaryUrl}?invalid`);
+        await editor
+            .getByRole('button', { name: 'Import from URL', exact: true })
+            .click();
+        await expect(editor.getByRole('status')).toContainText(
+            'Previous mappings are retained'
+        );
+        await expect(editor.locator('.mapping-row')).toContainText(
+            'Synthetic URL channel'
+        );
         await expect(saveSettings).toBeHidden();
         await page.reload();
         await expect(source).toHaveValue(rows[0].provider.source_id);
+        await expect(urlInput).toHaveValue(dictionaryUrl);
         await editor.getByRole('button', { name: /^All mappings/ }).click();
         await expect(editor.locator('.mapping-row')).toContainText(
-            'Synthetic imported channel'
+            'Synthetic URL channel'
         );
         await editor.locator('.mapping-row').click();
         await source.selectOption({ label: 'Synthetic dictionary B' });
+        await expect(urlInput).toHaveValue('');
         await expect(editor.getByLabel('Mapping display name')).toHaveCount(0);
         await expect(editor.locator('.mapping-row')).toContainText(
             'Synthetic Dictionary TV'
         );
         await source.selectOption({ label: 'Synthetic dictionary A' });
+        await expect(urlInput).toHaveValue(dictionaryUrl);
         await editor.getByRole('button', { name: /^All mappings/ }).click();
         await expect(editor.locator('.mapping-row')).toContainText(
-            'Synthetic imported channel'
+            'Synthetic URL channel'
         );
         await editor.locator('.mapping-row').click();
         await page.screenshot({
@@ -191,7 +223,7 @@ for (const theme of ['light', 'dark'] as const) {
             .click();
         await expect(
             page.getByRole('button', {
-                name: 'Synthetic imported channel',
+                name: 'Synthetic URL channel',
                 exact: true,
             })
         ).toBeVisible();

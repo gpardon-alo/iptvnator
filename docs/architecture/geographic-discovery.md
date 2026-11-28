@@ -155,8 +155,18 @@ Users can edit all three fields and the display name, export/import mapping JSON
 rules for unmatched streams, or explicitly reclassify a selected stream. Bulk
 reclassification preserves manual edits, including partial manual mappings; the
 selected-stream action explicitly replaces them with the current rule result.
-**Import dictionary** accepts the exported JSON array (maximum 32 MiB) for the
-selected source. Validate the complete file before a single atomic storage write:
+**Import dictionary** accepts a local file; **Import from URL** downloads the
+same exported JSON array from a direct HTTP(S) link (maximum 32 MiB) for the
+selected source. URL imports use the application HTTP client, reject URL userinfo,
+omit cross-origin credentials, and time out after 30 seconds without progress.
+The hosting server must allow browser access; blocked or failed downloads retain
+previous mappings and offer the local-file path in the error message. After a
+successful import, the URL is remembered in profile- and source-scoped local
+storage on this device. Source switching restores its own URL. A successful fresh
+live-catalog import or refresh reloads that URL, including a startup source refresh;
+opening an already cached catalog alone does not download it. Failed imports retain the previous saved URL. URLs
+are not included in import errors. Validate the complete file before a single
+atomic storage write:
 source-scoped IDs must remain unchanged, fields must match the portable
 mapping schema, and country/category/US state values must be supported. Imported
 entries replace matching saved mappings and become manual edits, including partial
@@ -170,6 +180,18 @@ announces reading progress, focuses its result and reports validation failures w
 fixed field names and entry numbers, without echoing provider data. Failed reads,
 validation or writes retain previous mappings. Import
 is device-local; exporting still includes only the current catalog's visible rows.
+
+After the refreshed catalog is accepted, the app reloads the configured dictionary
+before force-refreshing configured XMLTV sources. No dictionary URL means saved
+mappings are reused. Automatic reload uses the same complete-file validator as
+manual import, keeps current provider evidence, retains absent/unmentioned streams,
+and preserves an existing EPG reference when the incoming row omits it. The merge
+reads current mappings and commits in one IndexedDB transaction. Download,
+validation or write failure retains the previous mappings and does not prevent
+the EPG step. Failed steps are named without exposing URLs or imported content.
+The Dictionary page receives its catalog notification after these follow-ups, so
+an open page reloads the committed mappings. New unmatched streams remain pending;
+source refresh does not run classification rules automatically.
 
 Quality is an optional top-level dictionary field, separate from the derived
 `categories` labels and classification completeness. Historical mappings without

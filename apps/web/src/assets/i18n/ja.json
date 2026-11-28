@@ -1078,6 +1078,7 @@
         "OPEN_EPG_GUIDE": "番組表"
     },
     "EPG": {
+        "SOURCE_REFRESH_FAILED": "{{step}} を更新できませんでした。以前保存したデータは保持されます。",
         "NEXT_DAY": "翌日",
         "PREVIOUS_DAY": "前日",
         "ZOOM_IN": "拡大",

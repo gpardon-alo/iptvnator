@@ -1078,6 +1078,7 @@
         "OPEN_EPG_GUIDE": "Programme guide"
     },
     "EPG": {
+        "SOURCE_REFRESH_FAILED": "Could not refresh {{step}}. Previously saved data is kept.",
         "NEXT_DAY": "Next day",
         "PREVIOUS_DAY": "Previous day",
         "ZOOM_IN": "Zoom in",

@@ -1078,6 +1078,7 @@
         "OPEN_EPG_GUIDE": "Programmführer"
     },
     "EPG": {
+        "SOURCE_REFRESH_FAILED": "{{step}} konnte nicht aktualisiert werden. Die bisher gespeicherten Daten bleiben erhalten.",
         "NEXT_DAY": "Zum nächsten Tag",
         "PREVIOUS_DAY": "Zum vorherigen Tag",
         "ZOOM_IN": "Vergrößern",

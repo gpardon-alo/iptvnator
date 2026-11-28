@@ -12,6 +12,9 @@ import { Store } from '@ngrx/store';
 import { selectAllPlaylistsMeta } from '@iptvnator/m3u-state';
 import {
     DiscoveryBaselineImport,
+    DiscoveryDictionaryDownload,
+    DiscoveryDictionaryDownloadError,
+    DiscoveryDictionaryUrlStorage,
     DiscoveryMappingStorage,
 } from '@iptvnator/portal/shared/data-access';
 import {
@@ -49,6 +52,8 @@ export class DiscoverySourceSession {
     private readonly parentalLock = inject(ParentalLockService);
     private readonly storage = inject(DiscoveryMappingStorage);
     private readonly baseline = inject(DiscoveryBaselineImport);
+    private readonly dictionaryDownload = inject(DiscoveryDictionaryDownload);
+    private readonly dictionaryUrls = inject(DiscoveryDictionaryUrlStorage);
     private readonly playlists = inject(Store).selectSignal(
         selectAllPlaylistsMeta
     );
@@ -61,6 +66,7 @@ export class DiscoverySourceSession {
         )
     );
     readonly sourceId = signal(this.readSelection());
+    readonly dictionaryUrl = signal(this.readDictionaryUrl(this.sourceId()));
     readonly rows = signal<ClassifiedStream[]>([]);
     readonly loading = signal(false);
     readonly saving = signal(false);
@@ -130,8 +136,15 @@ export class DiscoverySourceSession {
             return '';
         }
     }
+    private readDictionaryUrl(id: string): string {
+        return this.dictionaryUrls.read(id);
+    }
     select(id: string): void {
-        if (this.saving()) return;
+        if (
+            this.saving() ||
+            (id === this.sourceId() && this.activeSource === id)
+        )
+            return;
         this.refreshPending.set(false);
         this.generation++;
         this.activeSource = '';
@@ -140,6 +153,7 @@ export class DiscoverySourceSession {
         this.setNotice('');
         this.loading.set(false);
         this.sourceId.set(id);
+        this.dictionaryUrl.set(this.readDictionaryUrl(id));
         try {
             localStorage.setItem(this.selectionKey, id);
         } catch {
@@ -293,15 +307,23 @@ export class DiscoverySourceSession {
             this.saving.set(false);
         }
     }
-    async importDictionary(file: File): Promise<void> {
+    async importDictionary(input: File | string): Promise<void> {
         if (this.saving() || this.loading() || this.error() || !this.sourceId())
             return;
         const id = this.sourceId();
         const generation = this.generation;
         this.saving.set(true);
-        this.setNotice('Reading dictionary…');
+        this.setNotice(
+            typeof input === 'string'
+                ? 'Downloading dictionary…'
+                : 'Reading dictionary…'
+        );
         let validated = false;
         try {
+            const file =
+                typeof input === 'string'
+                    ? await this.dictionaryDownload.download(input)
+                    : input;
             if (file.size > 32 * 1024 * 1024)
                 throw new DictionaryImportError(
                     'The dictionary exceeds the 32 MiB limit.'
@@ -324,12 +346,17 @@ export class DiscoverySourceSession {
                 `Imported ${imported.length} dictionary mappings on this device.`,
                 'success'
             );
+            if (typeof input === 'string') {
+                const url = input.trim();
+                this.dictionaryUrl.set(url);
+                this.dictionaryUrls.write(id, url);
+            }
         } catch (error) {
             if (generation === this.generation)
                 this.setNotice(
                     validated
                         ? 'Could not save dictionary. Previous mappings are retained; please retry.'
-                        : `Could not import dictionary. ${error instanceof DictionaryImportError ? error.message : 'The file could not be read. Try selecting it again.'} Previous mappings are retained.`,
+                        : `Could not import dictionary. ${error instanceof DictionaryImportError || error instanceof DiscoveryDictionaryDownloadError ? error.message : 'The file could not be read. Try selecting it again.'} Previous mappings are retained.`,
                     'error'
                 );
         } finally {

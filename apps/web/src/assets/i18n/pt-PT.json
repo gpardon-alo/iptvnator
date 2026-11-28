@@ -1078,6 +1078,7 @@
         "OPEN_EPG_GUIDE": "Guia TV"
     },
     "EPG": {
+        "SOURCE_REFRESH_FAILED": "Não foi possível atualizar {{step}}. Os dados guardados anteriormente foram mantidos.",
         "NEXT_DAY": "Dia seguinte",
         "PREVIOUS_DAY": "Dia anterior",
         "ZOOM_IN": "Mais zoom",

@@ -8,6 +8,7 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { selectAllPlaylistsMeta } from '@iptvnator/m3u-state';
 import {
     DiscoveryBaselineImport,
+    DiscoveryDictionaryDownload,
     DiscoveryMappingStorage,
 } from '@iptvnator/portal/shared/data-access';
 import { XTREAM_DATA_SOURCE } from '@iptvnator/portal/xtream/data-access';
@@ -21,6 +22,7 @@ describe('Discovery source classification session', () => {
         password: 'demo',
     };
     let storage: { read: jest.Mock; write: jest.Mock };
+    let download: jest.Mock;
     let data: {
         getPlaylist: jest.Mock;
         getCategories: jest.Mock;
@@ -37,6 +39,7 @@ describe('Discovery source classification session', () => {
     beforeEach(() => {
         lockVersion.set(0);
         localStorage.clear();
+        download = jest.fn();
         storage = {
             read: jest.fn().mockResolvedValue([]),
             write: jest.fn().mockResolvedValue(undefined),
@@ -72,6 +75,10 @@ describe('Discovery source classification session', () => {
                 { provide: XTREAM_DATA_SOURCE, useValue: data },
                 { provide: DiscoveryMappingStorage, useValue: storage },
                 {
+                    provide: DiscoveryDictionaryDownload,
+                    useValue: { download },
+                },
+                {
                     provide: DiscoveryBaselineImport,
                     useValue: { apply: jest.fn().mockResolvedValue(undefined) },
                 },
@@ -79,6 +86,14 @@ describe('Discovery source classification session', () => {
         });
         session = TestBed.inject(DiscoverySourceSession);
         session.select('synthetic');
+    });
+    it('retains loaded mappings when the current source is selected again', async () => {
+        await session.load();
+        const rows = session.rows();
+        session.select('synthetic');
+        await flushRefresh();
+        expect(session.rows()).toBe(rows);
+        expect(session.rows()).toHaveLength(1);
     });
     it('reloads the selected source after catalog completion, coalescing duplicate notices', async () => {
         await session.load();
@@ -433,6 +448,58 @@ describe('Discovery source classification session', () => {
             size: 100,
             text: async () => JSON.stringify(value),
         }) as File;
+
+    it('imports a URL through the same validation and storage merge as a file', async () => {
+        await session.load();
+        const row = session.rows()[0];
+        download.mockResolvedValue(
+            dictionaryFile([{ ...row, name: 'Remote correction' }])
+        );
+        await session.importDictionary(
+            'https://dictionary.example.test/channels.json'
+        );
+        expect(download).toHaveBeenCalledWith(
+            'https://dictionary.example.test/channels.json'
+        );
+        expect(storage.write).toHaveBeenCalledTimes(1);
+        expect(session.rows()[0]).toMatchObject({
+            name: 'Remote correction',
+            origin: 'manual',
+            provider: row.provider,
+        });
+        expect(session.noticeKind()).toBe('success');
+        session.select('other-source');
+        expect(session.dictionaryUrl()).toBe('');
+        session.select('synthetic');
+        expect(session.dictionaryUrl()).toBe(
+            'https://dictionary.example.test/channels.json'
+        );
+    });
+
+    it('keeps saved mappings when a URL dictionary has invalid entries', async () => {
+        await session.load();
+        const previous = session.rows();
+        download.mockResolvedValue(dictionaryFile(previous));
+        await session.importDictionary(
+            'https://dictionary.example.test/saved.json'
+        );
+        storage.write.mockClear();
+        download.mockResolvedValue(
+            dictionaryFile([{ ...previous[0], country: 'INVALID' }])
+        );
+        await session.importDictionary(
+            'https://dictionary.example.test/channels.json'
+        );
+        expect(storage.write).not.toHaveBeenCalled();
+        expect(session.rows()[0].name).toEqual(previous[0].name);
+        expect(session.notice()).toContain('Previous mappings are retained');
+        expect(session.saving()).toBe(false);
+        session.select('other-source');
+        session.select('synthetic');
+        expect(session.dictionaryUrl()).toBe(
+            'https://dictionary.example.test/saved.json'
+        );
+    });
 
     it('imports corrections as manual, rebuilds summaries and retains current provider evidence', async () => {
         await session.load();

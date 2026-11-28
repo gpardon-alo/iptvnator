@@ -1078,6 +1078,7 @@
         "OPEN_EPG_GUIDE": "節目表"
     },
     "EPG": {
+        "SOURCE_REFRESH_FAILED": "無法重新整理 {{step}}。先前儲存的資料將予以保留。",
         "NEXT_DAY": "下一天",
         "PREVIOUS_DAY": "上一天",
         "ZOOM_IN": "放大",

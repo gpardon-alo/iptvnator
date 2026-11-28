@@ -1,6 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { EpgSourceSettingsService } from '@iptvnator/services';
-import { DiscoveryBaseline } from '@iptvnator/portal/shared/util';
+import {
+    DiscoveryBaseline,
+    type ClassifiedStream,
+} from '@iptvnator/portal/shared/util';
 import { DiscoveryMappingStorage } from './discovery-mapping-storage.service';
 
 /** Exercise commit/abort ordering; the Electron baseline flow uses real IndexedDB. */
@@ -34,7 +37,11 @@ describe('Dictionary baseline EPG invalidation', () => {
         if (original) Object.defineProperty(globalThis, 'indexedDB', original);
         else Reflect.deleteProperty(globalThis, 'indexedDB');
     });
-    function setup(receipt?: unknown, current?: unknown) {
+    function setup(
+        receipt?: unknown,
+        current?: unknown,
+        merge?: (saved: ClassifiedStream[]) => ClassifiedStream[]
+    ) {
         const invalidateLookups = jest.fn();
         const requests: Request[] = [];
         const put = jest.fn();
@@ -71,11 +78,12 @@ describe('Dictionary baseline EPG invalidation', () => {
                 },
             ],
         });
-        const pending = TestBed.inject(DiscoveryMappingStorage).applyBaseline(
-            baseline
-        );
+        const storage = TestBed.inject(DiscoveryMappingStorage);
+        const pending = merge
+            ? storage.update(baseline.sourceId, merge)
+            : storage.applyBaseline(baseline);
         open.onsuccess?.();
-        requests[0].result = receipt;
+        requests[0].result = merge ? current : receipt;
         requests[0].onsuccess?.();
         if (requests[1]) {
             requests[1].result = current;
@@ -104,6 +112,37 @@ describe('Dictionary baseline EPG invalidation', () => {
         ]);
         await expect(pending).rejects.toThrow('previous data retained');
         expect(tx.abort).toHaveBeenCalled();
+        expect(invalidateLookups).not.toHaveBeenCalled();
+    });
+    it('merges a refreshed dictionary against the transaction-current mappings and invalidates after commit', async () => {
+        const existing = {
+            ...baseline.rows[0],
+            name: 'Synthetic current edit',
+        };
+        const merge = jest.fn((rows: ClassifiedStream[]) => rows);
+        const { pending, tx, put, invalidateLookups } = setup(
+            undefined,
+            [existing],
+            merge
+        );
+        expect(merge).toHaveBeenCalledWith([existing]);
+        expect(put).toHaveBeenCalledWith([existing], baseline.sourceId);
+        expect(invalidateLookups).not.toHaveBeenCalled();
+        tx.oncomplete?.();
+        await pending;
+        expect(invalidateLookups).toHaveBeenCalledTimes(1);
+    });
+    it('aborts a failed dictionary merge without invalidating the working mappings', async () => {
+        const { pending, tx, put, invalidateLookups } = setup(
+            undefined,
+            baseline.rows,
+            () => {
+                throw new Error('synthetic merge failure');
+            }
+        );
+        await expect(pending).rejects.toThrow();
+        expect(tx.abort).toHaveBeenCalled();
+        expect(put).not.toHaveBeenCalled();
         expect(invalidateLookups).not.toHaveBeenCalled();
     });
 });
