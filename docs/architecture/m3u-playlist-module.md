@@ -1959,6 +1959,15 @@ Routes live in `libs/playlist/m3u/feature-player/src/lib/m3u-workspace.routes.ts
 
 ### XMLTV source lifecycle
 
+After successful explicit or startup source-refresh persistence, M3U sources use
+the app's shared post-refresh chain to force-import configured global and enabled
+playlist-scoped XMLTV sources. Repeated URLs and concurrent source refreshes share
+an in-flight guide import. Ordinary source loading keeps its existing freshness
+rules. Source refresh does not clear the saved guide; failed replacement retains
+it, and lookup invalidation refreshes displayed programmes after the chain.
+Each import rechecks the source's EPG configuration, global URLs and enabled
+preference; changes retire the remaining chain without importing removed URLs.
+
 The parser worker stages incoming channel and programme batches in
 connection-private, file-backed SQLite temporary tables. It publishes the new
 guide only after the stream and XML parser finish successfully with at least one

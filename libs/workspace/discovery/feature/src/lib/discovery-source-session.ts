@@ -12,6 +12,9 @@ import { Store } from '@ngrx/store';
 import { selectAllPlaylistsMeta } from '@iptvnator/m3u-state';
 import {
     DiscoveryBaselineImport,
+    DiscoveryDictionaryDownload,
+    DiscoveryDictionaryDownloadError,
+    DiscoveryDictionaryUrlStorage,
     DiscoveryMappingStorage,
 } from '@iptvnator/portal/shared/data-access';
 import {
@@ -37,6 +40,7 @@ import {
     type DemoChannel,
 } from './discovery-catalog';
 import { groupDiscoveryChannels } from './discovery-channel-groups';
+import { mergeDiscoveryEdits } from './discovery-mapping-edits';
 import {
     DictionaryImportError,
     downloadDiscoveryDictionary,
@@ -49,6 +53,8 @@ export class DiscoverySourceSession {
     private readonly parentalLock = inject(ParentalLockService);
     private readonly storage = inject(DiscoveryMappingStorage);
     private readonly baseline = inject(DiscoveryBaselineImport);
+    private readonly dictionaryDownload = inject(DiscoveryDictionaryDownload);
+    private readonly dictionaryUrls = inject(DiscoveryDictionaryUrlStorage);
     private readonly playlists = inject(Store).selectSignal(
         selectAllPlaylistsMeta
     );
@@ -61,6 +67,7 @@ export class DiscoverySourceSession {
         )
     );
     readonly sourceId = signal(this.readSelection());
+    readonly dictionaryUrl = signal(this.readDictionaryUrl(this.sourceId()));
     readonly rows = signal<ClassifiedStream[]>([]);
     readonly loading = signal(false);
     readonly saving = signal(false);
@@ -87,7 +94,6 @@ export class DiscoverySourceSession {
             : groupDiscoveryChannels(this.rows(), this.logos())
     );
     readonly epgChannelIds = signal(new Map<number, string>());
-    private saved: ClassifiedStream[] = [];
     private readonly logos = signal(new Map<number, string>());
     private generation = 0;
     private activeSource = '';
@@ -130,8 +136,15 @@ export class DiscoverySourceSession {
             return '';
         }
     }
+    private readDictionaryUrl(id: string): string {
+        return this.dictionaryUrls.read(id);
+    }
     select(id: string): void {
-        if (this.saving()) return;
+        if (
+            this.saving() ||
+            (id === this.sourceId() && this.activeSource === id)
+        )
+            return;
         this.refreshPending.set(false);
         this.generation++;
         this.activeSource = '';
@@ -140,6 +153,7 @@ export class DiscoverySourceSession {
         this.setNotice('');
         this.loading.set(false);
         this.sourceId.set(id);
+        this.dictionaryUrl.set(this.readDictionaryUrl(id));
         try {
             localStorage.setItem(this.selectionKey, id);
         } catch {
@@ -214,7 +228,6 @@ export class DiscoverySourceSession {
                         p.stream_id > 0 &&
                         p.name
                 );
-            this.saved = saved;
             this.rows.set(
                 reconcileDiscoveryMappings(providers, saved, COUNTRIES)
             );
@@ -233,6 +246,7 @@ export class DiscoverySourceSession {
                 ? {
                       ...classifyDiscoveryStream(row.provider, COUNTRIES),
                       ...(row.quality ? { quality: row.quality } : {}),
+                      ...(row.epg ? { epg: row.epg } : {}),
                   }
                 : row
         );
@@ -262,6 +276,7 @@ export class DiscoverySourceSession {
         const next = {
             ...classifyDiscoveryStream(row.provider, COUNTRIES),
             ...(row.quality ? { quality: row.quality } : {}),
+            ...(row.epg ? { epg: row.epg } : {}),
         };
         await this.save(this.rows().map((r) => (r.id === row.id ? next : r)));
     }
@@ -273,14 +288,16 @@ export class DiscoverySourceSession {
         this.saving.set(true);
         this.setNotice('');
         try {
-            // Retain absent streams so a later catalog can restore their custom mapping.
-            const merged = new Map(this.saved.map((row) => [row.id, row]));
-            rows.forEach((row) => merged.set(row.id, row));
-            const saved = [...merged.values()];
-            await this.storage.write(id, saved);
+            const before = this.rows();
+            let saved: ClassifiedStream[] = [];
+            await this.storage.update(id, (current) => {
+                if (generation !== this.generation) return current;
+                saved = mergeDiscoveryEdits(current, before, rows);
+                return saved;
+            });
             if (generation !== this.generation) return;
-            this.saved = saved;
-            this.rows.set(rows);
+            const committed = new Map(saved.map((row) => [row.id, row]));
+            this.rows.set(rows.map((row) => committed.get(row.id) ?? row));
             this.setNotice('Mappings saved on this device.', 'success');
         } catch {
             this.setNotice(
@@ -291,15 +308,23 @@ export class DiscoverySourceSession {
             this.saving.set(false);
         }
     }
-    async importDictionary(file: File): Promise<void> {
+    async importDictionary(input: File | string): Promise<void> {
         if (this.saving() || this.loading() || this.error() || !this.sourceId())
             return;
         const id = this.sourceId();
         const generation = this.generation;
         this.saving.set(true);
-        this.setNotice('Reading dictionary…');
+        this.setNotice(
+            typeof input === 'string'
+                ? 'Downloading dictionary…'
+                : 'Reading dictionary…'
+        );
         let validated = false;
         try {
+            const file =
+                typeof input === 'string'
+                    ? await this.dictionaryDownload.download(input)
+                    : input;
             if (file.size > 32 * 1024 * 1024)
                 throw new DictionaryImportError(
                     'The dictionary exceeds the 32 MiB limit.'
@@ -309,25 +334,37 @@ export class DiscoverySourceSession {
             const imported = parseDiscoveryDictionary(text, id, this.rows());
             const changes = new Map(imported.map((row) => [row.id, row]));
             const rows = this.rows().map((row) => changes.get(row.id) ?? row);
-            const merged = new Map(this.saved.map((row) => [row.id, row]));
-            rows.forEach((row) => merged.set(row.id, row));
-            imported.forEach((row) => merged.set(row.id, row));
-            const saved = [...merged.values()];
+            let saved: ClassifiedStream[] = [];
             validated = true;
-            await this.storage.write(id, saved);
+            await this.storage.update(id, (current) => {
+                if (generation !== this.generation) return current;
+                const merged = new Map(
+                    mergeDiscoveryEdits(current, this.rows(), this.rows()).map(
+                        (row) => [row.id, row]
+                    )
+                );
+                imported.forEach((row) => merged.set(row.id, row));
+                saved = [...merged.values()];
+                return saved;
+            });
             if (generation !== this.generation) return;
-            this.saved = saved;
-            this.rows.set(rows);
+            const committed = new Map(saved.map((row) => [row.id, row]));
+            this.rows.set(rows.map((row) => committed.get(row.id) ?? row));
             this.setNotice(
                 `Imported ${imported.length} dictionary mappings on this device.`,
                 'success'
             );
+            if (typeof input === 'string') {
+                const url = input.trim();
+                this.dictionaryUrl.set(url);
+                this.dictionaryUrls.write(id, url);
+            }
         } catch (error) {
             if (generation === this.generation)
                 this.setNotice(
                     validated
                         ? 'Could not save dictionary. Previous mappings are retained; please retry.'
-                        : `Could not import dictionary. ${error instanceof DictionaryImportError ? error.message : 'The file could not be read. Try selecting it again.'} Previous mappings are retained.`,
+                        : `Could not import dictionary. ${error instanceof DictionaryImportError || error instanceof DiscoveryDictionaryDownloadError ? error.message : 'The file could not be read. Try selecting it again.'} Previous mappings are retained.`,
                     'error'
                 );
         } finally {

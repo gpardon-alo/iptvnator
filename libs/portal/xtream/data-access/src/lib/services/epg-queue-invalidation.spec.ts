@@ -80,6 +80,15 @@ describe('EpgQueueService invalidation', () => {
         };
     }
 
+    it('prunes expired dictionary-only previews when rows leave the viewport', async () => {
+        priv().xmltvPreviewByStreamId.set(
+            7,
+            makeItem('SyntheticNews.example', 'Synthetic guide')
+        );
+        await service.enqueue([], new Set(), credentials);
+        expect(priv().xmltvPreviewByStreamId.has(7)).toBe(false);
+    });
+
     it('drops every cached artifact so the stream refetches', async () => {
         xtreamApi.getShortEpg.mockResolvedValue([makeItem('rtl.de', 'Now')]);
         await priv().fetchEpg(credentials, 555);

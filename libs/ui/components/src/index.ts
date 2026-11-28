@@ -67,3 +67,4 @@ export * from './lib/dialog-shell/dialog-size';
 export * from './lib/detail-ui/age-rating-chip.component';
 
 export * from './lib/traffic-lights-clearance/traffic-lights-clearance.directive';
+export * from './lib/channel-logo-issue/channel-logo-issue.directive';

@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, Injector } from '@angular/core';
 import {
     EpgItem,
     EpgProgram,
@@ -21,6 +21,7 @@ type ElectronEpgBridge = {
 
 @Injectable({ providedIn: 'root' })
 export class XtreamXmltvFallbackService {
+    private readonly injector = inject(Injector);
     private readonly logger = createLogger('XtreamXmltvFallback');
     private readonly settingsStore = inject(SettingsStore);
     private readonly sources = inject(EpgSourceSettingsService);
@@ -60,6 +61,8 @@ export class XtreamXmltvFallbackService {
 
         try {
             const programs = await fn.call(this.bridge, id);
+            const { mapEpgProgramToEpgItem } =
+                await import('./xtream-epg-program.mapper');
             if (revision !== this.sources.revision()) return [];
             return (programs ?? []).map((p) => mapEpgProgramToEpgItem(p, id));
         } catch (error) {
@@ -94,6 +97,8 @@ export class XtreamXmltvFallbackService {
                     this.settingsStore.resolvedEpgOffsetMinutes()
                 ),
             });
+            const { mapEpgProgramToEpgItem } =
+                await import('./xtream-epg-program.mapper');
             if (revision !== this.sources.revision()) return {};
             const out: Record<string, EpgItem> = {};
             for (const id of ids) {
@@ -121,51 +126,17 @@ export class XtreamXmltvFallbackService {
      */
     async resolveCurrentEpg(args: {
         epgChannelId: string | null | undefined;
+        playlistId?: string;
+        streamId?: number;
         preferUploaded: boolean;
         fetchProvider: () => Promise<EpgItem[]>;
     }): Promise<EpgItem[]> {
-        const id = (args.epgChannelId ?? '').trim();
-
-        if (args.preferUploaded && id) {
-            const xmltv = await this.getProgramsForChannel(id);
-            if (xmltv.length > 0) return xmltv;
-            return args.fetchProvider();
-        }
-
-        const provider = await args.fetchProvider();
-        if (provider.length > 0 || !id) return provider;
-        return this.getProgramsForChannel(id);
+        const revision = this.sources.revision();
+        const { resolveXtreamEpg } =
+            await import('./xtream-dictionary-epg.lookup');
+        const result = await resolveXtreamEpg(this.injector, args, (id) =>
+            this.getProgramsForChannel(id)
+        );
+        return revision === this.sources.revision() ? result : [];
     }
-}
-
-function mapEpgProgramToEpgItem(
-    program: EpgProgram,
-    channelId: string
-): EpgItem {
-    const startMs = program.startTimestamp
-        ? program.startTimestamp * 1000
-        : Date.parse(program.start);
-    const stopMs = program.stopTimestamp
-        ? program.stopTimestamp * 1000
-        : Date.parse(program.stop);
-    const startTimestamp = Number.isFinite(startMs)
-        ? Math.floor(startMs / 1000)
-        : 0;
-    const stopTimestamp = Number.isFinite(stopMs)
-        ? Math.floor(stopMs / 1000)
-        : 0;
-
-    return {
-        id: `${channelId}|${program.start}`,
-        epg_id: '',
-        title: program.title ?? '',
-        lang: '',
-        start: program.start,
-        end: program.stop,
-        stop: program.stop,
-        description: program.desc ?? '',
-        channel_id: channelId,
-        start_timestamp: String(startTimestamp),
-        stop_timestamp: String(stopTimestamp),
-    };
 }

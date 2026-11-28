@@ -59,6 +59,39 @@
         Import dictionary
     </button>
 </div>
+<form class="tools dictionary-url" (ngSubmit)="importDictionaryUrl()">
+    <label>
+        Dictionary URL
+        <input
+            type="url"
+            name="dictionaryUrl"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="https://example.com/dictionary.json"
+            required
+            [ngModel]="dictionaryUrl()"
+            (ngModelChange)="dictionaryUrl.set($event)"
+            [disabled]="
+                session.saving() ||
+                session.loading() ||
+                !!session.error() ||
+                !session.sourceId()
+            "
+        />
+    </label>
+    <button
+        type="submit"
+        [disabled]="
+            !dictionaryUrl().trim() ||
+            session.saving() ||
+            session.loading() ||
+            !!session.error() ||
+            !session.sourceId()
+        "
+    >
+        Import from URL
+    </button>
+</form>
 <p class="hint">
     Manual edits are preserved. Export and import the dictionary for bulk
     changes; keep IDs unchanged.

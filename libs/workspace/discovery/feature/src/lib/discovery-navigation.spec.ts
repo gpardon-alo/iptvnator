@@ -1,5 +1,8 @@
 import { signal } from '@angular/core';
-import { DiscoveryComponent } from './discovery.component';
+import {
+    DiscoveryComponent,
+    discoveryPreviewLogo,
+} from './discovery.component';
 
 describe('Discovery playback keyboard ownership', () => {
     const navigate = (key: string, panel = false, handled = false) => {
@@ -46,4 +49,19 @@ describe('Discovery playback keyboard ownership', () => {
             else Reflect.deleteProperty(document, 'fullscreenElement');
         }
     });
+});
+
+describe('Discovery playback logo fallback', () => {
+    it.each([
+        '',
+        'assets/icons/icon-64.png',
+        '/assets/icons/icon-64.png?v=1',
+        'https://artwork.example.test/blank-icon.png',
+    ])('uses the neutral fallback for %s', (logo) =>
+        expect(discoveryPreviewLogo(logo)).toBe('')
+    );
+    it('keeps channel artwork', () =>
+        expect(
+            discoveryPreviewLogo(' https://artwork.example.test/channel.svg ')
+        ).toBe('https://artwork.example.test/channel.svg'));
 });

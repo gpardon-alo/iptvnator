@@ -1078,6 +1078,7 @@
         "OPEN_EPG_GUIDE": "Guida programmi"
     },
     "EPG": {
+        "SOURCE_REFRESH_FAILED": "Impossibile aggiornare {{step}}. I dati salvati in precedenza vengono conservati.",
         "NEXT_DAY": "Giorno successivo",
         "PREVIOUS_DAY": "Giorno precedente",
         "ZOOM_IN": "Ingrandisci",
@@ -2514,5 +2515,18 @@
         "STATE_offline": "Cronologia salvata localmente; server non disponibile",
         "STATE_incompatible": "Questo server non supporta la sincronizzazione della cronologia",
         "PENDING": "Modifiche alla cronologia in coda: {{count}}"
+    },
+    "CHANNEL_ISSUES": {
+        "TITLE": "Problemi dei canali",
+        "DESCRIPTION": "Problemi osservati in questa installazione. Esporta la lista per analizzarli.",
+        "ALL": "Tutti",
+        "LOGO": "Loghi",
+        "EXPORT": "Esporta problemi JSON",
+        "EMPTY": "Nessun problema osservato.",
+        "MISSING_URL": "URL del logo mancante",
+        "IMAGE_ERROR": "Impossibile caricare il logo",
+        "EMPTY_EPG": "Nessun programma EPG ricevuto",
+        "EPG_ERROR": "Richiesta EPG non riuscita",
+        "STORAGE_ERROR": "Impossibile salvare. Esporta la lista prima di chiudere."
     }
 }

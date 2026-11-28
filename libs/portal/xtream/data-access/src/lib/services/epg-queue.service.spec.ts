@@ -1,5 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { SettingsStore } from '@iptvnator/services';
+import {
+    ChannelIssuesService,
+    EpgPreferencesService,
+    SettingsStore,
+} from '@iptvnator/services';
 import { EpgQueueService } from './epg-queue.service';
 import { XtreamApiService } from './xtream-api.service';
 import { XtreamXmltvFallbackService } from './xtream-xmltv-fallback.service';
@@ -97,6 +101,74 @@ describe('EpgQueueService', () => {
             stop_timestamp: String(stop),
         };
     }
+
+    it.each(['empty', 'error'])(
+        'ignores an in-flight %s observation after EPG is disabled',
+        async (outcome) => {
+            const issues = TestBed.inject(ChannelIssuesService);
+            const report = jest.spyOn(issues, 'report');
+            let finish!: () => void;
+            xtreamApi.getShortEpg.mockImplementationOnce(
+                () =>
+                    new Promise((resolve, reject) => {
+                        finish = () =>
+                            outcome === 'empty'
+                                ? resolve([])
+                                : reject(new Error('Synthetic outage'));
+                    })
+            );
+            const pending = priv().fetchEpg(credentials, 101);
+            await TestBed.inject(EpgPreferencesService).apply(false);
+            finish();
+            await pending;
+            expect(report).not.toHaveBeenCalled();
+        }
+    );
+
+    it('leaves empty previews inconclusive, reports failures and clears an issue on later provider data', async () => {
+        const issues = TestBed.inject(ChannelIssuesService);
+        const report = jest.spyOn(issues, 'report');
+        const resolve = jest.spyOn(issues, 'resolve');
+        xtreamApi.getFullEpg.mockResolvedValue([
+            listing('Synthetic full-guide programme', -5, 30),
+        ]);
+        await service.enqueue(
+            [{ streamId: 101, playlistId: 'synthetic', name: 'Example News' }],
+            new Set([101]),
+            credentials
+        );
+        await jest.advanceTimersByTimeAsync(250);
+        expect(report).not.toHaveBeenCalled();
+        expect(xtreamApi.getFullEpg).not.toHaveBeenCalled();
+        service.invalidate(101);
+        xtreamApi.getShortEpg.mockRejectedValueOnce(
+            new Error('Synthetic outage')
+        );
+        await service.enqueue(
+            [{ streamId: 101, playlistId: 'synthetic', name: 'Example News' }],
+            new Set([101]),
+            credentials
+        );
+        await jest.advanceTimersByTimeAsync(250);
+        expect(report).toHaveBeenCalledWith(
+            expect.objectContaining({ sourceId: 'synthetic', streamId: 101 }),
+            'epg-error'
+        );
+        service.invalidate(101);
+        xtreamApi.getShortEpg.mockResolvedValue([
+            listing('Example programme', -5, 30),
+        ]);
+        await service.enqueue(
+            [{ streamId: 101, playlistId: 'synthetic', name: 'Example News' }],
+            new Set([101]),
+            credentials
+        );
+        await jest.advanceTimersByTimeAsync(250);
+        expect(resolve).toHaveBeenCalledWith(
+            expect.objectContaining({ sourceId: 'synthetic', streamId: 101 }),
+            'epg'
+        );
+    });
 
     it('cuts the preview window out of the full guide at the provider clock when a display offset is set', async () => {
         settings.resolvedEpgOffsetMinutes.mockReturnValue(60);
@@ -269,6 +341,18 @@ describe('EpgQueueService', () => {
 
         expect(service.getCached(303)).toEqual([xmltvItem]);
         expect(fallback.getProgramsForChannel).not.toHaveBeenCalled();
+    });
+
+    it('uses a successful XMLTV fallback when provider EPG rejects without reporting an issue', async () => {
+        const issues = TestBed.inject(ChannelIssuesService);
+        const report = jest.spyOn(issues, 'report');
+        const resolve = jest.spyOn(issues, 'resolve');
+        xtreamApi.getShortEpg.mockRejectedValue(new Error('Synthetic outage'));
+        const item = seedXmltvPreview(303, 'synthetic.example.test');
+        await priv().fetchEpg(credentials, 303);
+        expect(service.getCached(303)).toEqual([item]);
+        expect(report).not.toHaveBeenCalled();
+        expect(resolve).toHaveBeenCalledWith(undefined, 'epg');
     });
 
     it('does not consult XMLTV when Xtream already returned programs', async () => {

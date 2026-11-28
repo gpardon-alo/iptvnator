@@ -1,6 +1,11 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { NavigationEnd, NavigationStart, Router } from '@angular/router';
+import {
+    Navigation,
+    NavigationEnd,
+    NavigationStart,
+    Router,
+} from '@angular/router';
 import { Subject } from 'rxjs';
 import { PlaylistContextFacade } from '@iptvnator/playlist/shared/util';
 import {
@@ -199,10 +204,14 @@ describe('XtreamWorkspaceRouteSession', () => {
     const router = {
         url: `/workspace/xtreams/${PLAYLIST_ID}/vod`,
         events: routerEvents.asObservable(),
+        lastSuccessfulNavigation: signal<Navigation | null>(null),
+        navigate: jest.fn().mockResolvedValue(true),
     };
 
     beforeEach(async () => {
         router.url = `/workspace/xtreams/${PLAYLIST_ID}/vod`;
+        router.lastSuccessfulNavigation.set(null);
+        router.navigate.mockClear();
         routeProvider.set('xtreams');
         routePlaylistId.set(PLAYLIST_ID);
         activePlaylist.set(ACTIVE_PLAYLIST);
@@ -284,6 +293,78 @@ describe('XtreamWorkspaceRouteSession', () => {
         expect(xtreamStore.prepareContentLoading).toHaveBeenCalledWith('vod');
         expect(xtreamStore.initializeContent).toHaveBeenCalled();
     });
+
+    it('opens Discovery only after a refresh import succeeds', async () => {
+        xtreamStore.checkPortalStatus.mockResolvedValue('active');
+        router.lastSuccessfulNavigation.set({
+            id: 1,
+            extras: { info: { xtreamRefresh: true } },
+        } as Navigation);
+        const importDone = createDeferred<void>();
+        xtreamStore.initializeContent.mockImplementationOnce(async () => {
+            await importDone.promise;
+            isContentInitialized.set(true);
+        });
+        TestBed.inject(XtreamWorkspaceRouteSession);
+        await flushEffects();
+        expect(xtreamStore.initializeContent).toHaveBeenCalled();
+        expect(router.navigate).not.toHaveBeenCalled();
+
+        importDone.resolve();
+        await flushEffects();
+        expect(router.navigate).toHaveBeenCalledWith(
+            ['/workspace', 'discovery'],
+            { info: { discoverySourceId: PLAYLIST_ID } }
+        );
+    });
+
+    it.each(['movie', 'series'] as const)(
+        'keeps a %s-only refresh on its content route',
+        async (type) => {
+            activePlaylist.set({
+                ...ACTIVE_PLAYLIST,
+                xtreamContentTypes: [type],
+            });
+            currentPlaylist.set({
+                ...XTREAM_PLAYLIST,
+                xtreamContentTypes: [type],
+            });
+            xtreamStore.checkPortalStatus.mockResolvedValue('active');
+            router.lastSuccessfulNavigation.set({
+                id: 1,
+                extras: { info: { xtreamRefresh: true } },
+            } as Navigation);
+            TestBed.inject(XtreamWorkspaceRouteSession);
+            await flushEffects();
+            expect(xtreamStore.initializeContent).toHaveBeenCalled();
+            expect(router.navigate).not.toHaveBeenCalled();
+        }
+    );
+
+    it.each(['ordinary navigation', 'failed import', 'left the page'])(
+        'does not redirect after %s',
+        async (scenario) => {
+            xtreamStore.checkPortalStatus.mockResolvedValue('active');
+            if (scenario !== 'ordinary navigation') {
+                router.lastSuccessfulNavigation.set({
+                    id: 1,
+                    extras: { info: { xtreamRefresh: true } },
+                } as Navigation);
+            }
+            const importDone = createDeferred<void>();
+            xtreamStore.initializeContent.mockImplementationOnce(async () => {
+                await importDone.promise;
+                isContentInitialized.set(scenario !== 'failed import');
+            });
+            TestBed.inject(XtreamWorkspaceRouteSession);
+            await flushEffects();
+            if (scenario === 'left the page')
+                router.url = '/workspace/dashboard';
+            importDone.resolve();
+            await flushEffects();
+            expect(router.navigate).not.toHaveBeenCalled();
+        }
+    );
 
     it('holds the routed source busy until the import it awaits settles', async () => {
         xtreamStore.checkPortalStatus.mockImplementation(async () => {

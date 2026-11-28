@@ -1,9 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { SettingsStore } from '@iptvnator/services';
+import { DictionaryEpgService } from '@iptvnator/services/dictionary-epg';
 import { EpgProgram } from '@iptvnator/shared/interfaces';
 import { XtreamXmltvFallbackService } from './xtream-xmltv-fallback.service';
 
 jest.mock('@iptvnator/portal/shared/util', () => ({
+    ...jest.requireActual('@iptvnator/portal/shared/util'),
     createLogger: () => ({
         debug: jest.fn(),
         info: jest.fn(),
@@ -58,6 +60,82 @@ describe('XtreamXmltvFallbackService', () => {
         return TestBed.inject(XtreamXmltvFallbackService);
     }
 
+    it.each([false, true])(
+        'retries dictionary ID only after provider and provider-ID backup fail (%s)',
+        async (preferUploaded) => {
+            const service = makeService();
+            const ids = jest
+                .spyOn(TestBed.inject(DictionaryEpgService), 'idsFor')
+                .mockResolvedValue(new Map([[7, 'Dictionary.example@SD']]));
+            const backup = jest
+                .spyOn(service, 'getProgramsForChannel')
+                .mockImplementation(async (id) =>
+                    id === 'Dictionary.example@SD'
+                        ? [{ title: 'Dictionary programme' } as never]
+                        : []
+                );
+            const provider = jest.fn().mockResolvedValue([]);
+            expect(
+                await service.resolveCurrentEpg({
+                    playlistId: 'synthetic-source',
+                    streamId: 7,
+                    epgChannelId: 'Provider.example',
+                    preferUploaded,
+                    fetchProvider: provider,
+                })
+            ).toMatchObject([{ title: 'Dictionary programme' }]);
+            expect(backup.mock.calls).toEqual([
+                ['Provider.example'],
+                ['Dictionary.example@SD'],
+            ]);
+            expect(ids).toHaveBeenCalledWith('synthetic-source');
+            expect(provider).toHaveBeenCalledTimes(preferUploaded ? 0 : 1);
+        }
+    );
+    it('keeps provider-ID backup ahead of the dictionary and avoids reading it on a hit', async () => {
+        const service = makeService();
+        const dictionary = jest.spyOn(
+            TestBed.inject(DictionaryEpgService),
+            'idsFor'
+        );
+        jest.spyOn(service, 'getProgramsForChannel').mockResolvedValue([
+            { title: 'Provider-ID backup' } as never,
+        ]);
+        expect(
+            await service.resolveCurrentEpg({
+                playlistId: 'synthetic-source',
+                streamId: 7,
+                epgChannelId: 'Provider.example',
+                preferUploaded: false,
+                fetchProvider: async () => [],
+            })
+        ).toMatchObject([{ title: 'Provider-ID backup' }]);
+        expect(dictionary).not.toHaveBeenCalled();
+    });
+    it('uses dictionary with a missing provider ID and skips duplicate XMLTV IDs', async () => {
+        const service = makeService();
+        jest.spyOn(
+            TestBed.inject(DictionaryEpgService),
+            'idsFor'
+        ).mockResolvedValue(new Map([[7, 'Dictionary.example']]));
+        const backup = jest
+            .spyOn(service, 'getProgramsForChannel')
+            .mockResolvedValue([]);
+        const args = {
+            playlistId: 'synthetic-source',
+            streamId: 7,
+            preferUploaded: false,
+            fetchProvider: async () => [],
+        };
+        await service.resolveCurrentEpg({ ...args, epgChannelId: null });
+        expect(backup.mock.calls).toEqual([['Dictionary.example']]);
+        backup.mockClear();
+        await service.resolveCurrentEpg({
+            ...args,
+            epgChannelId: 'Dictionary.example',
+        });
+        expect(backup.mock.calls).toEqual([['Dictionary.example']]);
+    });
     it('returns [] when window.electron bridge is unavailable', async () => {
         delete (window as { electron?: unknown }).electron;
         const service = makeService();

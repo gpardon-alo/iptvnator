@@ -39,6 +39,18 @@
             @let i = $any(item);
             @let title = channelTitle(i) || ('PORTALS.UNTITLED' | translate);
             <mat-card
+                [appChannelIssue]="
+                    type() === 'live' && issueSourceId()
+                        ? {
+                              sourceId: issueSourceId()!,
+                              streamId: +(i.xtream_id ?? i.stream_id ?? i.id),
+                              name: i.title || i.name || '',
+                              epgId: i.epg_channel_id,
+                          }
+                        : undefined
+                "
+                [channelLogo]="resolvePoster(i)"
+                [channelLogoFailed]="hasArtworkFailed(resolvePoster(i))"
                 [attr.data-catalog-focus-key]="
                     i.id ??
                     i.stream_id ??

@@ -50,6 +50,7 @@ import { registerHideWatchedCases } from './testing/category-hide-watched.cases'
     ],
 })
 class MockGridListComponent {
+    readonly issueSourceId = input<string>();
     private readonly host: HTMLElement = inject(ElementRef).nativeElement;
     restoreScrollPosition(top: number): void {
         this.host.scrollTo({ top });

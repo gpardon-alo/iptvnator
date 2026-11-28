@@ -8,12 +8,12 @@ import {
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { ClassifiedStream } from '@iptvnator/portal/shared/util';
-import { EpgTimelineComponent } from '@iptvnator/ui/epg';
+import { EpgListViewComponent } from '@iptvnator/ui/epg';
 import { DiscoveryGuideSession } from './discovery-guide-session';
 
 @Component({
     selector: 'app-discovery-guide',
-    imports: [EpgTimelineComponent, RouterLink],
+    imports: [EpgListViewComponent, RouterLink],
     providers: [DiscoveryGuideSession],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styles: [
@@ -21,10 +21,11 @@ import { DiscoveryGuideSession } from './discovery-guide-session';
             :host {
                 display: block;
                 min-width: 0;
-                height: 260px;
+                flex: 1;
+                min-height: 0;
             }
             :host(.collapsed) {
-                height: 64px;
+                flex: 0 0 64px;
             }
             .disabled {
                 padding: 16px;
@@ -38,7 +39,7 @@ import { DiscoveryGuideSession } from './discovery-guide-session';
     host: { '[class.collapsed]': 'collapsed()' },
     template: `
         @if (session.enabled()) {
-            <app-epg-timeline
+            <app-epg-list-view
                 [programs]="session.programs()"
                 [channelName]="row()?.name ?? ''"
                 [channelLogo]="logo()"

@@ -49,7 +49,7 @@ function release(overrides = {}) {
         isDraft: true,
         // Shaped like the real thing: authored section, then GitHub's
         // generated notes appended by the tag workflow.
-        body: '### Features\n\n- **playback** — Up Next rail.\n\n## What\'s Changed\n* chore by @bot in #1\n',
+        body: "### Features\n\n- **playback** — Up Next rail.\n\n## What's Changed\n* chore by @bot in #1\n",
         assets: completeAssets('0.24.0').map((name) => ({ name })),
         ...overrides,
     };
@@ -230,7 +230,10 @@ describe('runVerification', () => {
 
         assert.equal(calls, 3);
         assert.deepEqual(slept, [RUN_POLL_INTERVAL_MS, RUN_POLL_INTERVAL_MS]);
-        assert.match(harness.progressLog[0], /No build-and-make\.yaml run for v0\.24\.0 yet/);
+        assert.match(
+            harness.progressLog[0],
+            /No build-and-make\.yaml run for v0\.24\.0 yet/
+        );
         assert.equal(result.exitCode, 0);
     });
 
@@ -343,7 +346,9 @@ describe('runVerification', () => {
         assert.match(result.lines[0], /already published/);
         assert.match(result.lines.at(-1), /All 27 required assets present/);
         assert.ok(
-            !result.lines.some((line) => /publish the release manually/.test(line))
+            !result.lines.some((line) =>
+                /publish the release manually/.test(line)
+            )
         );
     });
 
@@ -365,7 +370,9 @@ describe('runVerification', () => {
             options,
             io({
                 viewRelease: () =>
-                    release({ body: "## What's Changed\n* chore by @bot in #1" }),
+                    release({
+                        body: "## What's Changed\n* chore by @bot in #1",
+                    }),
             })
         );
 
@@ -383,7 +390,9 @@ describe('runVerification', () => {
                 readChangelog: () =>
                     '# 0.24.0 (2026-08-01)\n\n<details>\n<summary>Internal changes</summary>\n\n- **deps** — bump.\n\n</details>\n',
                 viewRelease: () =>
-                    release({ body: "## What's Changed\n* chore by @bot in #1" }),
+                    release({
+                        body: "## What's Changed\n* chore by @bot in #1",
+                    }),
             })
         );
 
@@ -394,10 +403,15 @@ describe('runVerification', () => {
     it('warns when the changelog has no section for the version', async () => {
         const result = await runVerification(
             options,
-            io({ readChangelog: () => '# Changelog\n\n<!-- next-release -->\n' })
+            io({
+                readChangelog: () => '# Changelog\n\n<!-- next-release -->\n',
+            })
         );
 
-        assert.match(result.lines[1], /CHANGELOG\.md has no section for 0\.24\.0/);
+        assert.match(
+            result.lines[1],
+            /CHANGELOG\.md has no section for 0\.24\.0/
+        );
     });
 
     it('does not claim to have verified an unreadable changelog', async () => {
@@ -428,5 +442,70 @@ describe('runVerification', () => {
             result.lines.find((line) => line.startsWith('NOTE:')),
             /unrecognized asset iptvnator-0\.24\.0-win-arm64\.exe/
         );
+    });
+});
+
+describe('Linux-only release assets', () => {
+    const linuxAssets = completeAssets('0.24.0').filter(
+        (name) =>
+            name.includes('-linux-') ||
+            name.startsWith('latest-linux') ||
+            name === 'linux-frame-copy-runtime-sources.tar.xz'
+    );
+    it('requires all 15 Linux installers, metadata and source assets', () => {
+        assert.equal(requiredAssetRules('0.24.0', 'linux').length, 15);
+        assert.deepEqual(verifyReleaseAssets(linuxAssets, '0.24.0', 'linux'), {
+            missing: [],
+            extras: [],
+        });
+        for (const removed of linuxAssets) {
+            assert.equal(
+                verifyReleaseAssets(
+                    linuxAssets.filter((name) => name !== removed),
+                    '0.24.0',
+                    'linux'
+                ).missing.length,
+                1
+            );
+        }
+        assert.equal(
+            verifyReleaseAssets(linuxAssets, '0.24.0').missing.length,
+            12
+        );
+    });
+    it('accepts an explicit Linux verifier mode and rejects invalid values', () => {
+        assert.equal(
+            parseVerifyArguments(['--package-set', 'linux']).packageSet,
+            'linux'
+        );
+        assert.equal(parseVerifyArguments(['--package-set', 'windows']), null);
+        assert.equal(parseVerifyArguments(['--package-set']), null);
+        assert.equal(
+            parseVerifyArguments(['--tag', 'test-linux-build']).tag,
+            'test-linux-build'
+        );
+        assert.equal(parseVerifyArguments(['--tag', '--repo']), null);
+        assert.equal(parseVerifyArguments(['--tag']), null);
+    });
+    it('verifies a Linux draft without requiring Mac or Windows assets', async () => {
+        const result = await runVerification(
+            {
+                version: '0.24.0',
+                wait: false,
+                repo: 'example/iptv-player',
+                packageSet: 'linux',
+                tag: 'test-linux-build',
+            },
+            io({
+                viewRelease: ({ tag }) => {
+                    assert.equal(tag, 'test-linux-build');
+                    return release({
+                        assets: linuxAssets.map((name) => ({ name })),
+                    });
+                },
+            })
+        );
+        assert.equal(result.exitCode, 0, result.lines.join('\n'));
+        assert.ok(result.lines.includes('All 15 required assets present (15 attached).'));
     });
 });

@@ -566,12 +566,15 @@ describe('XtreamRefreshFlowService', () => {
             const item = { ...createPlaylistMeta(), xtreamContentTypes: types };
             service.confirmAndRefresh(item, reporter);
             await confirmPromise;
-            expect(router.navigate).toHaveBeenCalledWith([
-                '/workspace',
-                'xtreams',
-                item._id,
-                ...(section ? [section] : []),
-            ]);
+            expect(router.navigate).toHaveBeenCalledWith(
+                [
+                    '/workspace',
+                    'xtreams',
+                    item._id,
+                    ...(section ? [section] : []),
+                ],
+                { info: { xtreamRefresh: true }, onSameUrlNavigation: 'reload' }
+            );
         }
     );
 
@@ -584,12 +587,10 @@ describe('XtreamRefreshFlowService', () => {
 
         expect(order).toEqual([`ipc:${CONNECTIVITY_GUARD_RESET}`, 'delete']);
         expect(calls).toEqual(['begin', 'end']);
-        expect(router.navigate).toHaveBeenCalledWith([
-            '/workspace',
-            'xtreams',
-            item._id,
-            'vod',
-        ]);
+        expect(router.navigate).toHaveBeenCalledWith(
+            ['/workspace', 'xtreams', item._id, 'vod'],
+            { info: { xtreamRefresh: true }, onSameUrlNavigation: 'reload' }
+        );
     });
 
     it('forwards delete progress to the reporter under the same run', async () => {

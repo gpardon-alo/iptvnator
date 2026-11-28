@@ -1078,6 +1078,7 @@
         "OPEN_EPG_GUIDE": "Przewodnik po programach"
     },
     "EPG": {
+        "SOURCE_REFRESH_FAILED": "Nie udało się odświeżyć {{step}}. Wcześniej zapisane dane zostały zachowane.",
         "NEXT_DAY": "Następny dzień",
         "PREVIOUS_DAY": "Poprzedni dzień",
         "ZOOM_IN": "Powiększ",
@@ -2514,5 +2515,18 @@
         "STATE_offline": "Historia zapisana lokalnie; serwer niedostępny",
         "STATE_incompatible": "Ten serwer nie obsługuje synchronizacji historii",
         "PENDING": "Zmiany historii w kolejce: {{count}}"
+    },
+    "CHANNEL_ISSUES": {
+        "TITLE": "Problemy kanałów",
+        "DESCRIPTION": "Problemy zaobserwowane w tej instalacji. Wyeksportuj listę do analizy.",
+        "ALL": "Wszystkie",
+        "LOGO": "Logotypy",
+        "EXPORT": "Eksportuj problemy JSON",
+        "EMPTY": "Nie zaobserwowano jeszcze problemów.",
+        "MISSING_URL": "Brak adresu logo",
+        "IMAGE_ERROR": "Nie udało się załadować logo",
+        "EMPTY_EPG": "Brak programów EPG w odpowiedzi",
+        "EPG_ERROR": "Żądanie EPG nie powiodło się",
+        "STORAGE_ERROR": "Nie udało się zapisać. Wyeksportuj listę przed zamknięciem."
     }
 }

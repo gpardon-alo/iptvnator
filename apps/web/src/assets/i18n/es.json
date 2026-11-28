@@ -1078,6 +1078,7 @@
         "OPEN_EPG_GUIDE": "Guía de programas"
     },
     "EPG": {
+        "SOURCE_REFRESH_FAILED": "No se pudo actualizar {{step}}. Se conservan los datos guardados anteriormente.",
         "NEXT_DAY": "Día siguiente",
         "PREVIOUS_DAY": "Día anterior",
         "ZOOM_IN": "Acercar",
@@ -2514,5 +2515,18 @@
         "STATE_offline": "Historial guardado localmente; servidor no disponible",
         "STATE_incompatible": "Este servidor no admite la sincronización del historial",
         "PENDING": "Cambios del historial en cola: {{count}}"
+    },
+    "CHANNEL_ISSUES": {
+        "TITLE": "Problemas de canales",
+        "DESCRIPTION": "Problemas observados en esta instalación. Exporta la lista para investigarlos.",
+        "ALL": "Todos",
+        "LOGO": "Logotipos",
+        "EXPORT": "Exportar incidencias JSON",
+        "EMPTY": "Aún no se han observado problemas.",
+        "MISSING_URL": "Falta la URL del logotipo",
+        "IMAGE_ERROR": "El logotipo no se pudo cargar",
+        "EMPTY_EPG": "La guía no devolvió programas",
+        "EPG_ERROR": "Falló la solicitud de EPG",
+        "STORAGE_ERROR": "No se pudieron guardar los cambios. Exporta la lista antes de cerrar."
     }
 }

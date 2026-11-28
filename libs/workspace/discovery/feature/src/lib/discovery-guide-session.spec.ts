@@ -1,8 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { StreamResolverService } from '@iptvnator/portal/shared/data-access';
+import {
+    EpgLookupUnavailableError,
+    StreamResolverService,
+} from '@iptvnator/portal/shared/data-access';
 import { classifyDiscoveryStream } from '@iptvnator/portal/shared/util';
-import { EpgPreferencesService, SettingsStore } from '@iptvnator/services';
+import {
+    ChannelIssuesService,
+    EpgPreferencesService,
+    EpgSourceSettingsService,
+    RuntimeCapabilitiesService,
+    SettingsStore,
+} from '@iptvnator/services';
 import { EpgItem } from '@iptvnator/shared/interfaces';
 import { DiscoveryGuideSession } from './discovery-guide-session';
 
@@ -28,11 +37,15 @@ describe('Discovery selected-channel guide', () => {
     let resolver: { loadEpgItems: jest.Mock };
     let session: DiscoveryGuideSession;
     let preferences: EpgPreferencesService;
+    let runtime: { supportsProviderEpg: boolean };
     beforeEach(() => {
+        localStorage.clear();
+        runtime = { supportsProviderEpg: true };
         resolver = { loadEpgItems: jest.fn().mockResolvedValue([program]) };
         TestBed.configureTestingModule({
             providers: [
                 DiscoveryGuideSession,
+                { provide: RuntimeCapabilitiesService, useValue: runtime },
                 { provide: StreamResolverService, useValue: resolver },
                 {
                     provide: SettingsStore,
@@ -51,7 +64,8 @@ describe('Discovery selected-channel guide', () => {
                 xtreamId: 42,
                 contentType: 'live',
                 epgChannelId: 'synthetic.xmltv.channel',
-            })
+            }),
+            { throwOnFailure: true }
         );
         expect(session.programs()[0]).toMatchObject({
             title: program.title,
@@ -59,6 +73,14 @@ describe('Discovery selected-channel guide', () => {
             stopTimestamp: 1794135600,
         });
         expect(session.offsetMinutes()).toBe(60);
+        expect(session.loading()).toBe(false);
+    });
+    it('does not record a missing guide when provider EPG is unavailable', async () => {
+        runtime.supportsProviderEpg = false;
+        resolver.loadEpgItems.mockResolvedValue([]);
+        await session.load(row);
+        expect(resolver.loadEpgItems).not.toHaveBeenCalled();
+        expect(TestBed.inject(ChannelIssuesService).issues()).toEqual([]);
         expect(session.loading()).toBe(false);
     });
     it('does not load EPG for demo channels or when EPG is disabled', async () => {
@@ -91,6 +113,73 @@ describe('Discovery selected-channel guide', () => {
         await closing;
         expect(session.programs()).toEqual([]);
     });
+    it.each([false, true])(
+        'does not report cancelled off/on preference revisions (%s)',
+        async (fails) => {
+            let finish!: () => void;
+            let markStarted!: () => void;
+            const started = new Promise<void>((resolve) => {
+                markStarted = resolve;
+            });
+            resolver.loadEpgItems.mockImplementationOnce(
+                () =>
+                    new Promise((resolve, reject) => {
+                        finish = () =>
+                            fails
+                                ? reject(new Error('Retired synthetic request'))
+                                : resolve([]);
+                        markStarted();
+                    })
+            );
+            const pending = session.load(row);
+            await started;
+            await preferences.apply(false);
+            await preferences.apply(true);
+            finish();
+            await pending;
+            expect(TestBed.inject(ChannelIssuesService).issues()).toEqual([]);
+            expect(session.failed()).toBe(false);
+            expect(session.loading()).toBe(false);
+            await session.load(row);
+            expect(session.programs()).toHaveLength(1);
+        }
+    );
+    it('reloads active guides after source revisions and fences older observations', async () => {
+        await session.load(row);
+        let finishOld!: (items: EpgItem[]) => void;
+        let markStarted!: () => void;
+        const started = new Promise<void>((resolve) => {
+            markStarted = resolve;
+        });
+        resolver.loadEpgItems.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    finishOld = resolve;
+                    markStarted();
+                })
+        );
+        TestBed.inject(EpgSourceSettingsService).invalidateLookups();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(resolver.loadEpgItems).toHaveBeenCalledTimes(2);
+        await started;
+        expect(session.programs()).toEqual([]);
+        resolver.loadEpgItems.mockResolvedValueOnce([
+            { ...program, title: 'Fresh dictionary guide' },
+        ]);
+        TestBed.inject(EpgSourceSettingsService).invalidateLookups();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(session.programs()[0].title).toBe('Fresh dictionary guide');
+        finishOld([]);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(session.programs()[0].title).toBe('Fresh dictionary guide');
+        expect(TestBed.inject(ChannelIssuesService).issues()).toEqual([]);
+        expect(session.loading()).toBe(false);
+        session.close();
+        const calls = resolver.loadEpgItems.mock.calls.length;
+        TestBed.inject(EpgSourceSettingsService).invalidateLookups();
+        expect(resolver.loadEpgItems).toHaveBeenCalledTimes(calls);
+        expect(session.programs()).toEqual([]);
+    });
     it('clears stale programmes and exposes retryable failures', async () => {
         await session.load(row);
         resolver.loadEpgItems.mockRejectedValueOnce(
@@ -102,5 +191,34 @@ describe('Discovery selected-channel guide', () => {
         await session.load(row);
         expect(session.failed()).toBe(false);
         expect(session.programs()).toHaveLength(1);
+    });
+    it('does not record an issue when the selected source is unavailable', async () => {
+        resolver.loadEpgItems.mockRejectedValueOnce(
+            new EpgLookupUnavailableError()
+        );
+        await session.load(row);
+        expect(TestBed.inject(ChannelIssuesService).issues()).toEqual([]);
+        expect(session.failed()).toBe(false);
+    });
+    it('records completed empty/failed guide observations and clears them when data returns', async () => {
+        const issues = TestBed.inject(ChannelIssuesService);
+        resolver.loadEpgItems.mockResolvedValueOnce([]);
+        await session.load(row, 'example.test');
+        expect(issues.issues()[0]).toMatchObject({
+            sourceId: 'synthetic',
+            streamId: 42,
+            reason: 'empty-epg',
+        });
+        resolver.loadEpgItems.mockRejectedValueOnce(
+            new Error('synthetic outage')
+        );
+        await session.load(row);
+        expect(issues.issues()[0].reason).toBe('epg-error');
+        await session.load(row);
+        expect(issues.issues()).toEqual([]);
+        await preferences.apply(false);
+        resolver.loadEpgItems.mockResolvedValueOnce([]);
+        await session.load(row);
+        expect(issues.issues()).toEqual([]);
     });
 });

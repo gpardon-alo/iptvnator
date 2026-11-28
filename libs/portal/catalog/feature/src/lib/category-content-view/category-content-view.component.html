@@ -415,6 +415,11 @@
                 </div>
             } @else {
                 <app-grid-list
+                    [issueSourceId]="
+                        catalog.provider === 'xtream'
+                            ? catalog.playlist()?.id
+                            : undefined
+                    "
                     appInfiniteScroll
                     [infiniteThresholdPx]="640"
                     [infiniteHasMore]="infiniteHasMore()"

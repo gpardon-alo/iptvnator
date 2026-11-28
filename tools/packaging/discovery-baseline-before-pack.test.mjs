@@ -105,3 +105,52 @@ test('accepts optional supported quality and rejects unsupported quality before 
         assert.throws(() => validateBaseline(value));
     }
 });
+
+test('validates and preserves optional dictionary EPG metadata in private baselines', () => {
+    const value = manifest();
+    value.baselines[0].rows[0].epg = {
+        xmltvId: 'News.example@SD',
+        source: 'example.test',
+        status: 'matched',
+    };
+    assert.equal(
+        validateBaseline(value).baselines[0].rows[0].epg.xmltvId,
+        'News.example@SD'
+    );
+    value.baselines[0].rows[0].epg.password = 'synthetic';
+    assert.throws(() => validateBaseline(value));
+});
+
+test('preserves incomplete and nullable EPG references before packaging', () => {
+    for (const epg of [
+        {},
+        { xmltvId: 'SyntheticNews.example@SD' },
+        { source: 'example.test', id: 'synthetic-native', xmltvId: null },
+        ...['unmatched', 'skipped', 'review'].map((status) => ({
+            source: null,
+            id: null,
+            xmltvId: null,
+            status,
+            reason: 'Synthetic reference unavailable',
+        })),
+        {
+            source: null,
+            id: null,
+            xmltvId: null,
+            language: null,
+            channelsFile: null,
+            status: null,
+            method: null,
+            reason: null,
+        },
+    ]) {
+        const value = manifest();
+        value.baselines[0].rows[0].epg = epg;
+        assert.deepEqual(validateBaseline(value).baselines[0].rows[0].epg, epg);
+    }
+    for (const epg of [{ xmltvId: 123 }, { reason: [] }, { password: null }]) {
+        const value = manifest();
+        value.baselines[0].rows[0].epg = epg;
+        assert.throws(() => validateBaseline(value));
+    }
+});

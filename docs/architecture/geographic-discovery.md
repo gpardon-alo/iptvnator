@@ -64,6 +64,13 @@ country/territory inventory lives separately in `discovery-locations.ts`.
 - The virtual ribbon renders a bounded window. Opening the preview retains
   filters, selected channel, region and ribbon scroll position. Escape or Back
   returns focus to discovery; source switching remains inside the preview.
+  Playback uses a left panel for the channel logo, metadata and shared vertical
+  EPG list, with a compact logo/title header and the player on the right. A
+  virtualized matching-channel ribbon below the source buttons switches playback
+  inside the same preview without changing the filters. Source buttons expose
+  every matching stream and mark the active source with `aria-pressed`.
+  At narrow widths the panels stack; the EPG and source list retain their own
+  bounded scroll areas. Missing/broken logos show a neutral Live TV fallback.
 - Filters persist in the prototype's own
   `iptvnator-discovery-prototype:v1` localStorage key. Search is authoritative in
   the shared header's `q` URL parameter, including reload and history changes.
@@ -148,8 +155,18 @@ Users can edit all three fields and the display name, export/import mapping JSON
 rules for unmatched streams, or explicitly reclassify a selected stream. Bulk
 reclassification preserves manual edits, including partial manual mappings; the
 selected-stream action explicitly replaces them with the current rule result.
-**Import dictionary** accepts the exported JSON array (maximum 32 MiB) for the
-selected source. Validate the complete file before a single atomic storage write:
+**Import dictionary** accepts a local file; **Import from URL** downloads the
+same exported JSON array from a direct HTTP(S) link (maximum 32 MiB) for the
+selected source. URL imports use the application HTTP client, reject URL userinfo,
+omit cross-origin credentials, and time out after 30 seconds without progress.
+The hosting server must allow browser access; blocked or failed downloads retain
+previous mappings and offer the local-file path in the error message. After a
+successful import, the URL is remembered in profile- and source-scoped local
+storage on this device. Source switching restores its own URL. A successful fresh
+live-catalog import or refresh reloads that URL, including a startup source refresh;
+opening an already cached catalog alone does not download it. Failed imports retain the previous saved URL. URLs
+are not included in import errors. Validate the complete file before a single
+atomic storage write:
 source-scoped IDs must remain unchanged, fields must match the portable
 mapping schema, and country/category/US state values must be supported. Imported
 entries replace matching saved mappings and become manual edits, including partial
@@ -163,6 +180,26 @@ announces reading progress, focuses its result and reports validation failures w
 fixed field names and entry numbers, without echoing provider data. Failed reads,
 validation or writes retain previous mappings. Import
 is device-local; exporting still includes only the current catalog's visible rows.
+
+After the refreshed catalog is accepted, the app reloads the configured dictionary
+before force-refreshing configured XMLTV sources. No dictionary URL means saved
+mappings are reused. Automatic reload uses the same complete-file validator as
+manual import, keeps current provider evidence, retains absent/unmentioned streams,
+and preserves an existing EPG reference when the incoming row omits it. The merge
+reads current mappings and commits in one IndexedDB transaction. Manual edits
+apply only changed fields against the latest stored rows, and partial manual
+imports merge atomically, so an open Dictionary page cannot erase a concurrent
+refresh of unrelated mappings.
+URL ownership is checked again inside that transaction. Follow-ups retire when
+source EPG configuration, global guide URLs or the EPG enabled preference changes;
+removed URLs are not imported by later steps of the chain. Download,
+validation or write failure retains the previous mappings and does not prevent
+the EPG step. Failed steps are named without exposing URLs or imported content.
+Concurrent notifications before work starts coalesce. A newer catalog accepted
+while follow-ups run queues another pass before releasing source activity.
+The Dictionary page receives its catalog notification after these follow-ups, so
+an open page reloads the committed mappings. New unmatched streams remain pending;
+source refresh does not run classification rules automatically.
 
 Quality is an optional top-level dictionary field, separate from the derived
 `categories` labels and classification completeness. Historical mappings without
@@ -202,6 +239,30 @@ notifications and waiting for active loads or edits. Switching sources discards
 queued work; destroying the session removes its subscription. Closed Discovery
 sessions read the latest catalog when opened. This adds no polling timer: PWA
 TTL renewal still happens on the next catalog access.
+
+Dictionary rows may carry optional `epg` metadata: `source`, `id`, `xmltvId`,
+`language`, `channelsFile`, `status`, `method` and `reason` are individually optional
+strings or null. Unmatched, skipped and review entries may retain null references
+and a reason; matched source-native entries may have a null `xmltvId`. Imports, device
+storage, exports and private packaged baselines validate and preserve these fields;
+older rows without `epg` remain valid. Reclassification preserves EPG matches.
+Conflicting duplicate EPG metadata is rejected. New baseline commits invalidate EPG
+lookups only after the transaction commits; receipt replays and aborts do not.
+The guide uses only `epg.xmltvId`, matched by exact source ID and provider stream
+ID. Missing, null and blank XMLTV IDs are skipped without disabling other guides.
+Descriptive source/file fields never add a download URL.
+
+Provider-first guides try the provider API, the configured XMLTV backup with
+the provider ID (or explicit manual mapping), then the same backup with the
+dictionary XMLTV ID. Empty and duplicate IDs are skipped. Uploaded-first mode
+tries both backup IDs before the provider. Discovery, full live guides and
+current-programme previews share this order. Dictionary edits invalidate EPG
+lookup caches and pending results; viewport retries batch dictionary reads by
+source and XMLTV queries by unresolved IDs. Dictionary reads fail independently
+of provider EPG. Discovery retires pending guide observations on
+committed EPG preference/source revisions, including off/on cycles, and reloads
+the active channel after source or dictionary changes. Browser runtimes
+without XMLTV lookup retain provider guides.
 
 ## Dictionary in Settings
 
@@ -311,13 +372,13 @@ Closing destroys the shared inline player. External players follow their existin
 application lifecycle. Recent history uses `PlaybackHistoryGate` and is recorded
 only after confirmed playback. Demo channels remain non-playable. Resolution
 failures offer retry; media diagnostics and recovery remain owned by the shared
-player. The selected-channel schedule reuses `EpgTimelineComponent` in the middle of the
-channel information row. `DiscoveryGuideSession` independently loads the selected
+player. The selected-channel schedule reuses `EpgListViewComponent` in the left
+channel information panel. `DiscoveryGuideSession` independently loads the selected
 provider alternate through `StreamResolverService.loadEpgItems`, preserving the
 existing uploaded/manual mapping and provider fallbacks, EPG opt-out, and display
 offset. Shared `toEpgProgram` normalization preserves epoch timestamps. Loading,
 unavailable/error states, retry, collapse, date navigation and programme details
-use the shared timeline; archive playback is not enabled in this view. Selection
+use the shared list; archive playback is not enabled in this view. Selection
 generations discard late guide responses without interrupting video playback.
 
 ## Saved US subdivisions
@@ -443,3 +504,9 @@ The dictionary format, provider data and classification rules remain unchanged.
 Logo PNGs and their source manifest live in `assets/discovery/leagues/`, sourced
 from TheSportsDB's league records. Runtime browsing makes no requests to that
 service; a failed image keeps the tournament label available.
+
+## Observed channel issues
+
+Discovery artwork and completed guide lookups feed the device-local
+[logo and EPG issue list](channel-issue-reporting.md). Web and Electron keep
+independent lists; reports can be exported from Library → Dictionary.

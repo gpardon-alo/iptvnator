@@ -31,6 +31,13 @@
                 "
                 [name]="item.title || item.name || ''"
                 [logo]="item.stream_icon ?? item.poster_url"
+                [appChannelIssue]="{
+                    sourceId: xtreamStore.currentPlaylist()?.id || '',
+                    streamId: item.xtream_id,
+                    name: item.title || item.name || '',
+                    epgId: item.epg_channel_id,
+                }"
+                [channelLogo]="item.stream_icon ?? item.poster_url"
                 [selected]="
                     xtreamStore.selectedItem()?.xtream_id === item.xtream_id
                 "

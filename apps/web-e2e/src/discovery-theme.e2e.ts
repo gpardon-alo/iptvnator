@@ -303,3 +303,90 @@ for (const preset of ['light', 'dark'] as const) {
         expect(await rasterTextContrast(fallback)).toBeGreaterThanOrEqual(4.5);
     });
 }
+
+for (const preset of ['light', 'dark'] as const) {
+    test(`Live preview uses the split layout and source pills in ${preset}`, async ({
+        page,
+    }, testInfo) => {
+        await saveTheme(page, preset);
+        await page.goto('/workspace/discovery');
+        await page.locator('.content-card__activation').first().click();
+        const preview = page.getByRole('dialog', {
+            name: 'Channel playback preview',
+        });
+        await expect(preview).toBeVisible();
+        await expect(preview.getByRole('img', { name: /logo$/ })).toBeVisible();
+        const sources = preview.getByRole('group', {
+            name: 'Stream source',
+            exact: true,
+        });
+        const selected = sources.getByRole('button', { pressed: true });
+        await expect(selected).toBeVisible();
+        await expect(selected).toHaveCSS(
+            'background-color',
+            await token(page, '--app-selection-surface')
+        );
+        await expect(selected).toHaveCSS(
+            'color',
+            await token(page, '--app-selection-text-color')
+        );
+        await selected.hover();
+        await expect(selected).toHaveCSS(
+            'background-color',
+            await token(page, '--app-selection-surface')
+        );
+        await selected.focus();
+        await expect(selected).toBeFocused();
+        const sidebar = await preview.locator('.preview-info').boundingBox();
+        const player = await preview.locator('.preview-stage').boundingBox();
+        const pills = await sources.boundingBox();
+        expect(sidebar!.x + sidebar!.width).toBeLessThanOrEqual(player!.x);
+        expect(pills!.y).toBeGreaterThanOrEqual(player!.y + player!.height);
+        const ribbon = preview.getByRole('region', {
+            name: 'Browse matching channels',
+        });
+        await expect(
+            ribbon.locator('.content-card__activation').first()
+        ).toBeVisible();
+        const ribbonBox = await ribbon.boundingBox();
+        expect(ribbonBox!.x).toBeGreaterThanOrEqual(player!.x);
+        expect(ribbonBox!.y).toBeGreaterThan(pills!.y + pills!.height);
+        const logo = await preview.locator('.preview-logo').boundingBox();
+        const title = await preview
+            .locator('.preview-channel h1')
+            .boundingBox();
+        expect(title!.x).toBeGreaterThanOrEqual(logo!.x + logo!.width);
+        await page.screenshot({
+            path: testInfo.outputPath(`live-preview-${preset}.png`),
+        });
+        const nextChannel = ribbon.locator('.channel-tile').nth(1);
+        const nextName = await nextChannel
+            .locator('.content-card__activation')
+            .getAttribute('aria-label');
+        await nextChannel.locator('.content-card__activation').click();
+        await expect(preview.locator('.preview-channel h1')).toHaveText(
+            nextName!
+        );
+        await expect(preview).toBeVisible();
+        await page.setViewportSize({ width: 800, height: 900 });
+        const compactSidebar = await preview
+            .locator('.preview-info')
+            .boundingBox();
+        const compactPlayer = await preview
+            .locator('.preview-stage')
+            .boundingBox();
+        expect(compactPlayer!.y).toBeGreaterThanOrEqual(
+            compactSidebar!.y + compactSidebar!.height
+        );
+        expect(
+            await preview
+                .locator('.preview-layout')
+                .evaluate((el) => el.scrollWidth <= el.clientWidth)
+        ).toBe(true);
+        await page.screenshot({
+            path: testInfo.outputPath(`live-preview-compact-${preset}.png`),
+        });
+        await page.keyboard.press('Escape');
+        await expect(preview).toHaveCount(0);
+    });
+}

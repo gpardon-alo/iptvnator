@@ -6,14 +6,19 @@ import {
     type DiscoveryBaseline,
     type ClassifiedStream,
 } from '@iptvnator/portal/shared/util';
+import { EpgSourceSettingsService } from '@iptvnator/services';
+import { inject } from '@angular/core';
 import { sourceProfileName } from '@iptvnator/services/source-sync/connection';
 
 /** Device-local user mappings live independently of the expiring provider cache. */
 @Injectable({ providedIn: 'root' })
 export class DiscoveryMappingStorage {
+    private readonly epgSources = inject(EpgSourceSettingsService);
     private async visit<T>(
         sourceId: string,
-        rows?: ClassifiedStream[]
+        rows?:
+            | ClassifiedStream[]
+            | ((saved: ClassifiedStream[]) => ClassifiedStream[])
     ): Promise<T> {
         return new Promise((resolve, reject) => {
             const open = indexedDB.open(
@@ -35,9 +40,23 @@ export class DiscoveryMappingStorage {
                         rows ? 'readwrite' : 'readonly'
                     );
                     const store = tx.objectStore('sources');
-                    const request = rows
-                        ? store.put(rows, sourceId)
-                        : store.get(sourceId);
+                    const request =
+                        rows && typeof rows !== 'function'
+                            ? store.put(rows, sourceId)
+                            : store.get(sourceId);
+                    if (typeof rows === 'function') {
+                        request.onsuccess = () => {
+                            try {
+                                const saved = request.result ?? [];
+                                assertDiscoveryMappings(saved, sourceId);
+                                const next = rows(saved);
+                                assertDiscoveryMappings(next, sourceId);
+                                store.put(next, sourceId);
+                            } catch {
+                                tx.abort();
+                            }
+                        };
+                    }
                     tx.oncomplete = () => {
                         db.close();
                         resolve(request.result as T);
@@ -62,12 +81,23 @@ export class DiscoveryMappingStorage {
     async write(sourceId: string, rows: ClassifiedStream[]): Promise<void> {
         assertDiscoveryMappings(rows, sourceId);
         await this.visit(sourceId, rows);
+        this.epgSources.invalidateLookups();
+    }
+
+    /** Read/merge/write in one transaction so an unrelated edit is never lost. */
+    async update(
+        sourceId: string,
+        merge: (saved: ClassifiedStream[]) => ClassifiedStream[]
+    ): Promise<void> {
+        await this.visit(sourceId, merge);
+        this.epgSources.invalidateLookups();
     }
 
     /** Receipt, rollback snapshot and merge commit atomically in the existing v1 store. */
     async applyBaseline(baseline: DiscoveryBaseline): Promise<void> {
         parseDiscoveryBaseline({ schemaVersion: 1, baselines: [baseline] });
         await new Promise<void>((resolve, reject) => {
+            let changed = false;
             const open = indexedDB.open(
                 `${sourceProfileName()}:discovery-mappings-v1`,
                 1
@@ -124,6 +154,7 @@ export class DiscoveryMappingStorage {
                                     },
                                     receiptKey
                                 );
+                                changed = true;
                             } catch {
                                 tx.abort();
                             }
@@ -131,6 +162,7 @@ export class DiscoveryMappingStorage {
                     };
                     tx.oncomplete = () => {
                         db.close();
+                        if (changed) this.epgSources.invalidateLookups();
                         resolve();
                     };
                     tx.onabort = tx.onerror = () => {

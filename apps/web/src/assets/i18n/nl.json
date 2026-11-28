@@ -1078,6 +1078,7 @@
         "OPEN_EPG_GUIDE": "Programmagids"
     },
     "EPG": {
+        "SOURCE_REFRESH_FAILED": "{{step}} kon niet worden vernieuwd. Eerder opgeslagen gegevens blijven behouden.",
         "NEXT_DAY": "Volgende dag",
         "PREVIOUS_DAY": "Vorige dag",
         "ZOOM_IN": "Inzoomen",
@@ -2514,5 +2515,18 @@
         "STATE_offline": "Geschiedenis lokaal opgeslagen; server niet bereikbaar",
         "STATE_incompatible": "Deze server ondersteunt geen geschiedenissynchronisatie",
         "PENDING": "Geschiedeniswijzigingen in wachtrij: {{count}}"
+    },
+    "CHANNEL_ISSUES": {
+        "TITLE": "Kanaalproblemen",
+        "DESCRIPTION": "Problemen waargenomen op deze installatie. Exporteer de lijst voor onderzoek.",
+        "ALL": "Alle",
+        "LOGO": "Logo’s",
+        "EXPORT": "Problemen als JSON exporteren",
+        "EMPTY": "Nog geen problemen waargenomen.",
+        "MISSING_URL": "Logo-URL ontbreekt",
+        "IMAGE_ERROR": "Logo laden mislukt",
+        "EMPTY_EPG": "Geen EPG-programma’s ontvangen",
+        "EPG_ERROR": "EPG-aanvraag mislukt",
+        "STORAGE_ERROR": "Opslaan mislukt. Exporteer de lijst vóór het sluiten."
     }
 }

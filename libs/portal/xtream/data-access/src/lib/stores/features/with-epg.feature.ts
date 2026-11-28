@@ -13,6 +13,7 @@ import {
     epgProviderClockMs,
 } from '@iptvnator/shared/interfaces';
 import {
+    ChannelIssuesService,
     EpgPreferencesService,
     EpgSourceSettingsService,
     RuntimeCapabilitiesService,
@@ -81,6 +82,8 @@ export function withEpg() {
     type ParentSelectionStoreLike = {
         currentPlaylist?: () => (XtreamCredentials & { id?: string }) | null;
         selectedItem?: () => {
+            title?: string;
+            name?: string;
             xtream_id?: number | null;
             epg_channel_id?: string | null;
         } | null;
@@ -107,6 +110,7 @@ export function withEpg() {
 
         withMethods((store) => {
             const apiService = inject(XtreamApiService);
+            const issues = inject(ChannelIssuesService);
             const fallbackService = inject(XtreamXmltvFallbackService);
             const runtime = inject(RuntimeCapabilitiesService);
             const settingsStore = inject(SettingsStore);
@@ -210,16 +214,35 @@ export function withEpg() {
                         }
                     }
 
+                    const issueRef = playlistId
+                        ? {
+                              sourceId: playlistId,
+                              streamId: xtreamId,
+                              name:
+                                  selectedItem?.title ||
+                                  selectedItem?.name ||
+                                  '',
+                              epgId: epgChannelId,
+                          }
+                        : undefined;
+
                     try {
                         const epgItems =
                             await fallbackService.resolveCurrentEpg({
                                 epgChannelId,
+                                playlistId,
+                                streamId: xtreamId,
                                 preferUploaded: preferUploaded(),
                                 fetchProvider: () =>
                                     fetchFullProvider(credentials, xtreamId),
                             });
 
                         if (sourceRevision !== sources.revision()) return [];
+                        if (supportsProviderEpg()) {
+                            if (epgItems.length)
+                                issues.resolve(issueRef, 'epg');
+                            else issues.report(issueRef, 'empty-epg');
+                        }
                         patchState(store, {
                             epgItems,
                             isLoadingEpg: false,
@@ -228,6 +251,8 @@ export function withEpg() {
                         return epgItems;
                     } catch (error) {
                         if (sourceRevision !== sources.revision()) return [];
+                        if (supportsProviderEpg())
+                            issues.report(issueRef, 'epg-error');
                         logger.error('Error loading EPG', error);
                         patchState(store, {
                             epgItems: [],
@@ -251,6 +276,10 @@ export function withEpg() {
                     try {
                         return await fallbackService.resolveCurrentEpg({
                             epgChannelId,
+                            playlistId: (
+                                store as ParentSelectionStoreLike
+                            ).currentPlaylist?.()?.id,
+                            streamId,
                             preferUploaded: preferUploaded(),
                             fetchProvider: () =>
                                 apiService.getShortEpg(

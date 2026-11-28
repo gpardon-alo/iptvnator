@@ -1078,6 +1078,7 @@
         "OPEN_EPG_GUIDE": "Guide des programmes"
     },
     "EPG": {
+        "SOURCE_REFRESH_FAILED": "Impossible d’actualiser {{step}}. Les données précédemment enregistrées sont conservées.",
         "NEXT_DAY": "Jour suivant",
         "PREVIOUS_DAY": "Jour précédent",
         "ZOOM_IN": "Zoom avant",
@@ -2514,5 +2515,18 @@
         "STATE_offline": "Historique enregistré localement ; serveur indisponible",
         "STATE_incompatible": "Ce serveur ne prend pas en charge la synchronisation de l’historique",
         "PENDING": "Modifications de l’historique en attente : {{count}}"
+    },
+    "CHANNEL_ISSUES": {
+        "TITLE": "Problèmes des chaînes",
+        "DESCRIPTION": "Problèmes observés sur cette installation. Exportez la liste pour analyse.",
+        "ALL": "Tous",
+        "LOGO": "Logos des chaînes",
+        "EXPORT": "Exporter les problèmes en JSON",
+        "EMPTY": "Aucun problème observé pour le moment.",
+        "MISSING_URL": "URL du logo manquante",
+        "IMAGE_ERROR": "Échec du chargement du logo",
+        "EMPTY_EPG": "Aucun programme EPG reçu",
+        "EPG_ERROR": "Échec de la requête EPG",
+        "STORAGE_ERROR": "Enregistrement impossible. Exportez la liste avant de fermer."
     }
 }

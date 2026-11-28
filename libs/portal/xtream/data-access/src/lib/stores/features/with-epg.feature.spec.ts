@@ -1,12 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import { signalStore, withState } from '@ngrx/signals';
-import { RuntimeCapabilitiesService, SettingsStore } from '@iptvnator/services';
+import {
+    ChannelIssuesService,
+    RuntimeCapabilitiesService,
+    SettingsStore,
+} from '@iptvnator/services';
 import { EpgItem } from '@iptvnator/shared/interfaces';
 import { XtreamApiService } from '../../services/xtream-api.service';
 import { XtreamXmltvFallbackService } from '../../services/xtream-xmltv-fallback.service';
 import { withEpg } from './with-epg.feature';
 
 jest.mock('@iptvnator/portal/shared/util', () => ({
+    ...jest.requireActual('@iptvnator/portal/shared/util'),
     createLogger: () => ({
         debug: jest.fn(),
         info: jest.fn(),
@@ -47,6 +52,7 @@ interface TestStoreSetup {
     appEnvironment?: 'electron' | 'pwa';
     /** Portal transport present (default true, as in both runtimes). */
     providerEpg?: boolean;
+    epgMapping?: boolean;
     selectedItem: { xtream_id: number; epg_channel_id?: string | null };
     preferUploaded?: boolean;
     epgOffsetMinutes?: number;
@@ -67,6 +73,8 @@ function configureStore(setup: TestStoreSetup) {
     };
 
     const fallbackService = {
+        sources: { revision: () => 0 },
+        injector: { get: () => ({ idsFor: async () => new Map() }) },
         getProgramsForChannel: jest.fn<Promise<EpgItem[]>, unknown[]>(),
         resolveCurrentEpg:
             XtreamXmltvFallbackService.prototype.resolveCurrentEpg,
@@ -89,6 +97,7 @@ function configureStore(setup: TestStoreSetup) {
                     // exists in both runtimes unless a test removes it.
                     supportsEpg: (setup.appEnvironment ?? 'electron') !== 'pwa',
                     supportsProviderEpg: setup.providerEpg ?? true,
+                    supportsEpgMapping: setup.epgMapping ?? false,
                 },
             },
             { provide: XtreamApiService, useValue: xtreamApiService },
@@ -106,6 +115,45 @@ function configureStore(setup: TestStoreSetup) {
 
 describe('withEpg', () => {
     afterEach(() => TestBed.resetTestingModule());
+
+    it('exports the manually mapped EPG identity used for an empty lookup', async () => {
+        const original = Object.getOwnPropertyDescriptor(window, 'electron');
+        Object.defineProperty(window, 'electron', {
+            configurable: true,
+            value: {
+                getEpgMapping: jest
+                    .fn()
+                    .mockResolvedValue({ epgChannelId: 'mapped.example.test' }),
+            },
+        });
+        try {
+            const { store, xtreamApiService, fallbackService } = configureStore(
+                {
+                    selectedItem: {
+                        xtream_id: 101,
+                        epg_channel_id: 'provider.example.test',
+                    },
+                    epgMapping: true,
+                }
+            );
+            xtreamApiService.getFullEpg.mockResolvedValue([]);
+            xtreamApiService.getShortEpg.mockResolvedValue([]);
+            fallbackService.getProgramsForChannel.mockResolvedValue([]);
+            await store.loadEpg();
+            expect(TestBed.inject(ChannelIssuesService).issues()).toEqual(
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        streamId: 101,
+                        epgId: 'mapped.example.test',
+                        reason: 'empty-epg',
+                    }),
+                ])
+            );
+        } finally {
+            if (original) Object.defineProperty(window, 'electron', original);
+            else Reflect.deleteProperty(window, 'electron');
+        }
+    });
 
     it('forwards the playlist User-Agent for selected and row guides', async () => {
         const { store, xtreamApiService } = configureStore({

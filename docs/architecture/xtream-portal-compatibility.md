@@ -85,7 +85,15 @@ catalogs through those same API-backed readers instead of seeding a second
 public write path.
 
 Destructive refresh belongs to `XtreamRefreshFlowService`; the data-source
-contract has no separate clear-and-snapshot entry point. Browser backup tests
+contract has no separate clear-and-snapshot entry point. Desktop refresh keeps
+its enabled-section navigation to trigger re-import, then opens Workspace
+Discovery after successful initialization for sources with live TV, passing the
+refreshed source ID in transient navigation info. Discovery selects that known
+live source on arrival, overriding its saved selection once. Movie-only and
+series-only sources remain on their content route. Failed or cancelled imports stay on
+the import screen, and leaving the page during import suppresses the final
+redirect. The completion redirect uses transient navigation info so browser
+history and reload do not replay it. Browser backup tests
 use `PwaXtreamBackupStorage` export/restore to preserve typed collection identity,
 saved snapshots and artwork. Category visibility writes remain owned by the
 category-management flow through `DatabaseService`, with no PWA no-op wrapper.
@@ -1311,3 +1319,25 @@ History projections, explicit-import previews and backup overlays normalize
 legacy SQLite UTC timestamps through the shared date normalizer before comparing
 them with ISO timestamps. The merged browsing cap therefore preserves genuinely
 newer archived entries outside UTC; local Stalker archive/import uses the same rule.
+
+## Dictionary XMLTV fallback
+
+Provider-first EPG resolves provider programmes, backup XMLTV by provider ID
+(or explicit manual mapping), then backup XMLTV by the dictionary row's
+`epg.xmltvId`. Uploaded-first mode tries both XMLTV identities before the
+provider. Dictionary resolution uses the exact playlist and provider stream ID;
+blank/duplicate IDs are skipped, and storage failures do not disable provider
+EPG. Full guides and current-programme previews follow this priority, including
+Discovery and collection consumers. Successful dictionary writes invalidate
+lookup revisions and caches. The metadata contract lives in
+[Geographic discovery](geographic-discovery.md).
+
+Fresh live-catalog acceptance starts the app's source-refresh follow-ups: reload
+the source's dictionary if it has a saved URL, then force-import the configured
+backup XMLTV guides, then invalidate programme lookups. The successful-catalog
+notification reaches Discovery after that chain. `SourceActivityService` protects
+the source throughout; repeated notifications share one per-source run, while
+different sources share an in-flight XMLTV download. Failed dictionary imports
+retain mappings and continue to EPG; failed XMLTV imports retain the transactional
+last guide. Unsupported runtimes and disabled EPG skip XMLTV work. These steps
+reuse the published guide and never launch a remote guide-generation job.

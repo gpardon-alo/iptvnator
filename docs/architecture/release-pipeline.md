@@ -291,14 +291,29 @@ uploaded; other platform jobs and draft-release publication are skipped.
 The system profile also assembles RPM/Pacman packages internally to preserve
 its exact runtime-manifest target contract, but omits their distribution probes.
 The pinned Linux runtime prerequisite and its cache/source checks still run.
-The default `all` option preserves the full build and release behavior.
+Manual runs default to `package_set: repository`, which reads the repository
+Actions variable `RELEASE_PACKAGE_SET` (fallback: `all`). Set that variable to
+`linux` for Linux-only manual releases. A run can override it with `linux`,
+`all`, or `deb`; push/tag/PR builds retain their existing full-platform behavior.
+`linux` builds the system, portable and Flatpak profiles, skips Mac/Windows,
+and creates a Linux-only draft after all Linux jobs pass. Branch test drafts
+use a `-linux-<commit>` tag suffix, separate from full-platform test releases. Verify it with
+`pnpm run release:verify:draft --no-wait --package-set linux --tag <draft-tag> <version>`
+for branch test drafts (omit `--tag` for a normal `v<version>` draft).
+The Linux set has 15 assets: the 11 Linux installers, three Linux updater
+metadata files, and the matching source archive. The default verifier still
+requires all 27 assets for full-platform releases.
 
 Fork CI keeps coverage checks and downloadable report artifacts enabled. Codecov
 uploads are opt-in through the `CODECOV_UPLOAD_ENABLED=true` repository variable
 and a configured `CODECOV_TOKEN` secret; upstream upload behavior is unchanged.
 
 Fork pushes leave the expensive Electron packaging matrix idle; use manual
-dispatch for fork builds. Upstream Docker Hub and Snap Store publication jobs
+dispatch for fork builds. Manual builds on branches other than `master` may
+set `unsigned_macos: true` to package macOS test installers without Apple
+credentials. This disables signing and notarization only for that test build;
+master and version-tag builds retain mandatory signing and notarization.
+Upstream Docker Hub and Snap Store publication jobs
 are restricted to the upstream repository. The fork's Debian-only release is
 published from the reviewed dispatch commit with the amd64 DEB, its SHA-256
 checksum and the matching Linux runtime source-compliance archive. It does not

@@ -299,12 +299,15 @@ export class XtreamRefreshFlowService {
 
             // Navigate to the playlist to trigger re-import
             const section = getXtreamContentRoute(item.xtreamContentTypes);
-            await this.router.navigate([
-                '/workspace',
-                'xtreams',
-                item._id,
-                ...(section ? [section] : []),
-            ]);
+            await this.router.navigate(
+                [
+                    '/workspace',
+                    'xtreams',
+                    item._id,
+                    ...(section ? [section] : []),
+                ],
+                { info: { xtreamRefresh: true }, onSameUrlNavigation: 'reload' }
+            );
         } catch (error) {
             if (!isDbAbortError(error)) {
                 console.error('Error refreshing Xtream playlist:', error);

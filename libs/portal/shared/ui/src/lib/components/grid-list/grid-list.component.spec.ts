@@ -4,7 +4,7 @@ import { By } from '@angular/platform-browser';
 import { MatTooltip } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 import { MockPipe } from 'ng-mocks';
-import { SettingsStore } from '@iptvnator/services';
+import { ChannelIssuesService, SettingsStore } from '@iptvnator/services';
 import {
     formatGridRating,
     GridListComponent,
@@ -76,6 +76,39 @@ describe('GridListComponent', () => {
             .compileComponents();
 
         fixture = TestBed.createComponent(GridListComponent);
+    });
+
+    it('records each rendered channel sharing a cached failed logo URL', () => {
+        const report = jest
+            .spyOn(TestBed.inject(ChannelIssuesService), 'report')
+            .mockImplementation(() => undefined);
+        const logo = 'https://example.test/shared-logo.png';
+        fixture.componentRef.setInput('variant', 'logo');
+        fixture.componentRef.setInput('type', 'live');
+        fixture.componentRef.setInput('issueSourceId', 'synthetic-source');
+        fixture.componentRef.setInput('items', [
+            { id: 1, name: 'Example first', stream_icon: logo },
+        ]);
+        fixture.detectChanges();
+        fixture.nativeElement
+            .querySelector('img.stream-icon')
+            .dispatchEvent(new Event('error'));
+        fixture.detectChanges();
+        report.mockClear();
+        fixture.componentRef.setInput('items', [
+            { id: 2, name: 'Example second', stream_icon: logo },
+        ]);
+        fixture.detectChanges();
+        expect(
+            fixture.nativeElement.querySelector('img.stream-icon')
+        ).toBeNull();
+        expect(report).toHaveBeenCalledWith(
+            expect.objectContaining({
+                sourceId: 'synthetic-source',
+                streamId: 2,
+            }),
+            'image-error'
+        );
     });
 
     it('renders optional live programme metadata and keeps it hidden when EPG is off', () => {

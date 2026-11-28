@@ -16,6 +16,7 @@ import {
 } from '@angular/cdk/overlay';
 import {
     ApplicationConfig,
+    Injector,
     inject,
     importProvidersFrom,
     provideZonelessChangeDetection,
@@ -39,6 +40,7 @@ import { provideXtreamDataSource } from '@iptvnator/portal/xtream/data-access';
 import {
     provideParentalLockPlaylistCleanup,
     DataService,
+    READ_EPG_DICTIONARY,
 } from '@iptvnator/services';
 import { dbConfig } from '@iptvnator/shared/interfaces';
 import { getInitialLanguage } from './app-language-preference';
@@ -94,6 +96,17 @@ export function DataFactory() {
 export const appConfig: ApplicationConfig = {
     providers: [
         provideZonelessChangeDetection(),
+        {
+            provide: READ_EPG_DICTIONARY,
+            useFactory: () => {
+                const injector = inject(Injector);
+                return async (sourceId: string) => {
+                    const { readEpgDictionary } =
+                        await import('./services/dictionary-epg-reader');
+                    return readEpgDictionary(injector, sourceId);
+                };
+            },
+        },
         provideRouter(routes, withComponentInputBinding()),
         // No provideAnimations(): nothing declares an Angular animation
         // trigger, and Material 22 animates with CSS, reading

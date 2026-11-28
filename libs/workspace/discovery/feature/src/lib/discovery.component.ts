@@ -1,3 +1,5 @@
+import { NgTemplateOutlet } from '@angular/common';
+import { ChannelLogoIssueDirective } from '@iptvnator/ui/components';
 import { DISCOVERY_LEAGUES } from './discovery-leagues';
 import { discoveryLocationIds } from '@iptvnator/portal/shared/util';
 import { A11yModule } from '@angular/cdk/a11y';
@@ -21,6 +23,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ContentCardComponent } from '@iptvnator/portal/shared/ui';
 import { DiscoverySourceSession } from './discovery-source-session';
+import { selectDiscoveryRouteSource } from './discovery-route-source';
 import { DiscoveryWorkspaceSession } from './discovery-workspace-session';
 import {
     CATEGORIES,
@@ -40,6 +43,16 @@ import { DiscoveryGuideComponent } from './discovery-guide.component';
 import { DiscoveryPlayerComponent } from './discovery-player.component';
 import { DiscoveryMapComponent } from './discovery-map.component';
 import { DiscoveryHoverScrollDirective } from './discovery-hover-scroll.directive';
+
+/** Known application artwork is a missing channel logo in the playback header. */
+export function discoveryPreviewLogo(value: string | undefined): string {
+    const logo = value?.trim() ?? '';
+    return /(?:^|\/)(?:blank-icon\.(?:png|jpe?g|webp|gif|svg)|assets\/icons\/icon-64\.png)(?:[?#].*)?$/i.test(
+        logo
+    )
+        ? ''
+        : logo;
+}
 
 const PREFERENCES_KEY = 'iptvnator-discovery-prototype:v1';
 function initialFilters(): DiscoveryFilters {
@@ -83,6 +96,8 @@ function initialFilters(): DiscoveryFilters {
     selector: 'app-discovery',
     standalone: true,
     imports: [
+        NgTemplateOutlet,
+        ChannelLogoIssueDirective,
         FormsModule,
         MatIcon,
         RouterLink,
@@ -204,7 +219,14 @@ export class DiscoveryComponent {
         this.selected()?.sources.find((s) => s.id === this.sourceId())
     );
 
+    readonly previewLogo = computed(() =>
+        discoveryPreviewLogo(
+            this.currentSource()?.facets?.logo || this.selected()?.channel.logo
+        )
+    );
+
     constructor() {
+        selectDiscoveryRouteSource(this.catalog);
         effect(() => this.search(this.workspace.query()));
         effect(() => {
             this.catalog.sourceId();

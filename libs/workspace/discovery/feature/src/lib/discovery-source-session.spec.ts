@@ -8,6 +8,7 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { selectAllPlaylistsMeta } from '@iptvnator/m3u-state';
 import {
     DiscoveryBaselineImport,
+    DiscoveryDictionaryDownload,
     DiscoveryMappingStorage,
 } from '@iptvnator/portal/shared/data-access';
 import { XTREAM_DATA_SOURCE } from '@iptvnator/portal/xtream/data-access';
@@ -20,7 +21,8 @@ describe('Discovery source classification session', () => {
         username: 'demo',
         password: 'demo',
     };
-    let storage: { read: jest.Mock; write: jest.Mock };
+    let storage: { read: jest.Mock; write: jest.Mock; update: jest.Mock };
+    let download: jest.Mock;
     let data: {
         getPlaylist: jest.Mock;
         getCategories: jest.Mock;
@@ -37,9 +39,13 @@ describe('Discovery source classification session', () => {
     beforeEach(() => {
         lockVersion.set(0);
         localStorage.clear();
+        download = jest.fn();
         storage = {
             read: jest.fn().mockResolvedValue([]),
             write: jest.fn().mockResolvedValue(undefined),
+            update: jest.fn(async (id, merge) =>
+                storage.write(id, merge(await storage.read(id)))
+            ),
         };
         data = {
             getPlaylist: jest.fn().mockResolvedValue(playlist),
@@ -72,6 +78,10 @@ describe('Discovery source classification session', () => {
                 { provide: XTREAM_DATA_SOURCE, useValue: data },
                 { provide: DiscoveryMappingStorage, useValue: storage },
                 {
+                    provide: DiscoveryDictionaryDownload,
+                    useValue: { download },
+                },
+                {
                     provide: DiscoveryBaselineImport,
                     useValue: { apply: jest.fn().mockResolvedValue(undefined) },
                 },
@@ -79,6 +89,65 @@ describe('Discovery source classification session', () => {
         });
         session = TestBed.inject(DiscoverySourceSession);
         session.select('synthetic');
+    });
+    it('merges manual edits with refreshed mappings instead of a stale page snapshot', async () => {
+        await session.load();
+        const row = session.rows()[0];
+        const refreshed = {
+            ...row,
+            name: 'Refreshed correction',
+            epg: { xmltvId: 'Refreshed.example' },
+        };
+        const absent = {
+            ...refreshed,
+            id: 'local:synthetic:live:11',
+            provider: { ...row.provider, stream_id: 11 },
+        };
+        storage.read.mockResolvedValue([refreshed, absent]);
+        await session.edit({ ...row, language: 'Portuguese' });
+        expect(storage.write).toHaveBeenLastCalledWith('synthetic', [
+            expect.objectContaining({
+                name: 'Refreshed correction',
+                language: 'Portuguese',
+                epg: refreshed.epg,
+            }),
+            absent,
+        ]);
+        expect(session.rows()[0]).toMatchObject({
+            name: 'Refreshed correction',
+            language: 'Portuguese',
+            epg: refreshed.epg,
+        });
+    });
+
+    it('keeps unrelated refreshed rows when importing a partial dictionary from a stale page', async () => {
+        await session.load();
+        const row = session.rows()[0];
+        const absent = {
+            ...row,
+            id: 'local:synthetic:live:11',
+            name: 'Refreshed absent mapping',
+            provider: { ...row.provider, stream_id: 11 },
+        };
+        storage.read.mockResolvedValue([row, absent]);
+        await session.importDictionary({
+            size: 100,
+            text: async () =>
+                JSON.stringify([{ ...row, language: 'Portuguese' }]),
+        } as File);
+        expect(storage.write).toHaveBeenLastCalledWith('synthetic', [
+            expect.objectContaining({ language: 'Portuguese' }),
+            absent,
+        ]);
+    });
+
+    it('retains loaded mappings when the current source is selected again', async () => {
+        await session.load();
+        const rows = session.rows();
+        session.select('synthetic');
+        await flushRefresh();
+        expect(session.rows()).toBe(rows);
+        expect(session.rows()).toHaveLength(1);
     });
     it('reloads the selected source after catalog completion, coalescing duplicate notices', async () => {
         await session.load();
@@ -434,6 +503,58 @@ describe('Discovery source classification session', () => {
             text: async () => JSON.stringify(value),
         }) as File;
 
+    it('imports a URL through the same validation and storage merge as a file', async () => {
+        await session.load();
+        const row = session.rows()[0];
+        download.mockResolvedValue(
+            dictionaryFile([{ ...row, name: 'Remote correction' }])
+        );
+        await session.importDictionary(
+            'https://dictionary.example.test/channels.json'
+        );
+        expect(download).toHaveBeenCalledWith(
+            'https://dictionary.example.test/channels.json'
+        );
+        expect(storage.write).toHaveBeenCalledTimes(1);
+        expect(session.rows()[0]).toMatchObject({
+            name: 'Remote correction',
+            origin: 'manual',
+            provider: row.provider,
+        });
+        expect(session.noticeKind()).toBe('success');
+        session.select('other-source');
+        expect(session.dictionaryUrl()).toBe('');
+        session.select('synthetic');
+        expect(session.dictionaryUrl()).toBe(
+            'https://dictionary.example.test/channels.json'
+        );
+    });
+
+    it('keeps saved mappings when a URL dictionary has invalid entries', async () => {
+        await session.load();
+        const previous = session.rows();
+        download.mockResolvedValue(dictionaryFile(previous));
+        await session.importDictionary(
+            'https://dictionary.example.test/saved.json'
+        );
+        storage.write.mockClear();
+        download.mockResolvedValue(
+            dictionaryFile([{ ...previous[0], country: 'INVALID' }])
+        );
+        await session.importDictionary(
+            'https://dictionary.example.test/channels.json'
+        );
+        expect(storage.write).not.toHaveBeenCalled();
+        expect(session.rows()[0].name).toEqual(previous[0].name);
+        expect(session.notice()).toContain('Previous mappings are retained');
+        expect(session.saving()).toBe(false);
+        session.select('other-source');
+        session.select('synthetic');
+        expect(session.dictionaryUrl()).toBe(
+            'https://dictionary.example.test/saved.json'
+        );
+    });
+
     it('imports corrections as manual, rebuilds summaries and retains current provider evidence', async () => {
         await session.load();
         const row = session.rows()[0];
@@ -643,5 +764,37 @@ describe('Discovery source classification session', () => {
         expect(session.rows()[0].quality).toBe('HD');
         await session.edit({ ...session.rows()[0], language: 'Portuguese' });
         expect(session.rows()[0].quality).toBe('HD');
+    });
+    it('preserves imported EPG metadata through reload, edits and classification actions', async () => {
+        const epg = {
+            xmltvId: 'SyntheticNews.example@SD',
+            source: 'example.test',
+            status: 'matched',
+        };
+        await session.load();
+        await session.importDictionary(
+            dictionaryFile([{ ...session.rows()[0], epg }])
+        );
+        storage.read.mockResolvedValue(storage.write.mock.calls[0][1]);
+        await session.load();
+        expect(session.rows()[0].epg).toEqual(epg);
+        await session.reclassify(session.rows()[0]);
+        expect(session.rows()[0].epg).toEqual(epg);
+        await session.edit({ ...session.rows()[0], language: 'Portuguese' });
+        expect(session.rows()[0].epg).toEqual(epg);
+        session.rows.set([
+            {
+                ...session.rows()[0],
+                origin: 'rules',
+                country: '',
+                language: '',
+            },
+        ]);
+        await session.classifyUnclassified();
+        expect(session.rows()[0].epg).toEqual(epg);
+        expect(
+            storage.write.mock.calls[storage.write.mock.calls.length - 1][1][0]
+                .epg
+        ).toEqual(epg);
     });
 });

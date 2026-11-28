@@ -1078,6 +1078,7 @@
         "OPEN_EPG_GUIDE": "Program rehberi"
     },
     "EPG": {
+        "SOURCE_REFRESH_FAILED": "{{step}} yenilenemedi. Önceden kaydedilen veriler korunuyor.",
         "NEXT_DAY": "Sonraki gün",
         "PREVIOUS_DAY": "Önceki gün",
         "ZOOM_IN": "Yakınlaştır",
@@ -2514,5 +2515,18 @@
         "STATE_offline": "Geçmiş yerel kaydedildi; sunucu kullanılamıyor",
         "STATE_incompatible": "Bu sunucu geçmiş eşitlemeyi desteklemiyor",
         "PENDING": "Kuyruktaki geçmiş değişiklikleri: {{count}}"
+    },
+    "CHANNEL_ISSUES": {
+        "TITLE": "Kanal sorunları",
+        "DESCRIPTION": "Bu kurulumda gözlenen sorunlar. İncelemek için listeyi dışa aktarın.",
+        "ALL": "Tümü",
+        "LOGO": "Logolar",
+        "EXPORT": "Sorunları JSON olarak aktar",
+        "EMPTY": "Henüz sorun gözlenmedi.",
+        "MISSING_URL": "Logo adresi eksik",
+        "IMAGE_ERROR": "Logo yüklenemedi",
+        "EMPTY_EPG": "EPG programı dönmedi",
+        "EPG_ERROR": "EPG isteği başarısız",
+        "STORAGE_ERROR": "Kaydedilemedi. Kapatmadan önce listeyi dışa aktarın."
     }
 }

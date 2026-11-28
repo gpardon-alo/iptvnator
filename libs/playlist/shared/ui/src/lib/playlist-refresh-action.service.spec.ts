@@ -592,12 +592,10 @@ describe('PlaylistRefreshActionService', () => {
                 playlist: { ...item, updateDate: 1712217600000 },
             })
         );
-        expect(router.navigate).toHaveBeenCalledWith([
-            '/workspace',
-            'xtreams',
-            item._id,
-            'vod',
-        ]);
+        expect(router.navigate).toHaveBeenCalledWith(
+            ['/workspace', 'xtreams', item._id, 'vod'],
+            { info: { xtreamRefresh: true }, onSameUrlNavigation: 'reload' }
+        );
         expect(executionOrder).toEqual([
             'parkCatalogState',
             'setItem',

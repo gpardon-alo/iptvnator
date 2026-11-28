@@ -54,3 +54,5 @@ export * from './lib/discovery-language-defaults';
 export * from './lib/detail/country-short-name';
 export * from './lib/discovery-us-states';
 export * from './lib/discovery-baseline';
+
+export * from './lib/resolve-epg-fallback';

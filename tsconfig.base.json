@@ -64,6 +64,9 @@
             "@iptvnator/portal/shared/util/logger": [
                 "libs/portal/shared/util/src/lib/logger.ts"
             ],
+            "@iptvnator/portal/shared/util/epg": [
+                "libs/portal/shared/util/src/epg.ts"
+            ],
             "@iptvnator/portal/shared/util/tokens": [
                 "libs/portal/shared/util/src/tokens.ts"
             ],
@@ -169,6 +172,9 @@
             "@iptvnator/shared/logging": ["libs/shared/logging/src/index.ts"],
             "@iptvnator/shared/host-health": [
                 "libs/shared/host-health/src/index.ts"
+            ],
+            "@iptvnator/services/dictionary-epg": [
+                "libs/services/src/lib/dictionary-epg.service.ts"
             ],
             "@iptvnator/services": ["libs/services/src/index.ts"],
             "@iptvnator/services/tmdb-match": [

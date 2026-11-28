@@ -67,6 +67,12 @@ export class EpgSourceSettingsService {
             });
     }
 
+    /** A committed dictionary edit changes lookup identities, not source URLs. */
+    invalidateLookups(): void {
+        this.revision.update((revision) => revision + 1);
+        this.changed$.next();
+    }
+
     retainCurrentSources(urls: string[], requestedRevision: number): string[] {
         return requestedRevision === this.revision()
             ? urls

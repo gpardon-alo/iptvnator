@@ -34,6 +34,7 @@ export interface DemoSource {
     facets?: DiscoveryFacets;
 }
 export interface DiscoveryFacets {
+    issueRef?: import('@iptvnator/services').ChannelIssueRef;
     country: string;
     state?: string;
     location: string;

@@ -34,6 +34,7 @@ import {
     PlaylistsService,
     SettingsStore,
     RuntimeCapabilitiesService,
+    SourceCatalogUpdatesService,
 } from '@iptvnator/services';
 import {
     getXtreamContentRoute,
@@ -82,6 +83,7 @@ export class PlaylistEffects {
     private settingsStore = inject(SettingsStore);
     private readonly runtime = inject(RuntimeCapabilitiesService);
     private epgSources = inject(EpgSourceSettingsService);
+    private readonly catalogUpdates = inject(SourceCatalogUpdatesService);
     private readonly playlistScopedEpgFetchKeys = new Map<string, string>();
 
     updateFavorites$ = createEffect(
@@ -538,7 +540,7 @@ export class PlaylistEffects {
                         .pipe(
                             tap((persisted) => {
                                 persisted.forEach((playlist) =>
-                                    this.publishRefresh(playlist)
+                                    this.publishRefresh(playlist, true)
                                 );
                             })
                         )
@@ -606,7 +608,8 @@ export class PlaylistEffects {
                     playlist,
                 })
             );
-        this.fetchPlaylistScopedEpg(playlist, { force });
+        if (!force || !this.catalogUpdates.sourceUpdated(playlist._id))
+            this.fetchPlaylistScopedEpg(playlist, { force });
     }
 
     private fetchPlaylistScopedEpg(

@@ -26,6 +26,7 @@ export * from './lib/stream-probe.service';
 export * from './lib/vod-source-pin.service';
 
 export * from './lib/epg-source-settings.service';
+export * from './lib/dictionary-epg-reader.token';
 export * from './lib/epg-preferences.service';
 
 export * from './lib/xtream-connection-test.service';
@@ -41,3 +42,4 @@ export * from './lib/server-storage-status.service';
 export * from './lib/server-access-token';
 export * from './lib/server-slow-start';
 export * from './lib/browser-xtream-refresh';
+export * from './lib/channel-issues.service';

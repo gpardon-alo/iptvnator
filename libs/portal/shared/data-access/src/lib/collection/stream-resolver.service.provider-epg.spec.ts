@@ -8,14 +8,19 @@ import { StalkerSessionService } from '@iptvnator/portal/stalker/data-access';
 import { EpgRuntimeBridgeService } from '@iptvnator/epg/data-access';
 import {
     DataService,
+    READ_EPG_DICTIONARY,
     EpgPreferencesService,
+    EpgSourceSettingsService,
     PlaylistsService,
     RuntimeCapabilitiesService,
     SettingsStore,
 } from '@iptvnator/services';
 import { Playlist } from '@iptvnator/shared/interfaces';
 import { UnifiedCollectionItem } from '@iptvnator/portal/shared/util';
-import { StreamResolverService } from './stream-resolver.service';
+import {
+    EpgLookupUnavailableError,
+    StreamResolverService,
+} from './stream-resolver.service';
 
 /**
  * Portal guides without the desktop XMLTV bridge (browser PWA, #1683):
@@ -149,6 +154,15 @@ describe('StreamResolverService provider EPG', () => {
             providers: [
                 StreamResolverService,
                 {
+                    provide: READ_EPG_DICTIONARY,
+                    useValue: async (source: string) => [
+                        {
+                            provider: { source_id: source, stream_id: 1 },
+                            epg: { xmltvId: 'Dictionary.example@SD' },
+                        },
+                    ],
+                },
+                {
                     provide: PlaylistsService,
                     useValue: {
                         getPlaylistById: jest.fn((id: string) =>
@@ -186,6 +200,120 @@ describe('StreamResolverService provider EPG', () => {
         });
 
         service = TestBed.inject(StreamResolverService);
+    });
+
+    it('resolves the full guide and current programme through the dictionary as the third choice', async () => {
+        epgBridge.supportsProgramLookup = true;
+        xtreamApi.getFullEpg.mockResolvedValue([]);
+        xtreamApi.getShortEpg.mockResolvedValue([]);
+        epgBridge.getChannelPrograms.mockImplementation(async (id: string) =>
+            id === 'Dictionary.example@SD'
+                ? [
+                      {
+                          channel: id,
+                          title: 'Synthetic dictionary programme',
+                          start: new Date(
+                              (nowSeconds - 60) * 1000
+                          ).toISOString(),
+                          stop: new Date(
+                              (nowSeconds + 60) * 1000
+                          ).toISOString(),
+                      },
+                  ]
+                : []
+        );
+        const guide = await service.loadEpgItems(xtreamXmltvItem);
+        expect(guide[0].title).toBe('Synthetic dictionary programme');
+        expect(
+            epgBridge.getChannelPrograms.mock.calls.map(([id]) => id)
+        ).toEqual(['xtream.xmltv', 'Dictionary.example@SD']);
+        epgBridge.getChannelPrograms.mockClear();
+        const current = await service.loadEpgForItems([xtreamXmltvItem]);
+        expect([...current.values()][0]?.title).toBe(
+            'Synthetic dictionary programme'
+        );
+        expect(
+            epgBridge.getChannelPrograms.mock.calls.map(([id]) => id)
+        ).toEqual(['xtream.xmltv', 'Dictionary.example@SD']);
+    });
+
+    it('keeps provider programmes ahead of either backup identity', async () => {
+        epgBridge.supportsProgramLookup = true;
+        xtreamApi.getFullEpg.mockResolvedValue([
+            xtreamListing('Provider first'),
+        ]);
+        expect((await service.loadEpgItems(xtreamXmltvItem))[0].title).toBe(
+            'Provider first'
+        );
+        expect(epgBridge.getChannelPrograms).not.toHaveBeenCalled();
+    });
+
+    it.each([false, true])(
+        'treats invalidated strict guide loads as unavailable, including failures (%s)',
+        async (fails) => {
+            let settle!: () => void;
+            let markStarted!: () => void;
+            const started = new Promise<void>((resolve) => {
+                markStarted = resolve;
+            });
+            xtreamApi.getShortEpg.mockResolvedValue([]);
+            xtreamApi.getFullEpg.mockImplementationOnce(
+                () =>
+                    new Promise((resolve, reject) => {
+                        settle = () =>
+                            fails
+                                ? reject(new Error('Synthetic failure'))
+                                : resolve([
+                                      xtreamListing('Retired full guide'),
+                                  ]);
+                        markStarted();
+                    })
+            );
+            const pending = service.loadEpgItems(xtreamItem, {
+                throwOnFailure: true,
+            });
+            await started;
+            TestBed.inject(EpgSourceSettingsService).invalidateLookups();
+            const assertion = expect(pending).rejects.toBeInstanceOf(
+                EpgLookupUnavailableError
+            );
+            settle();
+            await assertion;
+        }
+    );
+
+    it('preserves provider failure and missing-source outcomes for observation callers', async () => {
+        xtreamApi.getFullEpg.mockRejectedValue(new Error('Synthetic outage'));
+        xtreamApi.getShortEpg.mockRejectedValue(new Error('Synthetic outage'));
+        await expect(
+            service.loadEpgItems(xtreamItem, { throwOnFailure: true })
+        ).rejects.toThrow('Synthetic outage');
+        await expect(service.loadEpgItems(xtreamItem)).resolves.toEqual([]);
+        await expect(
+            service.loadEpgItems(
+                { ...xtreamItem, playlistId: 'missing-synthetic' },
+                { throwOnFailure: true }
+            )
+        ).rejects.toBeInstanceOf(EpgLookupUnavailableError);
+    });
+
+    it('reports timeouts to observation callers without waiting for a late provider response', async () => {
+        jest.useFakeTimers();
+        try {
+            xtreamApi.getFullEpg.mockImplementationOnce(
+                () =>
+                    new Promise(() => {
+                        /* Provider intentionally never answers. */
+                    })
+            );
+            const assertion = expect(
+                service.loadEpgItems(xtreamItem, { throwOnFailure: true })
+            ).rejects.toThrow('Guide lookup timed out');
+            await jest.advanceTimersByTimeAsync(10_001);
+            await assertion;
+        } finally {
+            jest.useRealTimers();
+        }
     });
 
     it('reloads collection programmes after a global off/on cycle', async () => {

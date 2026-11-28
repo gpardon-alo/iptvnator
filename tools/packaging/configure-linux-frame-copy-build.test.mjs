@@ -46,13 +46,16 @@ test('manual Debian builds reuse packaging gates and cannot publish a release', 
     const deb = jobs['build-deb'];
     const enabled = (condition, context) =>
         vm.runInNewContext(
-            condition.replace(/^\$\{\{\s*|\s*\}\}$/g, ''),
+            condition
+                .replace(/^\$\{\{\s*|\s*\}\}$/g, '')
+                .replace(/needs\.([\w-]+)/g, (_, key) => `needs['${key}']`),
             context,
             { timeout: 100 }
         );
     for (const [event, packageSet, onlyDeb, repository = '4gray/iptvnator'] of [
         ['workflow_dispatch', 'deb', true],
         ['workflow_dispatch', 'all', false],
+        ['workflow_dispatch', 'linux', false],
         ['workflow_dispatch', undefined, false],
         ['push', undefined, false],
         ['pull_request', undefined, false],
@@ -69,6 +72,21 @@ test('manual Debian builds reuse packaging gates and cannot publish a release', 
                 },
             },
             inputs: { package_set: packageSet },
+            needs: {
+                'package-selection': {
+                    outputs: { package_set: packageSet || 'all' },
+                },
+                'nightly-version': { result: 'success' },
+                'build-linux': { result: onlyDeb ? 'skipped' : 'success' },
+                'build-cross-platform': {
+                    result:
+                        packageSet === 'linux' || onlyDeb
+                            ? 'skipped'
+                            : 'success',
+                },
+            },
+            always: () => true,
+            cancelled: () => false,
         };
         assert.equal(enabled(deb.if, context), onlyDeb);
         const fullBuild =
@@ -77,15 +95,16 @@ test('manual Debian builds reuse packaging gates and cannot publish a release', 
         assert.equal(enabled(jobs['build-linux'].if, context), fullBuild);
         assert.equal(
             enabled(jobs['build-cross-platform'].if, context),
-            fullBuild
+            fullBuild && packageSet !== 'linux'
         );
         assert.equal(enabled(jobs['create-release'].if, context), fullBuild);
     }
     assert.equal(
         buildWorkflowConfig.on.workflow_dispatch.inputs.package_set.default,
-        'all'
+        'repository'
     );
     assert.deepEqual(deb.needs, [
+        'package-selection',
         'linux-embedded-mpv-runtime',
         'nightly-version',
         'classification-baseline',
@@ -524,6 +543,7 @@ test('keeps non-Linux builds independent from the Linux runtime prerequisite', (
     // The nightly-version job is a cheap, platform-neutral prerequisite; the
     // Linux runtime build must stay out of the non-Linux dependency list.
     assert.deepEqual(crossPlatformJob.needs, [
+        'package-selection',
         'nightly-version',
         'classification-baseline',
     ]);
@@ -540,6 +560,7 @@ test('keeps non-Linux builds independent from the Linux runtime prerequisite', (
     );
     assert.equal(crossPlatformJob.strategy['fail-fast'], false);
     assert.deepEqual(linuxJob.needs, [
+        'package-selection',
         'linux-embedded-mpv-runtime',
         'nightly-version',
         'classification-baseline',
@@ -574,6 +595,7 @@ test('keeps non-Linux builds independent from the Linux runtime prerequisite', (
     assert.equal(applyNightlyVersion.shell, 'bash');
     assert.match(applyNightlyVersion.run, /--version "\$\{NIGHTLY_VERSION\}"/);
     assert.deepEqual(buildWorkflowConfig.jobs['create-release'].needs, [
+        'package-selection',
         'nightly-version',
         'build-cross-platform',
         'build-linux',
@@ -1104,4 +1126,84 @@ test('draft release consumes split Linux artifacts and source compliance', () =>
         assert.ok(release.includes(releasePath));
     }
     assert.doesNotMatch(buildWorkflow, /^ {4}publish-snap:/m);
+});
+
+test('manual package selection respects repository defaults and explicit overrides', () => {
+    const script = buildWorkflowConfig.jobs[
+        'package-selection'
+    ].steps[0].run.match(/<<'NODE'\n([\s\S]*?)\nNODE/)[1];
+    const select = (event, requested, repositoryDefault) => {
+        let output;
+        vm.runInNewContext(script, {
+            process: {
+                env: {
+                    EVENT_NAME: event,
+                    PACKAGE_SET_INPUT: requested,
+                    PACKAGE_SET_DEFAULT: repositoryDefault,
+                    GITHUB_OUTPUT: 'output',
+                },
+            },
+            require: () => ({
+                appendFileSync: (_path, value) => {
+                    output = value;
+                },
+            }),
+            console: { log: () => undefined },
+        });
+        return output;
+    };
+    assert.equal(
+        select('workflow_dispatch', 'repository', 'linux'),
+        'package_set=linux\n'
+    );
+    assert.equal(
+        select('workflow_dispatch', '', 'linux'),
+        'package_set=linux\n'
+    );
+    assert.equal(
+        select('workflow_dispatch', 'repository', ''),
+        'package_set=all\n'
+    );
+    for (const mode of ['linux', 'all', 'deb']) {
+        assert.equal(
+            select('workflow_dispatch', mode, 'linux'),
+            `package_set=${mode}\n`
+        );
+    }
+    assert.equal(select('push', '', 'linux'), 'package_set=all\n');
+    assert.throws(
+        () => select('workflow_dispatch', 'repository', 'invalid'),
+        /Package selection/
+    );
+});
+
+test('Linux-only release creation rejects failed or cancelled dependencies', () => {
+    const condition = buildWorkflowConfig.jobs['create-release'].if
+        .replace(/^\$\{\{\s*|\s*\}\}$/g, '')
+        .replace(/needs\.([\w-]+)/g, (_, key) => `needs['${key}']`);
+    for (const result of ['failure', 'cancelled', 'skipped']) {
+        const context = {
+            github: {
+                repository: 'example/iptv-player',
+                event_name: 'workflow_dispatch',
+            },
+            needs: {
+                'package-selection': { outputs: { package_set: 'linux' } },
+                'nightly-version': { result: 'success' },
+                'build-linux': { result },
+                'build-cross-platform': { result: 'skipped' },
+            },
+            always: () => true,
+            cancelled: () => false,
+        };
+        assert.equal(vm.runInNewContext(condition, context), false);
+    }
+});
+
+
+test('Linux branch test metadata does not reuse a full-platform release tag', () => {
+    const script = buildWorkflowConfig.jobs['create-release'].steps.find((step) => step.name === 'Compose release metadata').run;
+    const branch = script.slice(script.indexOf('if [ "${PACKAGE_SET}" = "linux" ]; then'), script.indexOf('if [ "${PACKAGE_SET}" = "all" ]'));
+    assert.match(branch, /IS_TAG_BUILD/);
+    assert.match(branch, /TAG="\$\{TAG\}-linux-\$\{SHORT_SHA\}"/);
 });

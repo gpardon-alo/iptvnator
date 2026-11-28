@@ -449,6 +449,11 @@ describe('StreamResolverService', () => {
     });
 
     it('resolves manual EPG mappings for Xtream previews with one batched lookup', async () => {
+        (
+            TestBed.inject(SettingsStore) as unknown as {
+                preferUploadedEpgOverXtream: () => boolean;
+            }
+        ).preferUploadedEpgOverXtream = () => true;
         playlistsService.getPlaylistById.mockReturnValue(
             of({
                 _id: 'xtream-1',

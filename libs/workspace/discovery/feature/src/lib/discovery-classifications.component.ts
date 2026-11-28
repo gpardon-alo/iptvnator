@@ -55,6 +55,7 @@ export class DiscoveryClassificationsComponent {
         return missing.length ? `Missing: ${missing.join(', ')}` : 'Complete';
     };
     readonly query = signal('');
+    readonly dictionaryUrl = this.session.dictionaryUrl;
     readonly page = signal(0);
     readonly draft = signal<ClassifiedStream | null>(null);
     readonly matches = computed(() =>
@@ -98,7 +99,13 @@ export class DiscoveryClassificationsComponent {
         const file = input.files?.[0];
         input.value = '';
         if (!file) return;
-        const importing = this.session.importDictionary(file);
+        await this.import(file);
+    }
+    async importDictionaryUrl(): Promise<void> {
+        await this.import(this.dictionaryUrl());
+    }
+    private async import(value: File | string): Promise<void> {
+        const importing = this.session.importDictionary(value);
         this.importStatus()?.nativeElement.focus();
         await importing;
         this.importStatus()?.nativeElement.focus();

@@ -1,3 +1,4 @@
+import { ChannelLogoIssueDirective } from '@iptvnator/ui/components';
 import {
     ChannelContextMenuComponent,
     ChannelScrollFocusDirective,
@@ -100,6 +101,7 @@ interface XtreamCategoryLike {
     styleUrls: ['./portal-channels-list.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
+        ChannelLogoIssueDirective,
         ChannelContextMenuComponent,
         ChannelScrollFocusDirective,
         ChannelListItemComponent,
