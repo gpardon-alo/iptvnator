@@ -11,6 +11,15 @@ this marker — see `.changes/README.md`.
 
 <!-- next-release -->
 
+# [0.26.3](https://github.com/gpardon-alo/iptvnator/compare/v0.26.2...v0.26.3) (2026-11-27)
+
+### Features
+
+- **discovery** — Import a source dictionary from a JSON URL in Settings → Dictionary. Successful imports remember the URL on this device for each source. Failed imports retain previous mappings, and reselecting the current source preserves its loaded rows.
+- **epg** — Refreshing a source also reloads its dictionary when a URL is configured, downloads the latest backup guide, and refreshes programme lookups. Failed dictionary or guide updates retain the saved data and identify the failed step.
+
+This fork release provides the Linux amd64 Debian installer, its SHA-256 checksum and the matching runtime source archive.
+
 # [0.26.2](https://github.com/gpardon-alo/iptvnator/compare/v0.26.1...v0.26.2) (2026-11-25)
 
 ### Fixes
@@ -981,4 +990,3 @@ The storage location of playlists has been changed, now everything is stored in 
 * initial commit ([2f1701a](https://github.com/4gray/iptvnator/commit/2f1701a3db04beb2fc6aca1e3a05f04c0a04b8af))
 * list with recent playlists ([1735026](https://github.com/4gray/iptvnator/commit/1735026c201591c4192317f3a5371c8548f8fa1c))
 * list with recent playlists ([8ee96ee](https://github.com/4gray/iptvnator/commit/8ee96eeebe0ca422d7bc183296f896c49e827b19))
-
