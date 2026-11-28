@@ -27,6 +27,10 @@ function identity(source: PlaylistMeta): string {
         source.filePath,
         source.macAddress,
         source.userAgent,
+        source.epgUrls,
+        source.manualEpgUrls,
+        source.disabledEpgUrls,
+        source.autoImportEpg,
     ]);
 }
 
@@ -92,12 +96,20 @@ export class SourceRefreshFollowUpService {
                     this.preferences.enabled() &&
                     this.bridge.supportsDataManagement
                 ) {
+                    const configurationCurrent = async () =>
+                        (await current()) &&
+                        this.preferences.enabled() &&
+                        JSON.stringify(
+                            normalizeEpgUrls(this.settings.epgUrl())
+                        ) === JSON.stringify(global);
                     for (const url of normalizeEpgUrls([
                         ...global,
                         ...scoped,
                     ])) {
-                        if (!(await current())) return;
-                        if (!(await this.refreshGuide(url))) epgFailed = true;
+                        if (!(await configurationCurrent())) return;
+                        const refreshed = await this.refreshGuide(url);
+                        if (!(await configurationCurrent())) return;
+                        if (!refreshed) epgFailed = true;
                     }
                 }
             } catch {

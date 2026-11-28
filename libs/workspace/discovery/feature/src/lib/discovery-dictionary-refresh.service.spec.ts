@@ -97,6 +97,16 @@ describe('dictionary reload after an accepted catalog refresh', () => {
         expect(update).not.toHaveBeenCalled();
     });
 
+    it('retains mappings if the dictionary URL changes before the transaction reads them', async () => {
+        const previous = saved;
+        update.mockImplementationOnce(async (_id, merge) => {
+            currentUrl = 'https://dictionary.example.test/replacement.json';
+            saved = merge(saved);
+        });
+        await service.refresh('synthetic', async () => true);
+        expect(saved).toBe(previous);
+    });
+
     it('preserves omitted optional EPG fields while accepting explicit nulls', async () => {
         text = JSON.stringify([
             { ...makeRow(9), epg: { source: 'example.test' } },

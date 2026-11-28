@@ -64,6 +64,9 @@ export class DiscoveryDictionaryRefreshService {
         );
         if (!(await isCurrent()) || this.urls.read(id).trim() !== url) return;
         await this.storage.update(id, (saved) => {
+            // Opening IndexedDB is asynchronous; a manual URL import may have
+            // replaced the preference since the ownership check above.
+            if (this.urls.read(id).trim() !== url) return saved;
             const merged = new Map(saved.map((row) => [row.id, row]));
             for (const row of imported) {
                 const previous = merged.get(row.id)?.epg;

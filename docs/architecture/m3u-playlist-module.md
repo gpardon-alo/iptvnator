@@ -1965,6 +1965,8 @@ playlist-scoped XMLTV sources. Repeated URLs and concurrent source refreshes sha
 an in-flight guide import. Ordinary source loading keeps its existing freshness
 rules. Source refresh does not clear the saved guide; failed replacement retains
 it, and lookup invalidation refreshes displayed programmes after the chain.
+Each import rechecks the source's EPG configuration, global URLs and enabled
+preference; changes retire the remaining chain without importing removed URLs.
 
 The parser worker stages incoming channel and programme batches in
 connection-private, file-backed SQLite temporary tables. It publishes the new

@@ -30,6 +30,7 @@ describe('source → dictionary → XMLTV refresh', () => {
     };
     let snackBar: { open: jest.Mock };
     let service: SourceRefreshFollowUpService;
+    let guideUrls: string[];
 
     beforeEach(async () => {
         const { DiscoveryDictionaryRefreshService } =
@@ -37,6 +38,7 @@ describe('source → dictionary → XMLTV refresh', () => {
         sources = [
             { _id: 'synthetic', serverUrl: 'https://provider.example.test' },
         ];
+        guideUrls = [url, url];
         order = [];
         dictionary = {
             refresh: jest.fn(async () => {
@@ -73,7 +75,7 @@ describe('source → dictionary → XMLTV refresh', () => {
                     provide: SettingsStore,
                     useValue: {
                         loadSettings: jest.fn().mockResolvedValue(undefined),
-                        epgUrl: () => [url, url],
+                        epgUrl: () => guideUrls,
                         getTrustOptions: () => ({}),
                     },
                 },
@@ -108,6 +110,54 @@ describe('source → dictionary → XMLTV refresh', () => {
         expect(dictionary.refresh).not.toHaveBeenCalled();
         expect(order).toEqual(['epg', 'invalidate']);
     });
+    it('drops scoped guide snapshots changed while reconciliation is pending', async () => {
+        urls.read.mockReturnValue('');
+        sources = [
+            {
+                _id: 'synthetic',
+                epgUrls: ['https://scoped.example.test/guide.xml'],
+            },
+        ];
+        epgSources.waitForReconciliation.mockImplementation(async () => {
+            sources = [{ _id: 'synthetic', epgUrls: [] }];
+        });
+        await service.refresh('synthetic', () => true);
+        expect(bridge.forceFetchEpg).not.toHaveBeenCalled();
+    });
+
+    it.each([1, 2])(
+        'retires a changed global configuration with %i queued guides without an error toast',
+        async (count) => {
+            guideUrls = [url, 'https://other.example.test/guide.xml'].slice(
+                0,
+                count
+            );
+            bridge.forceFetchEpg.mockImplementation(async () => {
+                guideUrls = [];
+                return null;
+            });
+            await service.refresh('synthetic', () => true);
+            expect(bridge.forceFetchEpg.mock.calls).toEqual([[url, {}]]);
+            expect(snackBar.open).not.toHaveBeenCalled();
+        }
+    );
+
+    it.each([1, 2])(
+        'retires %i queued guides when EPG is disabled during a download',
+        async (count) => {
+            guideUrls = [url, 'https://other.example.test/guide.xml'].slice(
+                0,
+                count
+            );
+            bridge.forceFetchEpg.mockImplementation(async () => {
+                preferences.enabled.mockReturnValue(false);
+                return null;
+            });
+            await service.refresh('synthetic', () => true);
+            expect(bridge.forceFetchEpg).toHaveBeenCalledTimes(1);
+            expect(snackBar.open).not.toHaveBeenCalled();
+        }
+    );
 
     it('continues EPG after dictionary failure and reports only the failed step', async () => {
         dictionary.refresh.mockRejectedValue(
