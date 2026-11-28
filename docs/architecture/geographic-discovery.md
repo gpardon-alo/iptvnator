@@ -186,7 +186,10 @@ before force-refreshing configured XMLTV sources. No dictionary URL means saved
 mappings are reused. Automatic reload uses the same complete-file validator as
 manual import, keeps current provider evidence, retains absent/unmentioned streams,
 and preserves an existing EPG reference when the incoming row omits it. The merge
-reads current mappings and commits in one IndexedDB transaction.
+reads current mappings and commits in one IndexedDB transaction. Manual edits
+apply only changed fields against the latest stored rows, and partial manual
+imports merge atomically, so an open Dictionary page cannot erase a concurrent
+refresh of unrelated mappings.
 URL ownership is checked again inside that transaction. Follow-ups retire when
 source EPG configuration, global guide URLs or the EPG enabled preference changes;
 removed URLs are not imported by later steps of the chain. Download,

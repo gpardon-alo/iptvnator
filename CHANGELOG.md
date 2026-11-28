@@ -20,6 +20,7 @@ this marker — see `.changes/README.md`.
 
 ### Fixes
 
+- **discovery** — Manual Dictionary edits and partial imports preserve mappings refreshed in the background. Changes merge against the latest saved rows so an open page cannot overwrite unrelated updates.
 - **channels** — Channel issue lists and exports stay separate for local libraries and each self-hosted server. Existing local reports remain available, and delayed writes stay with the profile that created them.
 - **epg** — An empty channel preview no longer reports a missing guide when the provider may still offer a working full guide. Full-guide lookups continue to report confirmed missing programme data.
 - **xtream** — Refreshing a live TV source opens Discovery with that source selected. Movie-only and series-only sources remain on their content page after refresh.

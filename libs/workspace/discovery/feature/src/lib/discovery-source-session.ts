@@ -40,6 +40,7 @@ import {
     type DemoChannel,
 } from './discovery-catalog';
 import { groupDiscoveryChannels } from './discovery-channel-groups';
+import { mergeDiscoveryEdits } from './discovery-mapping-edits';
 import {
     DictionaryImportError,
     downloadDiscoveryDictionary,
@@ -93,7 +94,6 @@ export class DiscoverySourceSession {
             : groupDiscoveryChannels(this.rows(), this.logos())
     );
     readonly epgChannelIds = signal(new Map<number, string>());
-    private saved: ClassifiedStream[] = [];
     private readonly logos = signal(new Map<number, string>());
     private generation = 0;
     private activeSource = '';
@@ -228,7 +228,6 @@ export class DiscoverySourceSession {
                         p.stream_id > 0 &&
                         p.name
                 );
-            this.saved = saved;
             this.rows.set(
                 reconcileDiscoveryMappings(providers, saved, COUNTRIES)
             );
@@ -289,14 +288,16 @@ export class DiscoverySourceSession {
         this.saving.set(true);
         this.setNotice('');
         try {
-            // Retain absent streams so a later catalog can restore their custom mapping.
-            const merged = new Map(this.saved.map((row) => [row.id, row]));
-            rows.forEach((row) => merged.set(row.id, row));
-            const saved = [...merged.values()];
-            await this.storage.write(id, saved);
+            const before = this.rows();
+            let saved: ClassifiedStream[] = [];
+            await this.storage.update(id, (current) => {
+                if (generation !== this.generation) return current;
+                saved = mergeDiscoveryEdits(current, before, rows);
+                return saved;
+            });
             if (generation !== this.generation) return;
-            this.saved = saved;
-            this.rows.set(rows);
+            const committed = new Map(saved.map((row) => [row.id, row]));
+            this.rows.set(rows.map((row) => committed.get(row.id) ?? row));
             this.setNotice('Mappings saved on this device.', 'success');
         } catch {
             this.setNotice(
@@ -333,15 +334,22 @@ export class DiscoverySourceSession {
             const imported = parseDiscoveryDictionary(text, id, this.rows());
             const changes = new Map(imported.map((row) => [row.id, row]));
             const rows = this.rows().map((row) => changes.get(row.id) ?? row);
-            const merged = new Map(this.saved.map((row) => [row.id, row]));
-            rows.forEach((row) => merged.set(row.id, row));
-            imported.forEach((row) => merged.set(row.id, row));
-            const saved = [...merged.values()];
+            let saved: ClassifiedStream[] = [];
             validated = true;
-            await this.storage.write(id, saved);
+            await this.storage.update(id, (current) => {
+                if (generation !== this.generation) return current;
+                const merged = new Map(
+                    mergeDiscoveryEdits(current, this.rows(), this.rows()).map(
+                        (row) => [row.id, row]
+                    )
+                );
+                imported.forEach((row) => merged.set(row.id, row));
+                saved = [...merged.values()];
+                return saved;
+            });
             if (generation !== this.generation) return;
-            this.saved = saved;
-            this.rows.set(rows);
+            const committed = new Map(saved.map((row) => [row.id, row]));
+            this.rows.set(rows.map((row) => committed.get(row.id) ?? row));
             this.setNotice(
                 `Imported ${imported.length} dictionary mappings on this device.`,
                 'success'

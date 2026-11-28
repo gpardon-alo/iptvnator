@@ -21,7 +21,7 @@ describe('Discovery source classification session', () => {
         username: 'demo',
         password: 'demo',
     };
-    let storage: { read: jest.Mock; write: jest.Mock };
+    let storage: { read: jest.Mock; write: jest.Mock; update: jest.Mock };
     let download: jest.Mock;
     let data: {
         getPlaylist: jest.Mock;
@@ -43,6 +43,9 @@ describe('Discovery source classification session', () => {
         storage = {
             read: jest.fn().mockResolvedValue([]),
             write: jest.fn().mockResolvedValue(undefined),
+            update: jest.fn(async (id, merge) =>
+                storage.write(id, merge(await storage.read(id)))
+            ),
         };
         data = {
             getPlaylist: jest.fn().mockResolvedValue(playlist),
@@ -87,6 +90,57 @@ describe('Discovery source classification session', () => {
         session = TestBed.inject(DiscoverySourceSession);
         session.select('synthetic');
     });
+    it('merges manual edits with refreshed mappings instead of a stale page snapshot', async () => {
+        await session.load();
+        const row = session.rows()[0];
+        const refreshed = {
+            ...row,
+            name: 'Refreshed correction',
+            epg: { xmltvId: 'Refreshed.example' },
+        };
+        const absent = {
+            ...refreshed,
+            id: 'local:synthetic:live:11',
+            provider: { ...row.provider, stream_id: 11 },
+        };
+        storage.read.mockResolvedValue([refreshed, absent]);
+        await session.edit({ ...row, language: 'Portuguese' });
+        expect(storage.write).toHaveBeenLastCalledWith('synthetic', [
+            expect.objectContaining({
+                name: 'Refreshed correction',
+                language: 'Portuguese',
+                epg: refreshed.epg,
+            }),
+            absent,
+        ]);
+        expect(session.rows()[0]).toMatchObject({
+            name: 'Refreshed correction',
+            language: 'Portuguese',
+            epg: refreshed.epg,
+        });
+    });
+
+    it('keeps unrelated refreshed rows when importing a partial dictionary from a stale page', async () => {
+        await session.load();
+        const row = session.rows()[0];
+        const absent = {
+            ...row,
+            id: 'local:synthetic:live:11',
+            name: 'Refreshed absent mapping',
+            provider: { ...row.provider, stream_id: 11 },
+        };
+        storage.read.mockResolvedValue([row, absent]);
+        await session.importDictionary({
+            size: 100,
+            text: async () =>
+                JSON.stringify([{ ...row, language: 'Portuguese' }]),
+        } as File);
+        expect(storage.write).toHaveBeenLastCalledWith('synthetic', [
+            expect.objectContaining({ language: 'Portuguese' }),
+            absent,
+        ]);
+    });
+
     it('retains loaded mappings when the current source is selected again', async () => {
         await session.load();
         const rows = session.rows();
