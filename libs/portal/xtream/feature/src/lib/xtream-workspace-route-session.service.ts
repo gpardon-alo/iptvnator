@@ -17,6 +17,7 @@ import {
     XtreamStore,
 } from '@iptvnator/portal/xtream/data-access';
 import { SourceActivityService } from '@iptvnator/services';
+import { normalizeXtreamContentTypes } from '@iptvnator/shared/interfaces';
 import {
     toXtreamPlaylistData,
     shouldBootstrapXtreamPlaylist,
@@ -323,19 +324,26 @@ export class XtreamWorkspaceRouteSession {
             cacheScope
         );
 
-        // Refresh keeps its existing import route, then finishes on Discovery.
+        // Live refreshes finish on Discovery; on-demand sources keep their route.
         // Navigation info is transient, so Back/reload cannot replay this redirect.
         const info = navigation?.extras.info as
             { xtreamRefresh?: boolean } | undefined;
         if (
             info?.xtreamRefresh === true &&
+            playlistId &&
+            routePlaylist &&
+            normalizeXtreamContentTypes(
+                routePlaylist.xtreamContentTypes
+            ).includes('live') &&
             !this.destroyRef.destroyed &&
             this.router.url === url &&
             this.router.lastSuccessfulNavigation() === navigation &&
             this.xtreamStore.isContentInitialized() &&
             !this.xtreamStore.contentInitBlockReason()
         ) {
-            await this.router.navigate(['/workspace', 'discovery']);
+            await this.router.navigate(['/workspace', 'discovery'], {
+                info: { discoverySourceId: playlistId },
+            });
         }
     }
 

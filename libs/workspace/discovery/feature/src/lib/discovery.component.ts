@@ -23,6 +23,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ContentCardComponent } from '@iptvnator/portal/shared/ui';
 import { DiscoverySourceSession } from './discovery-source-session';
+import { selectDiscoveryRouteSource } from './discovery-route-source';
 import { DiscoveryWorkspaceSession } from './discovery-workspace-session';
 import {
     CATEGORIES,
@@ -225,6 +226,7 @@ export class DiscoveryComponent {
     );
 
     constructor() {
+        selectDiscoveryRouteSource(this.catalog);
         effect(() => this.search(this.workspace.query()));
         effect(() => {
             this.catalog.sourceId();

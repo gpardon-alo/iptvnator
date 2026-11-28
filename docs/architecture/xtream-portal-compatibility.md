@@ -87,7 +87,10 @@ public write path.
 Destructive refresh belongs to `XtreamRefreshFlowService`; the data-source
 contract has no separate clear-and-snapshot entry point. Desktop refresh keeps
 its enabled-section navigation to trigger re-import, then opens Workspace
-Discovery after successful initialization. Failed or cancelled imports stay on
+Discovery after successful initialization for sources with live TV, passing the
+refreshed source ID in transient navigation info. Discovery selects that known
+live source on arrival, overriding its saved selection once. Movie-only and
+series-only sources remain on their content route. Failed or cancelled imports stay on
 the import screen, and leaving the page during import suppresses the final
 redirect. The completion redirect uses transient navigation info so browser
 history and reload do not replay it. Browser backup tests

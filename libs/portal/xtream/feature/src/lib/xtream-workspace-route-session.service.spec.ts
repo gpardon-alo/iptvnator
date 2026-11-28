@@ -312,11 +312,34 @@ describe('XtreamWorkspaceRouteSession', () => {
 
         importDone.resolve();
         await flushEffects();
-        expect(router.navigate).toHaveBeenCalledWith([
-            '/workspace',
-            'discovery',
-        ]);
+        expect(router.navigate).toHaveBeenCalledWith(
+            ['/workspace', 'discovery'],
+            { info: { discoverySourceId: PLAYLIST_ID } }
+        );
     });
+
+    it.each(['movie', 'series'] as const)(
+        'keeps a %s-only refresh on its content route',
+        async (type) => {
+            activePlaylist.set({
+                ...ACTIVE_PLAYLIST,
+                xtreamContentTypes: [type],
+            });
+            currentPlaylist.set({
+                ...XTREAM_PLAYLIST,
+                xtreamContentTypes: [type],
+            });
+            xtreamStore.checkPortalStatus.mockResolvedValue('active');
+            router.lastSuccessfulNavigation.set({
+                id: 1,
+                extras: { info: { xtreamRefresh: true } },
+            } as Navigation);
+            TestBed.inject(XtreamWorkspaceRouteSession);
+            await flushEffects();
+            expect(xtreamStore.initializeContent).toHaveBeenCalled();
+            expect(router.navigate).not.toHaveBeenCalled();
+        }
+    );
 
     it.each(['ordinary navigation', 'failed import', 'left the page'])(
         'does not redirect after %s',

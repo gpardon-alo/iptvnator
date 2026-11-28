@@ -125,12 +125,30 @@ test('@electron @epg source refresh reloads the configured dictionary before rep
         }));
         title = 'Synthetic refreshed programme';
         requests.length = 0;
+        await page.evaluate(() =>
+            localStorage.setItem(
+                'iptvnator:discovery-source-v1',
+                'synthetic-retired-source'
+            )
+        );
         // The Dictionary page is closed while the actual provider reimport runs.
         await openSources(page);
         await refreshSource(page, 'Synthetic refresh source', {
             confirm: true,
         });
         await expect.poll(programmes, { timeout: 60000 }).toEqual([title]);
+        await expect(page).toHaveURL(/\/workspace\/discovery$/);
+        await expect
+            .poll(async () =>
+                Number.parseInt(
+                    await page.locator('.result-count').innerText(),
+                    10
+                )
+            )
+            .toBeGreaterThan(0);
+        await expect(
+            page.getByTestId('playlist-switcher-trigger')
+        ).toContainText('Synthetic refresh source');
         await expect
             .poll(async () => (await readXtreamImportState(page, id)).live)
             .toMatchObject({ status: 'completed', hasContent: true });
