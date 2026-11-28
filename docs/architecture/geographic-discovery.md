@@ -192,6 +192,8 @@ source EPG configuration, global guide URLs or the EPG enabled preference change
 removed URLs are not imported by later steps of the chain. Download,
 validation or write failure retains the previous mappings and does not prevent
 the EPG step. Failed steps are named without exposing URLs or imported content.
+Concurrent notifications before work starts coalesce. A newer catalog accepted
+while follow-ups run queues another pass before releasing source activity.
 The Dictionary page receives its catalog notification after these follow-ups, so
 an open page reloads the committed mappings. New unmatched streams remain pending;
 source refresh does not run classification rules automatically.

@@ -7,7 +7,10 @@ import { SourceActivityService } from './source-activity.service';
 export class SourceCatalogUpdatesService {
     private readonly completed = new Subject<string>();
     private readonly followUps = new Set<(id: string) => Promise<void>>();
-    private readonly pending = new Map<string, Promise<void>>();
+    private readonly pending = new Map<
+        string,
+        { running: boolean; again: boolean; notifyLive: boolean }
+    >();
     private readonly activity = inject(SourceActivityService);
     readonly liveUpdated$ = this.completed.asObservable();
 
@@ -28,25 +31,40 @@ export class SourceCatalogUpdatesService {
     }
 
     private runFollowUps(id: string, notifyLive: boolean): boolean {
-        if (this.pending.has(id)) return true;
+        const current = this.pending.get(id);
+        if (current) {
+            current.again ||= current.running;
+            current.notifyLive ||= notifyLive;
+            return true;
+        }
         if (!this.followUps.size) return false;
         const release = this.activity.begin([id]);
-        const handlers = [...this.followUps];
+        const state = { running: false, again: false, notifyLive };
+        this.pending.set(id, state);
         // Register before invoking handlers: warm PWA catalog reads can notify
         // recursively while a follow-up inspects the accepted catalog.
         const pending = Promise.resolve().then(async () => {
             try {
-                for (const handler of handlers) await handler(id);
+                state.running = true;
+                do {
+                    state.again = false;
+                    for (const handler of [...this.followUps]) {
+                        try {
+                            await handler(id);
+                        } catch {
+                            // A failed step must not drop a newer accepted catalog.
+                        }
+                    }
+                } while (state.again);
             } finally {
                 this.pending.delete(id);
                 try {
-                    if (notifyLive) this.completed.next(id);
+                    if (state.notifyLive) this.completed.next(id);
                 } finally {
                     release();
                 }
             }
         });
-        this.pending.set(id, pending);
         // Each app handler reports its own fixed, redacted failure message.
         void pending.catch(() => undefined);
         return true;

@@ -16,7 +16,7 @@ this marker — see `.changes/README.md`.
 ### Features
 
 - **discovery** — Import a source dictionary from a JSON URL in Settings → Dictionary. Successful imports remember the URL on this device for each source. Failed imports retain previous mappings, and reselecting the current source preserves its loaded rows.
-- **epg** — Refreshing a source also reloads its dictionary when a URL is configured, downloads the latest backup guide, and refreshes programme lookups. Failed dictionary or guide updates retain the saved data and identify the failed step.
+- **epg** — Refreshing a source also reloads its dictionary when a URL is configured, downloads the latest backup guide, and refreshes programme lookups. Failed dictionary or guide updates retain the saved data and identify the failed step. Overlapping refreshes process the newest accepted catalog before completion.
 
 ### Fixes
 

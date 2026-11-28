@@ -32,6 +32,55 @@ describe('source refresh follow-ups', () => {
         expect(activity.isBusy('synthetic')).toBe(false);
     });
 
+    it('runs a trailing follow-up for a newer catalog accepted during the first', async () => {
+        const updates = TestBed.inject(SourceCatalogUpdatesService);
+        const activity = TestBed.inject(SourceActivityService);
+        const completed = jest.fn();
+        updates.liveUpdated$.subscribe(completed);
+        const finishes: (() => void)[] = [];
+        const handler = jest.fn(
+            () => new Promise<void>((resolve) => finishes.push(resolve))
+        );
+        updates.afterRefresh(handler);
+        updates.sourceUpdated('synthetic');
+        await flush();
+        updates.liveUpdated('synthetic');
+        updates.liveUpdated('synthetic');
+        finishes[0]();
+        await flush();
+        expect(handler).toHaveBeenCalledTimes(2);
+        expect(activity.isBusy('synthetic')).toBe(true);
+        expect(completed).not.toHaveBeenCalled();
+        finishes[1]();
+        await flush();
+        expect(completed).toHaveBeenCalledTimes(1);
+        expect(activity.isBusy('synthetic')).toBe(false);
+    });
+
+    it('does not drop a queued catalog when the previous follow-up rejects', async () => {
+        const updates = TestBed.inject(SourceCatalogUpdatesService);
+        let fail!: () => void;
+        const handler = jest
+            .fn()
+            .mockImplementationOnce(
+                () =>
+                    new Promise<void>((_, reject) => {
+                        fail = () => reject(new Error('synthetic'));
+                    })
+            )
+            .mockResolvedValue(undefined);
+        updates.afterRefresh(handler);
+        updates.liveUpdated('synthetic');
+        await flush();
+        updates.liveUpdated('synthetic');
+        fail();
+        await flush();
+        expect(handler).toHaveBeenCalledTimes(2);
+        expect(TestBed.inject(SourceActivityService).isBusy('synthetic')).toBe(
+            false
+        );
+    });
+
     it('still publishes a saved catalog and releases activity if a follow-up fails', async () => {
         const updates = TestBed.inject(SourceCatalogUpdatesService);
         const completed = jest.fn();
